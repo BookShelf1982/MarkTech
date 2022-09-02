@@ -1,0 +1,6 @@
+[submodule "vendor"]
+	path = vendor
+	url = https://github.com/gabime/spdlog
+[submodule "MarkTech/vendor"]
+	path = MarkTech/vendor
+	url = https://github.com/gabime/spdlog
