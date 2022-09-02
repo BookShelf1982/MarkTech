@@ -27,9 +27,15 @@
     <ClInclude Include="src\MarkTech\EntryPoint.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\MarkTech\Log.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\MarkTech\Application.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MarkTech\Log.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
