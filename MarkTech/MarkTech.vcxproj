@@ -11,6 +11,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Events\ApplicationEvent.h" />
+    <ClInclude Include="src\Events\Event.h" />
+    <ClInclude Include="src\Events\KeyEvent.h" />
+    <ClInclude Include="src\Events\MouseEvent.h" />
     <ClInclude Include="src\MarkTech\Log.h" />
     <ClInclude Include="src\MarkTech.h" />
     <ClInclude Include="src\MarkTech\Application.h" />
@@ -70,7 +74,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>MT_PLATFORM_WINDOWS;MT_BUILD_DLL;MARKTECH_BUILD_DLL_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)MarkTech/vendor/spdlog/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)MarkTech/vendor/spdlog/include;$(SolutionDir)MarkTech/src/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -85,7 +89,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>MT_PLATFORM_WINDOWS;MT_BUILD_DLL;MARKTECH_BUILD_DLLNDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)MarkTech/vendor/spdlog/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)MarkTech/vendor/spdlog/include;$(SolutionDir)MarkTech/src/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

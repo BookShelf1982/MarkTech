@@ -10,3 +10,4 @@
 #error MarkTech only support Winodws!
 #endif 
 
+#define BIT(x) (1 << x)

@@ -30,6 +30,18 @@
     <ClInclude Include="src\MarkTech\Log.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Events\Event.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Events\ApplicationEvent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Events\KeyEvent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Events\MouseEvent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\MarkTech\Application.cpp">
