@@ -2,12 +2,12 @@
 
 #ifdef MT_PLATFORM_WINDOWS
 	#ifdef MT_BUILD_DLL
-		#define	MARKTECH_API __declspec(dllexport)
+		#define MARKTECH_API __declspec(dllexport)
 	#else
-		#define	MARKTECH_API __declspec(dllimport)
+		#define MARKTECH_API __declspec(dllimport)
 	#endif
-#else 
-#error MarkTech only support Winodws!
-#endif 
+#else
 
-#define BIT(x) (1 << x)
+#error MARKTECH ONLY SUPPORTS WINDOWS
+
+#endif // MT_PLATFORM_WINDOS

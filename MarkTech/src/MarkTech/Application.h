@@ -1,6 +1,6 @@
 #pragma once
 #include "core.h"
-#include "Events/Event.h"
+
 
 namespace MarkTech {
 
@@ -9,13 +9,9 @@ namespace MarkTech {
 	public:
 		Application();
 		virtual ~Application();
-
 		void Run();
-		
 	};
 
-	//TO BE DEFINED IN CLIENT
 	Application* CreateApplication();
-
-}
+ }
 

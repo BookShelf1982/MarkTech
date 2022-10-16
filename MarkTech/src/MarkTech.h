@@ -1,7 +1,9 @@
 #pragma once
-//For use by MarkTech Games
+
+//for use by external app
+
 #include "MarkTech/core.h"
 #include "MarkTech/Application.h"
-#include "MarkTech/Log.h"
-// Entry Point
 #include "MarkTech/EntryPoint.h"
+#include "MarkTech/Log.h"
+
