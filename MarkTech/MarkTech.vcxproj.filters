@@ -16,7 +16,16 @@
     <ClInclude Include="src\MarkTech\EntryPoint.h">
       <Filter>MarkTech</Filter>
     </ClInclude>
+    <ClInclude Include="src\MarkTech\Events\ApplicationEvent.h">
+      <Filter>MarkTech\Events</Filter>
+    </ClInclude>
     <ClInclude Include="src\MarkTech\Events\Event.h">
+      <Filter>MarkTech\Events</Filter>
+    </ClInclude>
+    <ClInclude Include="src\MarkTech\Events\KeyEvent.h">
+      <Filter>MarkTech\Events</Filter>
+    </ClInclude>
+    <ClInclude Include="src\MarkTech\Events\MouseEvent.h">
       <Filter>MarkTech\Events</Filter>
     </ClInclude>
     <ClInclude Include="src\MarkTech\Log.h">
@@ -25,9 +34,6 @@
     <ClInclude Include="src\MarkTech\core.h">
       <Filter>MarkTech</Filter>
     </ClInclude>
-    <ClInclude Include="src\MarkTech\Events\KeyEvent.h" />
-    <ClInclude Include="src\MarkTech\Events\MouseEvent.h" />
-    <ClInclude Include="src\MarkTech\Events\ApplicationEvent.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\MarkTech\Application.cpp">
