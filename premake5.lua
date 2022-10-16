@@ -31,11 +31,6 @@ project "MarkTech"
 
 		defines {"MT_PLATFORM_WINDOWS", "MT_BUILD_DLL", "WIN32"}
 
-		postbuildcommands
-		{
-			("{COPY} %{cfg.buildtarget.relpath} ../bin/" .. outputdir .. "/Game")
-		}
-
 	filter "configurations:Debug"
 		defines "MT_DEBUG"
 		symbols "On"
