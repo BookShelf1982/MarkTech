@@ -20,7 +20,8 @@ project "MarkTech"
 
 	includedirs
 	{
-		"%{prj.name}/3rdparty/spdlog/include"
+		"%{prj.name}/3rdparty/spdlog/include",
+		"$(SolutionDir)MarkTech/src"
 	}
 
 	filter "system:windows"

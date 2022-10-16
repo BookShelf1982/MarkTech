@@ -4,6 +4,9 @@
     <Filter Include="MarkTech">
       <UniqueIdentifier>{1477FDC7-0044-58D3-295D-467B15898D61}</UniqueIdentifier>
     </Filter>
+    <Filter Include="MarkTech\Events">
+      <UniqueIdentifier>{78E4EB23-E46F-59E8-ED80-DCDC598BB5E8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\MarkTech.h" />
@@ -13,12 +16,18 @@
     <ClInclude Include="src\MarkTech\EntryPoint.h">
       <Filter>MarkTech</Filter>
     </ClInclude>
+    <ClInclude Include="src\MarkTech\Events\Event.h">
+      <Filter>MarkTech\Events</Filter>
+    </ClInclude>
     <ClInclude Include="src\MarkTech\Log.h">
       <Filter>MarkTech</Filter>
     </ClInclude>
     <ClInclude Include="src\MarkTech\core.h">
       <Filter>MarkTech</Filter>
     </ClInclude>
+    <ClInclude Include="src\MarkTech\Events\KeyEvent.h" />
+    <ClInclude Include="src\MarkTech\Events\MouseEvent.h" />
+    <ClInclude Include="src\MarkTech\Events\ApplicationEvent.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\MarkTech\Application.cpp">

@@ -11,3 +11,5 @@
 #error MARKTECH ONLY SUPPORTS WINDOWS
 
 #endif // MT_PLATFORM_WINDOS
+
+#define BIT(x) (1 << x)
