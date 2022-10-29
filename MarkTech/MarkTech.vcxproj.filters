@@ -34,6 +34,12 @@
     <ClInclude Include="src\MarkTech\Events\MouseEvent.h">
       <Filter>MarkTech\Events</Filter>
     </ClInclude>
+    <ClInclude Include="src\MarkTech\Layer.h">
+      <Filter>MarkTech</Filter>
+    </ClInclude>
+    <ClInclude Include="src\MarkTech\LayerStack.h">
+      <Filter>MarkTech</Filter>
+    </ClInclude>
     <ClInclude Include="src\MarkTech\Log.h">
       <Filter>MarkTech</Filter>
     </ClInclude>
@@ -52,6 +58,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\MarkTech\Application.cpp">
+      <Filter>MarkTech</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MarkTech\Layer.cpp">
+      <Filter>MarkTech</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MarkTech\LayerStack.cpp">
       <Filter>MarkTech</Filter>
     </ClCompile>
     <ClCompile Include="src\MarkTech\Log.cpp">

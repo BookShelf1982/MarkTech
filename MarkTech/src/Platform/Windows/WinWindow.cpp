@@ -48,6 +48,8 @@ namespace MarkTech {
 
 		m_Window = glfwCreateWindow((int)props.Width, (int)props.Width, m_Data.Title.c_str(), nullptr, nullptr);
 		glfwMakeContextCurrent(m_Window);
+		int sucess = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+		MT_CORE_ASSERT(sucess, "Failed to initialize Glad!");
 		glfwSetWindowUserPointer(m_Window, &m_Data);
 		SetVSync(true);
 
