@@ -30,9 +30,11 @@ namespace MarkTech {
 
 #define EVENT_CLASS_CATEGORY(category) virtual int GetCategoryFlags() const override {return category;}
 
+#define BIND_EVENT_FN(x) std::bind(&x, this, std::placeholders::_1)
+
 	class MARKTECH_API Event
 	{
-		friend class EvnetDispatcher;
+		friend class EventDispatcher;
 	public:
 		virtual EventType GetEventType() const = 0;
 		virtual const char* GetName() const = 0;

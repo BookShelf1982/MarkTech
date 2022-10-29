@@ -12,7 +12,7 @@ namespace MarkTech {
 		unsigned int Height;
 
 		WindowProps(const std::string& title = "MarkTech", 
-			unsigned int width = 1820, unsigned int height = 720)
+			unsigned int width = 640, unsigned int height = 480)
 			: Title(title), Width(width), Height(height)
 		{
 		}

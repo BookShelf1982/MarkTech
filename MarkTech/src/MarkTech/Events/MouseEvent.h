@@ -55,7 +55,8 @@ namespace MarkTech {
 	public:
 		inline int GetMouseButton() const { return m_Button; }
 
-		EVENT_CLASS_TYPE(EventCategoryMouse | EventCategoryInput)
+		EVENT_CLASS_CATEGORY(EventCategoryMouse | EventCategoryInput)
+
 	protected:
 		MouseButtonEvent(int button)
 			: m_Button(button) {}
@@ -88,7 +89,7 @@ namespace MarkTech {
 		std::string ToString() const override
 		{
 			std::stringstream ss;
-			ss << "MouseButtonPressedEvent: " << m_Button;
+			ss << "MouseButtonReleasedEvent: " << m_Button;
 			return ss.str();
 		}
 
