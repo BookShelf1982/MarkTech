@@ -78,8 +78,8 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>MT_PLATFORM_WINDOWS;MT_BUILD_DLL;WIN32;MT_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>3rdparty\spdlog\include;$(SolutionDir)MarkTech\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>MT_PLATFORM_WINDOWS;MT_BUILD_DLL;MT_ENABLE_ASSERTS;WIN32;MT_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>3rdparty\spdlog\include;src;src\MarkTech;3rdparty\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -88,18 +88,17 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>glfw3_mt.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>3rdparty\GLFW\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ImportLibrary>..\bin\Debug-windows-x86\MarkTech\MarkTech.lib</ImportLibrary>
     </Link>
-    <PostBuildEvent>
-      <Command>IF EXIST ..\bin\Debug-windows-x86\MarkTech\MarkTech.dll\ (xcopy /Q /E /Y /I ..\bin\Debug-windows-x86\MarkTech\MarkTech.dll ..\bin\Debug-windows-x86\Game &gt; nul) ELSE (xcopy /Q /Y /I ..\bin\Debug-windows-x86\MarkTech\MarkTech.dll ..\bin\Debug-windows-x86\Game &gt; nul)</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>MT_PLATFORM_WINDOWS;MT_BUILD_DLL;WIN32;MT_RELEASE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>3rdparty\spdlog\include;$(SolutionDir)MarkTech\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>MT_PLATFORM_WINDOWS;MT_BUILD_DLL;MT_ENABLE_ASSERTS;WIN32;MT_RELEASE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>3rdparty\spdlog\include;src;src\MarkTech;3rdparty\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -112,18 +111,17 @@
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>glfw3_mt.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>3rdparty\GLFW\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ImportLibrary>..\bin\Release-windows-x86\MarkTech\MarkTech.lib</ImportLibrary>
     </Link>
-    <PostBuildEvent>
-      <Command>IF EXIST ..\bin\Release-windows-x86\MarkTech\MarkTech.dll\ (xcopy /Q /E /Y /I ..\bin\Release-windows-x86\MarkTech\MarkTech.dll ..\bin\Release-windows-x86\Game &gt; nul) ELSE (xcopy /Q /Y /I ..\bin\Release-windows-x86\MarkTech\MarkTech.dll ..\bin\Release-windows-x86\Game &gt; nul)</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Shipping|Win32'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>MT_PLATFORM_WINDOWS;MT_BUILD_DLL;WIN32;MT_SHIPPING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>3rdparty\spdlog\include;$(SolutionDir)MarkTech\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>MT_PLATFORM_WINDOWS;MT_BUILD_DLL;MT_ENABLE_ASSERTS;WIN32;MT_SHIPPING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>3rdparty\spdlog\include;src;src\MarkTech;3rdparty\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -136,11 +134,10 @@
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>glfw3_mt.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>3rdparty\GLFW\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ImportLibrary>..\bin\Shipping-windows-x86\MarkTech\MarkTech.lib</ImportLibrary>
     </Link>
-    <PostBuildEvent>
-      <Command>IF EXIST ..\bin\Shipping-windows-x86\MarkTech\MarkTech.dll\ (xcopy /Q /E /Y /I ..\bin\Shipping-windows-x86\MarkTech\MarkTech.dll ..\bin\Shipping-windows-x86\Game &gt; nul) ELSE (xcopy /Q /Y /I ..\bin\Shipping-windows-x86\MarkTech\MarkTech.dll ..\bin\Shipping-windows-x86\Game &gt; nul)</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\MarkTech.h" />
@@ -151,11 +148,15 @@
     <ClInclude Include="src\MarkTech\Events\KeyEvent.h" />
     <ClInclude Include="src\MarkTech\Events\MouseEvent.h" />
     <ClInclude Include="src\MarkTech\Log.h" />
+    <ClInclude Include="src\MarkTech\Window.h" />
     <ClInclude Include="src\MarkTech\core.h" />
+    <ClInclude Include="src\MarkTech\mtpch.h" />
+    <ClInclude Include="src\Platform\Windows\WinWindow.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\MarkTech\Application.cpp" />
     <ClCompile Include="src\MarkTech\Log.cpp" />
+    <ClCompile Include="src\Platform\Windows\WinWindow.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

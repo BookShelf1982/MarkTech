@@ -7,7 +7,7 @@ namespace MarkTech {
 
 	Application::Application()
 	{
-
+		m_Window = std::unique_ptr<Window>(Window::Create());
 	}
 
 	Application::~Application()
@@ -17,12 +17,9 @@ namespace MarkTech {
 
 	void Application::Run()
 	{
-		WindowResizedEvent event(1280, 720);
-		MT_TRACE(event);
-
-		while (true)
+		while (m_Running)
 		{
-
+			m_Window->OnUpdate();
 		}
 	}
 }

@@ -21,7 +21,20 @@ project "MarkTech"
 	includedirs
 	{
 		"%{prj.name}/3rdparty/spdlog/include",
-		"$(SolutionDir)MarkTech/src"
+		"%{prj.name}/src",
+		"%{prj.name}/src/MarkTech",
+		"%{prj.name}/3rdparty/GLFW/include"
+	}
+
+	libdirs
+	{
+		"%{prj.name}/3rdparty/GLFW/lib-vc2019"
+	}
+
+	links
+	{
+		"glfw3.lib",
+		"opengl32.lib"
 	}
 
 	filter "system:windows"
@@ -29,7 +42,7 @@ project "MarkTech"
 		staticruntime "On"
 		systemversion "latest"
 
-		defines {"MT_PLATFORM_WINDOWS", "MT_BUILD_DLL", "WIN32"}
+		defines {"MT_PLATFORM_WINDOWS", "MT_BUILD_DLL", "MT_ENABLE_ASSERTS","WIN32"}
 
 	filter "configurations:Debug"
 		defines "MT_DEBUG"

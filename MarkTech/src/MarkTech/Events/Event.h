@@ -1,8 +1,7 @@
 #pragma once
+#include "mtpch.h"
 #include "MarkTech/core.h"
 
-#include <string>
-#include <functional>
 
 namespace MarkTech {
 

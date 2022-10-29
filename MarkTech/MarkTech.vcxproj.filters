@@ -7,6 +7,12 @@
     <Filter Include="MarkTech\Events">
       <UniqueIdentifier>{78E4EB23-E46F-59E8-ED80-DCDC598BB5E8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Platform">
+      <UniqueIdentifier>{2AC788B4-1694-E3BF-3FAD-D1672BD9184E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Platform\Windows">
+      <UniqueIdentifier>{64FBD71A-50F4-F66C-7926-DCF1657ED678}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\MarkTech.h" />
@@ -31,8 +37,17 @@
     <ClInclude Include="src\MarkTech\Log.h">
       <Filter>MarkTech</Filter>
     </ClInclude>
+    <ClInclude Include="src\MarkTech\Window.h">
+      <Filter>MarkTech</Filter>
+    </ClInclude>
     <ClInclude Include="src\MarkTech\core.h">
       <Filter>MarkTech</Filter>
+    </ClInclude>
+    <ClInclude Include="src\MarkTech\mtpch.h">
+      <Filter>MarkTech</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\Windows\WinWindow.h">
+      <Filter>Platform\Windows</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -41,6 +56,9 @@
     </ClCompile>
     <ClCompile Include="src\MarkTech\Log.cpp">
       <Filter>MarkTech</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\Windows\WinWindow.cpp">
+      <Filter>Platform\Windows</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
