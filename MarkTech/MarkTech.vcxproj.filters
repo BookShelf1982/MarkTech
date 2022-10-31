@@ -7,8 +7,14 @@
     <Filter Include="MarkTech\Events">
       <UniqueIdentifier>{78E4EB23-E46F-59E8-ED80-DCDC598BB5E8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="MarkTech\ImGui">
+      <UniqueIdentifier>{3EEB8FDA-2AB9-83E0-134D-F406FFB95F45}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Platform">
       <UniqueIdentifier>{2AC788B4-1694-E3BF-3FAD-D1672BD9184E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Platform\OpenGL">
+      <UniqueIdentifier>{1E7D2C1D-8A08-9AE1-9319-1DD6FF23F6E1}</UniqueIdentifier>
     </Filter>
     <Filter Include="Platform\Windows">
       <UniqueIdentifier>{64FBD71A-50F4-F66C-7926-DCF1657ED678}</UniqueIdentifier>
@@ -34,6 +40,9 @@
     <ClInclude Include="src\MarkTech\Events\MouseEvent.h">
       <Filter>MarkTech\Events</Filter>
     </ClInclude>
+    <ClInclude Include="src\MarkTech\ImGui\ImGuiLayer.h">
+      <Filter>MarkTech\ImGui</Filter>
+    </ClInclude>
     <ClInclude Include="src\MarkTech\Layer.h">
       <Filter>MarkTech</Filter>
     </ClInclude>
@@ -52,6 +61,15 @@
     <ClInclude Include="src\MarkTech\mtpch.h">
       <Filter>MarkTech</Filter>
     </ClInclude>
+    <ClInclude Include="src\Platform\OpenGL\imgui_impl_glfw.h">
+      <Filter>Platform\OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\OpenGL\imgui_impl_opengl3.h">
+      <Filter>Platform\OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\OpenGL\imgui_impl_opengl3_loader.h">
+      <Filter>Platform\OpenGL</Filter>
+    </ClInclude>
     <ClInclude Include="src\Platform\Windows\WinWindow.h">
       <Filter>Platform\Windows</Filter>
     </ClInclude>
@@ -59,6 +77,9 @@
   <ItemGroup>
     <ClCompile Include="src\MarkTech\Application.cpp">
       <Filter>MarkTech</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MarkTech\ImGui\ImGuiLayer.cpp">
+      <Filter>MarkTech\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="src\MarkTech\Layer.cpp">
       <Filter>MarkTech</Filter>
@@ -68,6 +89,12 @@
     </ClCompile>
     <ClCompile Include="src\MarkTech\Log.cpp">
       <Filter>MarkTech</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\OpenGL\imgui_impl_glfw.cpp">
+      <Filter>Platform\OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\OpenGL\imgui_impl_opengl3.cpp">
+      <Filter>Platform\OpenGL</Filter>
     </ClCompile>
     <ClCompile Include="src\Platform\Windows\WinWindow.cpp">
       <Filter>Platform\Windows</Filter>

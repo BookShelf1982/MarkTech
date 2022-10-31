@@ -26,6 +26,7 @@ public:
 	game()
 	{
 		PushLayer(new ExampleLayer());
+		PushOverlay(new MarkTech::ImGuiLayer());
 	}
 
 	~game()

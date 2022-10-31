@@ -5,6 +5,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Game", "Game\Game.vcxproj",
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Glad", "MarkTech\3rdparty\Glad\Glad.vcxproj", "{BDD6857C-A90D-870D-52FA-6C103E10030F}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ImGui", "MarkTech\3rdparty\ImGui\ImGui.vcxproj", "{C0FF640D-2C14-8DBE-F595-301E616989EF}"
+EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MarkTech", "MarkTech\MarkTech.vcxproj", "{1477FDC7-0044-58D3-295D-467B15898D61}"
 EndProject
 Global
@@ -26,6 +28,12 @@ Global
 		{BDD6857C-A90D-870D-52FA-6C103E10030F}.Release|Win32.Build.0 = Release|Win32
 		{BDD6857C-A90D-870D-52FA-6C103E10030F}.Shipping|Win32.ActiveCfg = Shipping|Win32
 		{BDD6857C-A90D-870D-52FA-6C103E10030F}.Shipping|Win32.Build.0 = Shipping|Win32
+		{C0FF640D-2C14-8DBE-F595-301E616989EF}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C0FF640D-2C14-8DBE-F595-301E616989EF}.Debug|Win32.Build.0 = Debug|Win32
+		{C0FF640D-2C14-8DBE-F595-301E616989EF}.Release|Win32.ActiveCfg = Release|Win32
+		{C0FF640D-2C14-8DBE-F595-301E616989EF}.Release|Win32.Build.0 = Release|Win32
+		{C0FF640D-2C14-8DBE-F595-301E616989EF}.Shipping|Win32.ActiveCfg = Shipping|Win32
+		{C0FF640D-2C14-8DBE-F595-301E616989EF}.Shipping|Win32.Build.0 = Shipping|Win32
 		{1477FDC7-0044-58D3-295D-467B15898D61}.Debug|Win32.ActiveCfg = Debug|Win32
 		{1477FDC7-0044-58D3-295D-467B15898D61}.Debug|Win32.Build.0 = Debug|Win32
 		{1477FDC7-0044-58D3-295D-467B15898D61}.Release|Win32.ActiveCfg = Release|Win32

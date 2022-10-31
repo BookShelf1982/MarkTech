@@ -7,8 +7,10 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 IncludeDirs = {}
 IncludeDirs["GLFW"] = "MarkTech/3rdparty/GLFW/include"
 IncludeDirs["Glad"] = "MarkTech/3rdparty/Glad/include"
+IncludeDirs["ImGui"] = "MarkTech/3rdparty/ImGui"
 
 include "MarkTech/3rdparty/Glad"
+include "MarkTech/3rdparty/ImGui"
 
 project "MarkTech"
 	location "MarkTech"
@@ -30,7 +32,8 @@ project "MarkTech"
 		"%{prj.name}/src/MarkTech",
 		"%{prj.name}/3rdparty/spdlog/include",
 		"%{IncludeDirs.GLFW}",
-		"%{IncludeDirs.Glad}"
+		"%{IncludeDirs.Glad}",
+		"%{IncludeDirs.ImGui}"
 	}
 
 	libdirs
@@ -41,6 +44,7 @@ project "MarkTech"
 	links
 	{
 		"Glad",
+		"ImGui",
 		"glfw3.lib",
 		"opengl32.lib"
 	}
@@ -54,6 +58,7 @@ project "MarkTech"
 		"MT_BUILD_DLL", 
 		"MT_ENABLE_ASSERTS",
 		"GLFW_INCLUDE_NONE",
+		"IMGUI_IMPL_OPENGL_LOADER_CUSTOM",
 		"WIN32"}
 
 	filter "configurations:Debug"
