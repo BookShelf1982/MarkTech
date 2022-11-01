@@ -10,7 +10,7 @@ namespace MarkTech {
 		None = 0,
 		WindowClose, WindowResize, WindowFocus, WindowLostFocus, WindowMoved, 
 		AppTick, AppUpdate, AppRender,
-		KeyPressed, KeyReleased,
+		KeyPressed, KeyReleased, KeyTyped,
 		MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled
 	};
 
@@ -29,8 +29,6 @@ namespace MarkTech {
 								virtual const char* GetName() const override {return #type;}
 
 #define EVENT_CLASS_CATEGORY(category) virtual int GetCategoryFlags() const override {return category;}
-
-#define BIND_EVENT_FN(x) std::bind(&x, this, std::placeholders::_1)
 
 	class MARKTECH_API Event
 	{

@@ -1,5 +1,5 @@
 #pragma once
-#include "mtpch.h"
+#include "MarkTech/mtpch.h"
 #include "Event.h"
 
 namespace MarkTech {
@@ -33,8 +33,8 @@ namespace MarkTech {
 		MouseScrolledEvent(float xOffset, float yOffset)
 			: m_OffsetX(xOffset), m_OffsetY(yOffset) {}
 
-		inline float GetX() const { return m_OffsetX; }
-		inline float GetY() const { return m_OffsetY; }
+		inline float GetXOffset() const { return m_OffsetX; }
+		inline float GetYOffset() const { return m_OffsetY; }
 
 		std::string ToString() const override
 		{

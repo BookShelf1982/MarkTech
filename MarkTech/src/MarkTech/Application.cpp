@@ -14,6 +14,7 @@ namespace MarkTech {
 
 		m_Window = std::unique_ptr<Window>(Window::Create());
 		m_Window->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
+		m_Window->SetVSync(true);
 	}
 
 	Application::~Application()
@@ -62,6 +63,7 @@ namespace MarkTech {
 				layer->OnUpdate();
 
 			m_Window->OnUpdate();
+			glClear(GL_COLOR_BUFFER_BIT);
 		}
 	}
 
