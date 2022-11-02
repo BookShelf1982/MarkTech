@@ -8,6 +8,7 @@ IncludeDirs = {}
 IncludeDirs["GLFW"] = "MarkTech/3rdparty/GLFW/include"
 IncludeDirs["Glad"] = "MarkTech/3rdparty/Glad/include"
 IncludeDirs["ImGui"] = "MarkTech/3rdparty/ImGui"
+IncludeDirs["glm"] = "MarkTech/3rdparty/glm"
 
 include "MarkTech/3rdparty/Glad"
 include "MarkTech/3rdparty/ImGui"
@@ -33,7 +34,8 @@ project "MarkTech"
 		"%{prj.name}/3rdparty/spdlog/include",
 		"%{IncludeDirs.GLFW}",
 		"%{IncludeDirs.Glad}",
-		"%{IncludeDirs.ImGui}"
+		"%{IncludeDirs.ImGui}",
+		"%{IncludeDirs.glm}"
 	}
 
 	libdirs
@@ -90,13 +92,17 @@ project "Game"
 	files
 	{
 		"%{prj.name}/src/**.h",
-		"%{prj.name}/src/**.cpp"
+		"%{prj.name}/src/**.cpp",
+		"%{prj.name}/3rdparty/glm/glm/**.hpp",
+		"%{prj.name}/3rdparty/glm/glm/**.cpp",
+		"%{prj.name}/3rdparty/glm/glm/**.inl"
 	}
 
 	includedirs
 	{
 		"$(SolutionDir)MarkTech/3rdparty/spdlog/include",
-		"$(SolutionDir)MarkTech/src"
+		"$(SolutionDir)MarkTech/src",
+		"%{IncludeDirs.glm}"
 	}
 
 	links
