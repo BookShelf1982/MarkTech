@@ -1,6 +1,7 @@
 #include "MarkTech/Log.h"
 #include "Application.h"
 #include "glad/glad.h"
+#include "Input.h"
 
 namespace MarkTech {
 
@@ -39,7 +40,7 @@ namespace MarkTech {
 		EventDispatcher dispatcher(event);
 		dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(Application::OnWindowClosed));
 
-		MT_CORE_TRACE("{0}", event);
+		//MT_CORE_TRACE("{0}", event);
 
 		for (auto it = m_LayerStack.end(); it != m_LayerStack.begin();)
 		{
@@ -63,7 +64,6 @@ namespace MarkTech {
 				layer->OnUpdate();
 
 			m_Window->OnUpdate();
-			glClear(GL_COLOR_BUFFER_BIT);
 		}
 	}
 

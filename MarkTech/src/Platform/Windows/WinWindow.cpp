@@ -166,6 +166,7 @@ namespace MarkTech {
 	{
 		glfwPollEvents();
 		glfwSwapBuffers(m_Window);
+		glClear(GL_COLOR_BUFFER_BIT);
 	}
 
 	void WinWindow::SetVSync(bool enabled)

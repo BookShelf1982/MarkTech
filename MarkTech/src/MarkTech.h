@@ -8,3 +8,6 @@
 #include "MarkTech/Log.h"
 #include "MarkTech/Layer.h"
 #include "MarkTech/ImGui/ImGuiLayer.h"
+#include "MarkTech/Input.h"
+#include "MarkTech/MouseButtonCodes.h"
+#include "MarkTech/Keycodes.h"

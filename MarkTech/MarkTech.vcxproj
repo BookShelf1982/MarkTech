@@ -151,15 +151,19 @@
     <ClInclude Include="src\MarkTech\Events\KeyEvent.h" />
     <ClInclude Include="src\MarkTech\Events\MouseEvent.h" />
     <ClInclude Include="src\MarkTech\ImGui\ImGuiLayer.h" />
+    <ClInclude Include="src\MarkTech\Input.h" />
+    <ClInclude Include="src\MarkTech\Keycodes.h" />
     <ClInclude Include="src\MarkTech\Layer.h" />
     <ClInclude Include="src\MarkTech\LayerStack.h" />
     <ClInclude Include="src\MarkTech\Log.h" />
+    <ClInclude Include="src\MarkTech\MouseButtonCodes.h" />
     <ClInclude Include="src\MarkTech\Window.h" />
     <ClInclude Include="src\MarkTech\core.h" />
     <ClInclude Include="src\MarkTech\mtpch.h" />
     <ClInclude Include="src\Platform\OpenGL\imgui_impl_glfw.h" />
     <ClInclude Include="src\Platform\OpenGL\imgui_impl_opengl3.h" />
     <ClInclude Include="src\Platform\OpenGL\imgui_impl_opengl3_loader.h" />
+    <ClInclude Include="src\Platform\Windows\WinInput.h" />
     <ClInclude Include="src\Platform\Windows\WinWindow.h" />
   </ItemGroup>
   <ItemGroup>
@@ -170,6 +174,7 @@
     <ClCompile Include="src\MarkTech\Log.cpp" />
     <ClCompile Include="src\Platform\OpenGL\imgui_impl_glfw.cpp" />
     <ClCompile Include="src\Platform\OpenGL\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="src\Platform\Windows\WinInput.cpp" />
     <ClCompile Include="src\Platform\Windows\WinWindow.cpp" />
   </ItemGroup>
   <ItemGroup>

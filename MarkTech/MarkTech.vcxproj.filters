@@ -73,6 +73,10 @@
     <ClInclude Include="src\Platform\Windows\WinWindow.h">
       <Filter>Platform\Windows</Filter>
     </ClInclude>
+    <ClInclude Include="src\MarkTech\Input.h" />
+    <ClInclude Include="src\Platform\Windows\WinInput.h" />
+    <ClInclude Include="src\MarkTech\Keycodes.h" />
+    <ClInclude Include="src\MarkTech\MouseButtonCodes.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\MarkTech\Application.cpp">
@@ -99,5 +103,6 @@
     <ClCompile Include="src\Platform\Windows\WinWindow.cpp">
       <Filter>Platform\Windows</Filter>
     </ClCompile>
+    <ClCompile Include="src\Platform\Windows\WinInput.cpp" />
   </ItemGroup>
 </Project>
