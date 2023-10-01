@@ -3,6 +3,6 @@ bin/
 bin-int/
 
 *.user
-*.sln
+MarkTech.sln
 *.vcxproj
 *.filters
