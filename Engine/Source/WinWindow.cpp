@@ -3,6 +3,10 @@
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
+CWinWindow::CWinWindow()
+{
+    hwnd = NULL;
+}
 
 void CWinWindow::CreateWinWindow(LPCWSTR ClassName, LPCWSTR WindowName, int iPosX, int iPosY, int iWidth, int iLength, HINSTANCE hInstance, int nCmdShow)
 {
@@ -14,7 +18,7 @@ void CWinWindow::CreateWinWindow(LPCWSTR ClassName, LPCWSTR WindowName, int iPos
 
     RegisterClass(&wc);
 
-    HWND hwnd = CreateWindowEx(0, ClassName, WindowName, WS_OVERLAPPEDWINDOW, iPosX, iPosY, iWidth, iLength, NULL, NULL, hInstance, NULL);
+    hwnd = CreateWindowEx(0, ClassName, WindowName, WS_OVERLAPPEDWINDOW, iPosX, iPosY, iWidth, iLength, NULL, NULL, hInstance, NULL);
 
     ShowWindow(hwnd, nCmdShow);
 }
@@ -27,20 +31,6 @@ LRESULT WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_DESTROY:
         PostQuitMessage(0);
         return 0;
-
-    case WM_PAINT:
-    {
-        PAINTSTRUCT ps;
-        HDC hdc = BeginPaint(hwnd, &ps);
-
-        // All painting occurs here, between BeginPaint and EndPaint.
-
-        FillRect(hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW + 1));
-
-        EndPaint(hwnd, &ps);
-    }
-    return 0;
-
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }

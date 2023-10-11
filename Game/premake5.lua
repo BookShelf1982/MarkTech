@@ -16,7 +16,7 @@ project "Game"
 	includedirs
 	{
 		"%{IncludeDirs.Engine}",
-		"%{IncludeDirs.spdlog}"
+		"%{IncludeDirs.spdlog}",
 	}
 	
 	links

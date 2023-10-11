@@ -9,3 +9,5 @@ workspace "MarkTech"
 
 	include "Engine/"
 	include "Game/"
+	include "IMGUI/"
+	include "ResourceCompiler/"

@@ -5,11 +5,15 @@ project "Engine"
     IncludeDirs = {}
 	IncludeDirs["spdlog"] = "%{prj.location}/ThirdParty/spdlog-1.x/include"
 
-    files { "Source/**.h", "Source/**.cpp" }
+    files { "Source/**.h", "Source/**.cpp", "Source/Shaders/**.hlsl"}
+	
+	targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
+    objdir ("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")
 	
 	includedirs
 	{
-		"%{IncludeDirs.spdlog}"
+		"%{IncludeDirs.spdlog}",
+		"%{wks.location}/FileSystem/Source"
 	}
 	
     defines
@@ -17,10 +21,11 @@ project "Engine"
         "MT_PLATFORM_WINDOWS",
         "MT_ENABLE_ASSERTS"
     }
-
-    targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
-    objdir ("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")
-
+	
+	links
+	{
+		"d3d11.lib",
+	}
 
     filter "configurations:Debug"
         defines { "DEBUG" }

@@ -1,6 +1,10 @@
 #pragma once
+#include <string>
+#include <vector>
 
 #include "Log.h"
+#include "Vectors.h"
+#include "MModel.h"
 
 #ifdef MT_PLATFORM_WINDOWS
 #ifdef MT_BUILD_DLL
