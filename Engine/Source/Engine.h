@@ -3,7 +3,7 @@
 #include "WinWindow.h"
 #include "D3Drenderer.h"
 #include "Map.h"
-#include "PointEntity.h"
+#include "GameInfo.h"
 
 class CEngine
 {
@@ -11,18 +11,20 @@ public:
 	CEngine();
 	~CEngine();
 
-	void InitEngine(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow);
+	bool InitEngine(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow);
 
 	void StartEngineLoop();
+
+
 
 private:
 
 	bool bClosing;
 	LARGE_INTEGER nTickFrequency, nCurrentTick, nLastTick;
 	int64_t nElapsedTicks;
-	double flDeltaTime;
-	CLog* Logger;
+	float flDeltaTime;
 	CWinWindow* Window;
 	CD3DRenderer* Renderer;
 	CMap* Map;
 };
+

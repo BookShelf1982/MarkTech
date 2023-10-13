@@ -23,6 +23,10 @@ void CWinWindow::CreateWinWindow(LPCWSTR ClassName, LPCWSTR WindowName, int iPos
     ShowWindow(hwnd, nCmdShow);
 }
 
+void CWinWindow::CreateWinMessageBox()
+{
+    MessageBox(hwnd, L"Unable to find GameInfo.ini", L"MARKTECH FATAL ERROR!", MB_ICONWARNING);
+}
 
 LRESULT WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {

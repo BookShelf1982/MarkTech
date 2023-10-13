@@ -3,7 +3,7 @@ project "Engine"
     language "C++"
 
     IncludeDirs = {}
-	IncludeDirs["spdlog"] = "%{prj.location}/ThirdParty/spdlog-1.x/include"
+	IncludeDirs["inipp"] = "%{prj.location}/ThirdParty/inipp/"
 
     files { "Source/**.h", "Source/**.cpp", "Source/Shaders/**.hlsl"}
 	
@@ -12,8 +12,7 @@ project "Engine"
 	
 	includedirs
 	{
-		"%{IncludeDirs.spdlog}",
-		"%{wks.location}/FileSystem/Source"
+		
 	}
 	
     defines

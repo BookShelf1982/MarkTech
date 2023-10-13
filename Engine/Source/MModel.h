@@ -2,25 +2,23 @@
 #include <vector>
 #include "Vectors.h"
 
-class MVertex
+struct MVertex
 {
-	MVertex();
+	MVertex(MVector4 Pos, MVector3 Normal, MVector2 TCoord);
 
-	MVector3 Position;
+	MVector4 Position;
 	MVector3 Normal;
 	MVector2 TCoord;
 };
 
-class MModel
+class CMModel
 {
 public:
-	MModel()
+	CMModel()
 	{
 
 	}
-	~MModel();
-
-	void UploadVerticesToIA(std::vector<MVertex> Vertices);
+	~CMModel();
 
 	std::vector<MVertex> vertices;
 

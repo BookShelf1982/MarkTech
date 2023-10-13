@@ -11,21 +11,26 @@ CEngine::CEngine()
 CEngine::~CEngine()
 {
 	delete Window;
+	delete Renderer;
 	delete Map;
 }
 
-void CEngine::InitEngine(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
+bool CEngine::InitEngine(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
 {
-	Window->CreateWinWindow(L"WinWindow", L"MarkTech", CW_USEDEFAULT, CW_USEDEFAULT, 800, 600, hInstance, nCmdShow);
+	if (!MGameInfo::GetGameInfo().Init())
+	{
+		Window->CreateWinMessageBox();
+		return false;
+	}
+
+	std::wstring WindowName(MGameInfo::GetGameInfo().GameName.begin(), MGameInfo::GetGameInfo().GameName.end());
+	Window->CreateWinWindow(L"WinWindow", WindowName.c_str(), CW_USEDEFAULT, CW_USEDEFAULT, 800, 600, hInstance, nCmdShow);
 	Renderer->InitRenderer(Window->GetHWND());
-
-	CPointEntity* entity = new CPointEntity();
-	entity->Name = "";
-
-	Map->SpawnEntity(entity, MTransform());
 
 	QueryPerformanceCounter(&nLastTick);
 	QueryPerformanceFrequency(&nTickFrequency);
+
+	return true;
 }
 
 void CEngine::StartEngineLoop()

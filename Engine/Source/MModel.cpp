@@ -1,8 +1,7 @@
 #include "MModel.h"
 
-MVertex::MVertex()
+MVertex::MVertex(MVector4 Pos, MVector3 Normal, MVector2 TCoord)
+	:Position(Pos), Normal(Normal), TCoord(TCoord)
 {
-	Position = MVector3();
-	Normal = MVector3();
-	TCoord = MVector2();
+
 }

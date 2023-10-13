@@ -1,5 +1,8 @@
 #pragma once
+#include "Core.h"
+#include "Vectors.h"
 #include "BaseEntity.h"
+
 class CMap
 {
 public:

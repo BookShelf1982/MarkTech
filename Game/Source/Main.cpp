@@ -7,7 +7,11 @@
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
 	CEngine* engine = new CEngine();
-	engine->InitEngine(hInstance, pCmdLine, nCmdShow);
+	
+	if (!engine->InitEngine(hInstance, pCmdLine, nCmdShow))
+	{
+		return 0;
+	}
 	engine->StartEngineLoop();
 
 	return 0;
