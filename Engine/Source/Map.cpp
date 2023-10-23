@@ -10,9 +10,15 @@ CMap::~CMap()
 	
 }
 
-void CMap::SpawnEntity(CBaseEntity* entityClass, MTransform transform)
+void CMap::SpawnEntity(CBaseEntity* entityClass)
 {
-	entityClass->Spawn(transform);
+	entityClass->Spawn();
+	entities.push_back(entityClass);
+}
+
+void CMap::SpawnEntityWithTransform(CBasePointEntity* entityClass, MTransform transform)
+{
+	entityClass->SpawnWithTransform(transform);
 	entities.push_back(entityClass);
 }
 

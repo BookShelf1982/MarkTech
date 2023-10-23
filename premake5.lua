@@ -8,6 +8,7 @@ workspace "MarkTech"
 	EngineDir = ("%{wks.location}/Engine")
 
 	include "Engine/"
+	include "Editor/"
 	include "Game/"
-	include "IMGUI/"
+	include "Imgui/"
 	include "ResourceCompiler/"

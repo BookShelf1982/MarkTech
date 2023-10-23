@@ -5,12 +5,13 @@
 class CWinWindow
 {
 public:
+
 	CWinWindow();
 
 	void CreateWinWindow(LPCWSTR ClassName, LPCWSTR WindowName, int iPosX, int iPosY, int iWidth, int iLength, HINSTANCE hInstance, int nCmdShow);
 	void MessageLoop(MSG msg);
 
-	void CreateWinMessageBox();
+	void CreateErrorBox(LPCWSTR ErrorString);
 
 	HWND GetHWND() { return hwnd; }
 

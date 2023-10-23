@@ -2,10 +2,6 @@ project "Game"
     kind "WindowedApp"
     language "C++"
 	
-	IncludeDirs = {}
-	IncludeDirs["Engine"] = "%{EngineDir}/Source"
-	IncludeDirs["spdlog"] = "%{EngineDir}/ThirdParty/spdlog-1.x/include"
-	
 	include "Engine"
 	
     files { "Source/**.h", "Source/**.cpp" }
@@ -15,8 +11,8 @@ project "Game"
 	
 	includedirs
 	{
-		"%{IncludeDirs.Engine}",
-		"%{IncludeDirs.spdlog}",
+		"%{wks.location}/Engine/Source",
+		"%{wks.location}/Imgui/Source"
 	}
 	
 	links

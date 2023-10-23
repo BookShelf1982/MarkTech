@@ -4,11 +4,10 @@
 
 struct MVertex
 {
-	MVertex(MVector4 Pos, MVector3 Normal, MVector2 TCoord);
+	MVertex(float x, float y, float z, float u, float v) : Position(x, y, z), TexCoords(u, v) {}
 
-	MVector4 Position;
-	MVector3 Normal;
-	MVector2 TCoord;
+	MVector3 Position;
+	MVector2 TexCoords;
 };
 
 class CMModel
