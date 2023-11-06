@@ -1,8 +1,9 @@
 #pragma once
+#include "DllExport.h"
 #include "Core.h"
 #include <Windows.h>
 
-class CWinWindow
+class MARKTECH_API CWinWindow
 {
 public:
 
@@ -17,5 +18,6 @@ public:
 
 private:
 	HWND hwnd;
+	WNDCLASS wc;
 };
 

@@ -2,8 +2,6 @@ project "Game"
     kind "WindowedApp"
     language "C++"
 	
-	include "Engine"
-	
     files { "Source/**.h", "Source/**.cpp" }
 	
     targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
@@ -12,19 +10,19 @@ project "Game"
 	includedirs
 	{
 		"%{wks.location}/Engine/Source",
+		"%{wks.location}/Engine/ThirdParty",
 		"%{wks.location}/Imgui/Source"
-	}
-	
-	links
-	{
-		"Engine"
 	}
 	
 	defines
     {
         "MT_PLATFORM_WINDOWS",
-        "MT_ENABLE_ASSERTS"
     }
+	
+	postbuildcommands
+	{
+		"{COPYFILE} %{wks.location}/bin/" .. outputdir .. "/%{prj.name}/Game.exe %{wks.location}/Build/"
+	}
 	
     filter "configurations:Debug"
         defines { "DEBUG" }

@@ -1,15 +1,24 @@
 #pragma once
+#include "DllExport.h"
 #include "Core.h"
 #include "MModel.h"
 #include <Windows.h>
 
-class CRenderer
+#define MAX_VERTICES_PER_DRAWCALL 1024
+#define MAX_INDICES_PER_DRAWCALL 3072
+
+namespace MarkTech
 {
-public:
-	virtual void InitRenderer(HWND hwnd) {};
+	namespace Renderer
+	{
+		class MARKTECH_API CRenderer
+		{
+		public:
+			virtual bool InitRenderer(HWND hwnd) { return false; };
 
-	virtual void CreateShaders() {};
+			virtual void CreateShaders() {};
 
-	virtual void RenderFrame(HWND hwnd) {};
-};
-
+			virtual void RenderFrame(HWND hwnd) {};
+		};
+	}
+}

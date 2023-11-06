@@ -19,11 +19,11 @@ struct MKeyboardInput
 class CInput
 {
 public:
-	static bool IsKeyDown(uint32_t keycode);
-	static bool IsKeyUp(uint32_t keycode);
+	bool IsKeyDown(uint32_t keycode);
+	bool IsKeyUp(uint32_t keycode);
 
 	/**DO NOT USE THS FOR GAMEPLAY!* Use GetState(), IsKeyDown() IsKeyUp() instead. */
-	static void PollInput(uint32_t keycode, bool IsDown, bool WasDown);
+	void PollInput(uint32_t keycode, bool IsDown, bool WasDown);
 
 	MKeyState GetKeyState(uint32_t keycode);
 

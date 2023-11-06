@@ -1,102 +1,91 @@
 #include "Engine.h"
-#include "ModelEntity.h"
 
-CEngine::CEngine()
+namespace MarkTech
 {
-	bClosing = false;
-	bShowDemoWindow = true;
-	Window = new CWinWindow();
-	Map = new CMap();
-}
+	CEngine* CEngine::g_pEngine = new CEngine();
 
-CEngine::~CEngine()
-{
-	delete Window;
-	delete Map;
-}
-
-bool CEngine::InitEngine(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
-{
-	//Read alues from GameInfo.ini file
-	if (!ReadConfigFiles())
+	CEngine::CEngine()
 	{
-		return false;
+		bClosing = false;
+		Window = new CWinWindow();
 	}
 
-	//Convert string to wstring
-	std::wstring WindowName(MGameInfo::GetGameInfo().GameName.begin(), MGameInfo::GetGameInfo().GameName.end());
-
-	//If Window name is nothing then default to MarkTech 2023
-	if (WindowName == L"") 
-	{ 
-		WindowName = L"MarkTech 2023"; 
+	CEngine::~CEngine()
+	{
+		DestroyWindow(Window->GetHWND());
+		delete Window;
+		Renderer::CD3D11Renderer::GetD3DRenderer()->DestroyRenderer();
+		Configs::MUserSettings::GetUserSettings()->Destroy();
+		Configs::MGameInfo::GetGameInfo()->Destroy();
+		Level::CLevel::GetLevel()->DestroyLevel();
 	}
 
-	//Create Window
-	Window->CreateWinWindow(
-		L"WinWindow",								//Class Name
-		WindowName.c_str(),							//Window Title
-		CW_USEDEFAULT,								//X Pos
-		CW_USEDEFAULT,								//Y Pos
-		MUserSettings::GetUserSettings().nVSWidth,	//Configured Width
-		MUserSettings::GetUserSettings().nVSLength, //Configured Length
-		hInstance,									//hImstance
-		nCmdShow);									//nCmdShow
-
-	CD3DRenderer::GetD3DRenderer()->InitRenderer(Window->GetHWND());
-
-	//CModelEntity* ent = new CModelEntity("James");
-
-	//Map->SpawnEntity(ent, MTransform());
-
-
-	QueryPerformanceCounter(&nLastTick);
-	QueryPerformanceFrequency(&nTickFrequency);
-
-	return true;
-}
-
-bool CEngine::InitEngineEditor(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
-{
-
-
-	return true;
-}
-
-bool CEngine::ReadConfigFiles()
-{
-	//Read alues from GameInfo.ini file
-	if (!MGameInfo::GetGameInfo().Init())
+	bool CEngine::InitEngine(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
 	{
-		Window->CreateErrorBox(L"Unable to find GameInfo.ini");
-		return false;
-	}
-
-	if (!MUserSettings::GetUserSettings().Init())
-	{
-		Window->CreateErrorBox(L"Unable to find UserSettings.ini");
-		return false;
-	}
-	return true;
-}
-
-void CEngine::StartEngineLoop()
-{
-	while (!bClosing)
-	{
-		QueryPerformanceCounter(&nCurrentTick);
-		nElapsedTicks = nCurrentTick.QuadPart - nLastTick.QuadPart;
-
-		flDeltaTime = (float)nElapsedTicks / (float)nTickFrequency.QuadPart;
-
-		nLastTick = nCurrentTick;
-
-		MSG msg = {};
-		while (PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE))
+		//Read values from GameInfo.ini file
+		if (!ReadConfigFiles())
 		{
-			Window->MessageLoop(msg);
-			switch (msg.message)
+			return false;
+		}
+
+		//Create Window
+		Window->CreateWinWindow(
+			L"WinWindow",								//Class Name
+			L"jknds",									//Window Title
+			CW_USEDEFAULT,								//X Pos
+			CW_USEDEFAULT,								//Y Pos
+			800,										//Configured Width
+			600,										//Configured Length
+			hInstance,									//hImstance
+			nCmdShow);									//nCmdShow
+
+		Level::CLevel::GetLevel()->InitLevel();			//Initialize Level
+
+		if (!Renderer::CD3D11Renderer::GetD3DRenderer()->InitRenderer(Window->GetHWND()))
+		{
+			return false;
+		}
+
+		QueryPerformanceCounter(&nLastTick);
+		QueryPerformanceFrequency(&nTickFrequency);
+
+		return true;
+	}
+
+	bool CEngine::ReadConfigFiles()
+	{
+		//Read alues from GameInfo.ini file
+		if (!Configs::MGameInfo::GetGameInfo()->Init())
+		{
+			Window->CreateErrorBox(L"Unable to find GameInfo.ini");
+			return false;
+		}
+
+		if (!Configs::MUserSettings::GetUserSettings()->Init())
+		{
+			Window->CreateErrorBox(L"Unable to find UserSettings.ini");
+			return false;
+		}
+		return true;
+	}
+
+	void CEngine::StartEngineLoop()
+	{
+		while (!bClosing)
+		{
+			QueryPerformanceCounter(&nCurrentTick);
+			nElapsedTicks = nCurrentTick.QuadPart - nLastTick.QuadPart;
+
+			flDeltaTime = (float)nElapsedTicks / (float)nTickFrequency.QuadPart;
+
+			nLastTick = nCurrentTick;
+
+			MSG msg = {};
+			while (PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE))
 			{
+				Window->MessageLoop(msg);
+				switch (msg.message)
+				{
 				case WM_QUIT:
 				{
 					bClosing = true;
@@ -107,27 +96,47 @@ void CEngine::StartEngineLoop()
 				case WM_KEYDOWN:
 				case WM_KEYUP:
 				{
-					uint32_t keycode = msg.wParam;
+					uint32_t keycode = (uint32_t)msg.wParam;
 
-					bool bWasDown = (msg.lParam & (1 << 30)) != 0;
-					bool bIsDown = (msg.lParam & (1 << 31)) == 0;
+					bool bWasDown = (msg.lParam & BIT(30)) != 0;
+					bool bIsDown = (msg.lParam & BIT(31)) == 0;
 
 					CInput::GetInput()->PollInput(keycode, bIsDown, bWasDown);
 				}break;
+				}
+				if (bClosing)
+				{
+					break;
+				}
 			}
-			if (bClosing)
+
+			Renderer::CD3D11Renderer::GetD3DRenderer()->RenderFrame(Window->GetHWND());
+
+			if (CInput::GetInput()->IsKeyDown(MTVK_Escape))
 			{
-				break;
+				Quit();
 			}
-		}
-
-		Map->UpdateEntities(flDeltaTime);
-
-		CD3DRenderer::GetD3DRenderer()->RenderFrame(Window->GetHWND());
-
-		if (CInput::GetInput()->IsKeyDown(MTVK_Escape))
-		{
-			DestroyWindow(Window->GetHWND());
 		}
 	}
+
+	void CEngine::DestroyEngine()
+	{
+		delete g_pEngine;
+	}
+
+	void CEngine::Quit()
+	{
+		bClosing = true;
+	}
+}
+
+int LaunchEngine(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
+{
+	if (!MarkTech::CEngine::GetEngine()->InitEngine(hInstance, pCmdLine, nCmdShow))
+	{
+		return 1;
+	}
+	MarkTech::CEngine::GetEngine()->StartEngineLoop();
+	MarkTech::CEngine::GetEngine()->DestroyEngine();
+	return 0;
 }

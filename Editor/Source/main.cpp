@@ -34,7 +34,7 @@ int main(int, char**)
     //ImGui_ImplWin32_EnableDpiAwareness();
     WNDCLASSEXW wc = { sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"ImGui Example", nullptr };
     ::RegisterClassExW(&wc);
-    HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"SDK Launcher", WS_OVERLAPPEDWINDOW, 100, 100, 500, 800, nullptr, nullptr, wc.hInstance, nullptr);
+    HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"SDK Launcher", WS_OVERLAPPEDWINDOW, 100, 100, 500, 600, nullptr, nullptr, wc.hInstance, nullptr);
 
     // Initialize Direct3D
     if (!CreateDeviceD3D(hwnd))
@@ -98,8 +98,20 @@ int main(int, char**)
     //IM_ASSERT(font != nullptr);
 
     // Our state
+    //const char* versions[] = {"MarkTech 1", "MarkTech 2", "MarkTech 3", "MarkTech 4" };
     const char* versions[] = {"MarkTech October 2023", "MarkTech November 2023", "MarkTech December 2023", "MarkTech 2024" };
     static int item_current = 0;
+    const char* projects[] = { "MarkTech", "Generic Game", "Bungalo Crash Site", "Skid-Markers 2: The toilet Bowl" };
+    static int project_current = 0;
+    bool bShowSDKWindow = true;
+    bool bShowDifferentSDKWindow = false;
+    bool bLevelEd = true;
+    bool bModelEd = false;
+    bool bMaterialEd = false;
+    bool bAnimationEd = false;
+    bool bModEd = false;
+    bool bWikiEd = false;
+    ImGuiWindowFlags window_flags;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     // Main loop
@@ -133,46 +145,140 @@ int main(int, char**)
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
-        ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowSize(viewport->WorkSize);
-        ImGui::SetNextWindowPos(viewport->WorkPos);
-        ImGui::Begin("StartWindow", NULL, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar);
-        ImGui::BeginListBox("List", ImVec2(viewport->WorkSize.x, viewport->WorkSize.y-50));
-        if (ImGui::Selectable("Level Editor", true, ImGuiSelectableFlags_AllowDoubleClick, ImVec2(viewport->WorkSize.x, 20)))
-        {
-            if(ImGui::IsMouseDoubleClicked(0))
-                DestroyWindow(hwnd);
-        }
-        ImGui::Selectable("Material Editor", false, NULL, ImVec2(viewport->WorkSize.x, 20));
-        ImGui::Selectable("Animation Editor", false, NULL, ImVec2(viewport->WorkSize.x, 20));
-        ImGui::Separator();
-        ImGui::Selectable("Create Mod", false, NULL, ImVec2(viewport->WorkSize.x, 20));
-        ImGui::EndListBox();
-        if (ImGui::Button("Quit"))
-        {
-            DestroyWindow(hwnd);
-        }
-        ImGui::SameLine(0.0f, 10.0f);
-        if (ImGui::Button("Launch Tool"))
-        {
+        ImGui::ShowDemoWindow();
 
-        }
-        ImGui::SameLine(0.0f, 10.0f);
-        if (ImGui::BeginCombo("Engine Version", versions[item_current], ImGuiComboFlags_WidthFitPreview))
+        if (bShowDifferentSDKWindow)
         {
-            for (int n = 0; n < IM_ARRAYSIZE(versions); n++)
+            const ImGuiViewport* viewport = ImGui::GetMainViewport();
+            ImGui::SetNextWindowPos(viewport->WorkPos);
+            ImGui::SetNextWindowSize(viewport->WorkSize);
+            ImGui::SetNextWindowViewport(viewport->ID);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+            window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+            window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+
+            ImGui::Begin("DockSpace", NULL, window_flags);
+
+            ImGuiID dockspace_id = ImGui::GetID("DockSpace");
+            ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f));
+
+            if (ImGui::BeginMenuBar())
             {
-                const bool is_selected = (item_current == n);
-                if (ImGui::Selectable(versions[n], is_selected))
-                    item_current = n;
-
-                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                if (is_selected)
-                    ImGui::SetItemDefaultFocus();
+                if (ImGui::BeginMenu("Options"))
+                {
+                    if (ImGui::BeginMenu("Help"))
+                    {
+                        ImGui::MenuItem("About");
+                        ImGui::Separator();
+                        ImGui::MenuItem("Go to Wiki");
+                        ImGui::EndMenu();
+                    }
+                }
+                ImGui::EndMenuBar();
             }
-            ImGui::EndCombo();
+
+            ImGui::End();
         }
-        ImGui::End();
+
+        if (bShowSDKWindow)
+        {
+            ImGuiViewport* viewport = ImGui::GetMainViewport();
+            ImGui::SetNextWindowSize(viewport->WorkSize);
+            ImGui::SetNextWindowPos(viewport->WorkPos);
+            ImGui::Begin("StartWindow", NULL, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar);
+            ImGui::BeginListBox("List", ImVec2(viewport->WorkSize.x, viewport->WorkSize.y - 90));
+            ImGui::SeparatorText("Applications");
+            if (ImGui::Selectable("Fabricator", bLevelEd, ImGuiSelectableFlags_AllowDoubleClick, ImVec2(viewport->WorkSize.x, 20)))
+            {
+                bLevelEd = true;
+                bModelEd = false;
+                bMaterialEd = false;
+                bAnimationEd = false;
+                bModEd = false;
+                bWikiEd = false;
+            }
+            if (ImGui::Selectable("Material Editor", bMaterialEd, NULL, ImVec2(viewport->WorkSize.x, 20)))
+            {
+                bLevelEd = false;
+                bModelEd = false;
+                bMaterialEd = true;
+                bAnimationEd = false;
+                bModEd = false;
+                bWikiEd = false;
+            }
+            if (ImGui::Selectable("Model Editor", bModelEd, NULL, ImVec2(viewport->WorkSize.x, 20)))
+            {
+                bLevelEd = false;
+                bModelEd = true;
+                bMaterialEd = false;
+                bAnimationEd = false;
+                bModEd = false;
+                bWikiEd = false;
+            }
+            if (ImGui::Selectable("Animation Editor", bAnimationEd, NULL, ImVec2(viewport->WorkSize.x, 20)))
+            {
+                bLevelEd = false;
+                bModelEd = false;
+                bMaterialEd = false;
+                bAnimationEd = true;
+                bModEd = false;
+                bWikiEd = false;
+            }
+            ImGui::SeparatorText("Utilities");
+            if (ImGui::Selectable("Create Mod", bModEd, NULL, ImVec2(viewport->WorkSize.x, 20)))
+            {
+                bLevelEd = false;
+                bModelEd = false;
+                bMaterialEd = false;
+                bAnimationEd = false;
+                bModEd = true;
+                bWikiEd = false;
+            }
+            if (ImGui::Selectable("Visit Wiki", bWikiEd, NULL, ImVec2(viewport->WorkSize.x, 20)))
+            {
+                bLevelEd = false;
+                bModelEd = false;
+                bMaterialEd = false;
+                bAnimationEd = false;
+                bModEd = false;
+                bWikiEd = true;
+            }
+            ImGui::EndListBox();
+            if (ImGui::BeginCombo("Engine Version", versions[item_current], ImGuiComboFlags_WidthFitPreview))
+            {
+                for (int n = 0; n < IM_ARRAYSIZE(versions); n++)
+                {
+                    const bool is_selected = (item_current == n);
+                    if (ImGui::Selectable(versions[n], is_selected))
+                        item_current = n;
+
+                    // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                    if (is_selected)
+                        ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+            if (ImGui::BeginCombo("Current Project", projects[project_current], ImGuiComboFlags_WidthFitPreview))
+            {
+                for (int n = 0; n < IM_ARRAYSIZE(projects); n++)
+                {
+                    const bool is_selected = (project_current == n);
+                    if (ImGui::Selectable(projects[n], is_selected))
+                        project_current = n;
+
+                    // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                    if (is_selected)
+                        ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+            if (ImGui::Button("Quit"))
+            {
+                DestroyWindow(hwnd);
+            }
+            ImGui::End();
+        }
 
         // Rendering
         ImGui::Render();

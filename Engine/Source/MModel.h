@@ -13,14 +13,10 @@ struct MVertex
 class CMModel
 {
 public:
-	CMModel()
-	{
-
-	}
-	~CMModel();
+	CMModel() {}
+	~CMModel() {}
 
 	std::vector<MVertex> vertices;
-
-	std::vector<unsigned int> indices;
+	std::vector<unsigned long> indices;
 };
 

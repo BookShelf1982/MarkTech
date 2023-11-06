@@ -1,6 +1,6 @@
 #pragma once
-#include <string>
-#include <sstream>
+#include "Core.h"
+
 struct MVector2
 {
 	float x, y;
@@ -31,8 +31,6 @@ struct MVector3
 
 	// Float Division Operator Overload
 	MVector3 operator/(const float& other) const;
-
-	std::string ToString();
 };
 
 struct MVector4
@@ -83,8 +81,6 @@ struct MRotator
 
 	// Float Division Operator Overload
 	MVector3 operator/(const float& other) const;
-
-	std::string ToString();
 };
 
 struct MTransform
@@ -93,11 +89,4 @@ struct MTransform
 	MRotator Rotation;
 
 	MTransform(MVector3 Position = MVector3(), MRotator Rotation = MRotator(), MVector3 Scale = MVector3()) : Position(Position), Rotation(Rotation), Scale(Scale) {}
-};
-
-struct MMatrix4x4
-{
-	MMatrix4x4();
-
-	float matrix[4][4];
 };

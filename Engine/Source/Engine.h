@@ -1,39 +1,52 @@
 #pragma once
+#include "DllExport.h"
 #include "Core.h"
+#include "Level.h"
+#include "D3D11Renderer.h"
 #include "WinWindow.h"
 #include "Input.h"
-#include "D3Drenderer.h"
-#include "Map.h"
-#include "imgui.h"
-#include "GameInfo.h"
-#include "UserSettings.h"
+#include "Configs.h"
 
-class CEngine
+namespace MarkTech
 {
-public:
+	class CEngine
+	{
+	public:
 
-	CEngine();
-	~CEngine();
+		void Quit();
 
-	bool InitEngine(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow);
+		bool InitEngine(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow);
 
-	bool InitImGui(HWND hwnd);
+		bool InitEngineEditor(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow);
 
-	bool InitEngineEditor(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow);
+		bool ReadConfigFiles();
 
-	bool ReadConfigFiles();
+		void StartEngineLoop();
 
-	void StartEngineLoop();
+		void DestroyEngine();
 
-private:
+		static CEngine* GetEngine() { return g_pEngine; }
 
-	bool bClosing;
-	bool bShowDemoWindow;
-	UINT nResizeWidth = 0, nResizeHeight = 0;
-	LARGE_INTEGER nTickFrequency, nCurrentTick, nLastTick;
-	int64_t nElapsedTicks;
-	float flDeltaTime;
-	CWinWindow* Window;
-	CMap* Map;
-};
+	private:
 
+		static CEngine* g_pEngine;
+
+		CEngine();
+		~CEngine();
+
+		bool bClosing;
+		bool bShowDemoWindow;
+		UINT nResizeWidth = 0, nResizeHeight = 0;
+		LARGE_INTEGER nTickFrequency, nCurrentTick, nLastTick;
+		int64_t nElapsedTicks;
+		float flDeltaTime;
+		CWinWindow* Window;
+	};
+}
+
+#ifdef MT_PLATFORM_WINDOWS
+extern "C"
+{
+	MARKTECH_API int LaunchEngine(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow);
+}
+#endif // MT_PLATFORM_WINDOWS

@@ -31,13 +31,6 @@ MVector3 MVector3::operator/(const float& other) const
 	return MVector3(this->x / other, this->y / other, this->z / other);
 }
 
-std::string MVector3::ToString()
-{
-	std::stringstream ss;
-	ss << "( " << this->x << ", " << this->y << ", " << this->z << " )\n";
-	return ss.str();
-}
-
 // Vector3 DotProduct
 float DotV3(const MVector3 a, const MVector3 b)
 {
