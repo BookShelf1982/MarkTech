@@ -2,8 +2,6 @@ project "Editor"
     kind "ConsoleApp"
     language "C++"
 	
-	include "Engine"
-	
     files { "Source/**.h", "Source/**.cpp" }
 	
     targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
@@ -11,13 +9,13 @@ project "Editor"
 	
 	includedirs
 	{
-		"%{wks.location}/Engine/Source",
 		"%{wks.location}/Imgui/Source"
 	}
 	
 	links
 	{
-		"Engine"
+		"Imgui",
+		"d3d11.lib"
 	}
 	
 	defines

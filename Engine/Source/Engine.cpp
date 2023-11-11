@@ -1,4 +1,5 @@
 #include "Engine.h"
+#include <string>
 
 namespace MarkTech
 {
@@ -15,8 +16,8 @@ namespace MarkTech
 		DestroyWindow(Window->GetHWND());
 		delete Window;
 		Renderer::CD3D11Renderer::GetD3DRenderer()->DestroyRenderer();
-		Configs::MUserSettings::GetUserSettings()->Destroy();
 		Configs::MGameInfo::GetGameInfo()->Destroy();
+		Configs::MUserSettings::GetUserSettings()->Destroy();
 		Level::CLevel::GetLevel()->DestroyLevel();
 	}
 
@@ -34,8 +35,8 @@ namespace MarkTech
 			L"jknds",									//Window Title
 			CW_USEDEFAULT,								//X Pos
 			CW_USEDEFAULT,								//Y Pos
-			800,										//Configured Width
-			600,										//Configured Length
+			Configs::MUserSettings::GetUserSettings()->nVSWidth,										//Configured Width
+			Configs::MUserSettings::GetUserSettings()->nVSHeight,										//Configured Length
 			hInstance,									//hImstance
 			nCmdShow);									//nCmdShow
 
@@ -63,7 +64,7 @@ namespace MarkTech
 
 		if (!Configs::MUserSettings::GetUserSettings()->Init())
 		{
-			Window->CreateErrorBox(L"Unable to find UserSettings.ini");
+			Window->CreateErrorBox(L"Unable to find or generate UserSettings.ini");
 			return false;
 		}
 		return true;

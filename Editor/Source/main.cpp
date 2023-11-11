@@ -7,11 +7,13 @@
 // - Introduction, links and more at the top of imgui.cpp
 
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "imgui_gradientbutton.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
 #include <d3d11.h>
 #include <tchar.h>
+#include <shlobj.h>
 
 // Data
 static ID3D11Device*            g_pd3dDevice = nullptr;
@@ -103,15 +105,14 @@ int main(int, char**)
     static int item_current = 0;
     const char* projects[] = { "MarkTech", "Generic Game", "Bungalo Crash Site", "Skid-Markers 2: The toilet Bowl" };
     static int project_current = 0;
+    char project_name[256] = "";
+
     bool bShowSDKWindow = true;
+    bool bShowProjetcWizard = false;
     bool bShowDifferentSDKWindow = false;
-    bool bLevelEd = true;
-    bool bModelEd = false;
-    bool bMaterialEd = false;
-    bool bAnimationEd = false;
-    bool bModEd = false;
-    bool bWikiEd = false;
-    ImGuiWindowFlags window_flags;
+
+    ImGuiID dockspace_id;
+    ImGuiID dock_id_left, dock_id_right;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     // Main loop
@@ -145,39 +146,101 @@ int main(int, char**)
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
-        ImGui::ShowDemoWindow();
+        //ImGui::ShowDemoWindow();
 
         if (bShowDifferentSDKWindow)
         {
-            const ImGuiViewport* viewport = ImGui::GetMainViewport();
-            ImGui::SetNextWindowPos(viewport->WorkPos);
-            ImGui::SetNextWindowSize(viewport->WorkSize);
-            ImGui::SetNextWindowViewport(viewport->ID);
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-            window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-            window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+            // READ THIS !!!
+    // TL;DR; this demo is more complicated than what most users you would normally use.
+    // If we remove all options we are showcasing, this demo would become:
+    //     void ShowExampleAppDockSpace()
+    //     {
+    //         ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+    //     }
+    // In most cases you should be able to just call DockSpaceOverViewport() and ignore all the code below!
+    // In this specific demo, we are not using DockSpaceOverViewport() because:
+    // - (1) we allow the host window to be floating/moveable instead of filling the viewport (when opt_fullscreen == false)
+    // - (2) we allow the host window to have padding (when opt_padding == true)
+    // - (3) we expose many flags and need a way to have them visible.
+    // - (4) we have a local menu bar in the host window (vs. you could use BeginMainMenuBar() + DockSpaceOverViewport()
+    //      in your code, but we don't here because we allow the window to be floating)
 
-            ImGui::Begin("DockSpace", NULL, window_flags);
+            static bool opt_fullscreen = true;
+            static bool opt_padding = false;
+            static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
 
-            ImGuiID dockspace_id = ImGui::GetID("DockSpace");
-            ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f));
+            // We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
+            // because it would be confusing to have two docking targets within each others.
+            ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+            if (opt_fullscreen)
+            {
+                const ImGuiViewport* viewport = ImGui::GetMainViewport();
+                ImGui::SetNextWindowPos(viewport->WorkPos);
+                ImGui::SetNextWindowSize(viewport->WorkSize);
+                ImGui::SetNextWindowViewport(viewport->ID);
+                ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+                ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+                window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+                window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+            }
+            else
+            {
+                dockspace_flags &= ~ImGuiDockNodeFlags_PassthruCentralNode;
+            }
+
+            // When using ImGuiDockNodeFlags_PassthruCentralNode, DockSpace() will render our background
+            // and handle the pass-thru hole, so we ask Begin() to not render a background.
+            if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
+                window_flags |= ImGuiWindowFlags_NoBackground;
+
+            // Important: note that we proceed even if Begin() returns false (aka window is collapsed).
+            // This is because we want to keep our DockSpace() active. If a DockSpace() is inactive,
+            // all active windows docked into it will lose their parent and become undocked.
+            // We cannot preserve the docking relationship between an active window and an inactive docking, otherwise
+            // any change of dockspace/settings would lead to windows being stuck in limbo and never being visible.
+            if (!opt_padding)
+                ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+            ImGui::Begin("DockSpace Demo", NULL, window_flags);
+            if (!opt_padding)
+                ImGui::PopStyleVar();
+
+            if (opt_fullscreen)
+                ImGui::PopStyleVar(2);
+
+            // Submit the DockSpace
+            ImGuiIO& io = ImGui::GetIO();
+            if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
+            {
+                dockspace_id = ImGui::GetID("MyDockSpace");
+                ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
+            }
 
             if (ImGui::BeginMenuBar())
             {
-                if (ImGui::BeginMenu("Options"))
+                if (ImGui::BeginMenu("Help"))
                 {
-                    if (ImGui::BeginMenu("Help"))
-                    {
-                        ImGui::MenuItem("About");
-                        ImGui::Separator();
-                        ImGui::MenuItem("Go to Wiki");
-                        ImGui::EndMenu();
-                    }
+                    ImGui::MenuItem("About");
+                    ImGui::Separator();
+                    if (ImGui::MenuItem("Go to Wiki"))
+                        ShellExecute(hwnd, L"open", L"C:/Users/marcu/Desktop/website/index.html", NULL, NULL, SW_SHOWNORMAL);
+                    ImGui::EndMenu();
                 }
+
                 ImGui::EndMenuBar();
             }
 
+            ImGui::End();
+
+            ImGui::Begin("test");
+            ImGui::BeginListBox("", ImVec2(ImGui::GetWindowSize().x, ImGui::GetWindowSize().y - 25));
+
+            ImGui::EndListBox();
+            ImGui::End();
+
+            ImGui::Begin("test2");
+            ImGui::End();
+
+            ImGui::Begin("test3");
             ImGui::End();
         }
 
@@ -186,80 +249,54 @@ int main(int, char**)
             ImGuiViewport* viewport = ImGui::GetMainViewport();
             ImGui::SetNextWindowSize(viewport->WorkSize);
             ImGui::SetNextWindowPos(viewport->WorkPos);
-            ImGui::Begin("StartWindow", NULL, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar);
-            ImGui::BeginListBox("List", ImVec2(viewport->WorkSize.x, viewport->WorkSize.y - 90));
-            ImGui::SeparatorText("Applications");
-            if (ImGui::Selectable("Fabricator", bLevelEd, ImGuiSelectableFlags_AllowDoubleClick, ImVec2(viewport->WorkSize.x, 20)))
+            ImGui::Begin("StartWindow", NULL, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDocking);
+            ImGui::BeginListBox("MarkTech SDK", ImVec2(viewport->WorkSize.x, viewport->WorkSize.y - 90));
+            ImGui::SeparatorText("Projects");
+            for (int n = 0; n < IM_ARRAYSIZE(versions); n++)
             {
-                bLevelEd = true;
-                bModelEd = false;
-                bMaterialEd = false;
-                bAnimationEd = false;
-                bModEd = false;
-                bWikiEd = false;
-            }
-            if (ImGui::Selectable("Material Editor", bMaterialEd, NULL, ImVec2(viewport->WorkSize.x, 20)))
-            {
-                bLevelEd = false;
-                bModelEd = false;
-                bMaterialEd = true;
-                bAnimationEd = false;
-                bModEd = false;
-                bWikiEd = false;
-            }
-            if (ImGui::Selectable("Model Editor", bModelEd, NULL, ImVec2(viewport->WorkSize.x, 20)))
-            {
-                bLevelEd = false;
-                bModelEd = true;
-                bMaterialEd = false;
-                bAnimationEd = false;
-                bModEd = false;
-                bWikiEd = false;
-            }
-            if (ImGui::Selectable("Animation Editor", bAnimationEd, NULL, ImVec2(viewport->WorkSize.x, 20)))
-            {
-                bLevelEd = false;
-                bModelEd = false;
-                bMaterialEd = false;
-                bAnimationEd = true;
-                bModEd = false;
-                bWikiEd = false;
+                const bool is_selected = (project_current == n);
+                if (ImGui::Selectable(projects[n], is_selected))
+                {
+                    project_current = n;
+                }
             }
             ImGui::SeparatorText("Utilities");
-            if (ImGui::Selectable("Create Mod", bModEd, NULL, ImVec2(viewport->WorkSize.x, 20)))
-            {
-                bLevelEd = false;
-                bModelEd = false;
-                bMaterialEd = false;
-                bAnimationEd = false;
-                bModEd = true;
-                bWikiEd = false;
-            }
-            if (ImGui::Selectable("Visit Wiki", bWikiEd, NULL, ImVec2(viewport->WorkSize.x, 20)))
-            {
-                bLevelEd = false;
-                bModelEd = false;
-                bMaterialEd = false;
-                bAnimationEd = false;
-                bModEd = false;
-                bWikiEd = true;
-            }
-            ImGui::EndListBox();
-            if (ImGui::BeginCombo("Engine Version", versions[item_current], ImGuiComboFlags_WidthFitPreview))
-            {
-                for (int n = 0; n < IM_ARRAYSIZE(versions); n++)
-                {
-                    const bool is_selected = (item_current == n);
-                    if (ImGui::Selectable(versions[n], is_selected))
-                        item_current = n;
+            if (ImGui::Selectable("Create a project", false))
+                ImGui::OpenPopup("Create New Project");
 
-                    // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                    if (is_selected)
-                        ImGui::SetItemDefaultFocus();
+             ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+            if (ImGui::BeginPopupModal("Create New Project", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                ImGui::InputText("Project Name", project_name, 256);
+
+                if (ImGui::BeginCombo("Engine Version", versions[item_current], ImGuiComboFlags_WidthFitPreview))
+                {
+                    for (int n = 0; n < IM_ARRAYSIZE(versions); n++)
+                    {
+                        const bool is_selected = (item_current == n);
+                        if (ImGui::Selectable(versions[n], is_selected))
+                            item_current = n;
+
+                        // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                        if (is_selected)
+                            ImGui::SetItemDefaultFocus();
+                    }
+                    ImGui::EndCombo();
                 }
-                ImGui::EndCombo();
+
+                if (ImGui::Button("Choose Location", ImVec2(120, 0)))
+                    ShellExecute(hwnd, L"open", L"C:/Users/marcu/Desktop/website/index.html", NULL, NULL, SW_SHOWNORMAL);
+
+                if (ImGui::Button("Cancel", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+                ImGui::SameLine(0.0f, 40.0f);
+                if (ImGui::Button("Create", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+                ImGui::EndPopup();
             }
-            if (ImGui::BeginCombo("Current Project", projects[project_current], ImGuiComboFlags_WidthFitPreview))
+
+            ImGui::EndListBox();
+            /*if (ImGui::BeginCombo("Current Project", projects[project_current], ImGuiComboFlags_WidthFitPreview))
             {
                 for (int n = 0; n < IM_ARRAYSIZE(projects); n++)
                 {
@@ -272,8 +309,8 @@ int main(int, char**)
                         ImGui::SetItemDefaultFocus();
                 }
                 ImGui::EndCombo();
-            }
-            if (ImGui::Button("Quit"))
+            }*/
+            if (ImGui::Button("Quit", ImVec2(50, 0)))
             {
                 DestroyWindow(hwnd);
             }

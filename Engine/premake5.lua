@@ -23,7 +23,8 @@ project "Engine"
     defines
     {
         "MT_PLATFORM_WINDOWS",
-		"MT_BUILD_DLL"
+		"MT_BUILD_DLL",
+		"_CRT_SECURE_NO_WARNINGS"
     }
 	
 	links
@@ -34,8 +35,8 @@ project "Engine"
 	
 	postbuildcommands
 	{
-		"{COPYFILE} %{prj.location}/Source/Shaders/ %{wks.location}/Build/Bin/Shaders/Source/",
-		"{COPYFILE} %{wks.location}/bin/" .. outputdir .. "/%{prj.name}/Engine.dll %{wks.location}/Build/Bin"
+		"{COPYFILE} %{prj.location}Source/Shaders/ %{wks.location}/Build/Bin/Shaders/Source/",
+		"{COPYFILE} %{wks.location}bin/" .. outputdir .. "/%{prj.name}/Engine.dll %{wks.location}/Build/Bin"
 	}
 
     filter "configurations:Debug"

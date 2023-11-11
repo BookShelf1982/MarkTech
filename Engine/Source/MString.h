@@ -4,9 +4,16 @@
 class MARKTECH_API CString
 {
 public:
-	CString();
-	CString(const char* str);
-	~CString();
+	CString() 
+	{
+		str = "";
+	}
+	CString(const char* string)
+	{
+		str = (char*)string;
+	}
+
+	~CString() { delete str; }
 
 	void SetString(char* other);
 
@@ -30,6 +37,7 @@ public:
 	wchar_t* c_str() { return wstr; }
 
 	void operator=(CWString other);
+	void operator=(wchar_t* other);
 
 private:
 	wchar_t* wstr;

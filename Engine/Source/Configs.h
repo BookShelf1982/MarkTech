@@ -1,22 +1,22 @@
 #pragma once
 #include "DllExport.h"
 #include "Core.h"
+#define MINI_CASE_SENSITIVE
 #include "mini\ini.h"
 
 namespace MarkTech
 {
 	namespace Configs
 	{
-		template<typename T>
-		struct MARKTECH_API MConfigValue
-		{
-		public:
-			MConfigValue() : value(NULL) {}
-			MConfigValue(T InitalValue) : value(InitalValue) {}
-			~MConfigValue() {}
+#define MT_NAME "MarkTech 2023"
 
-			T value;
-		};
+#define MT_SHADERPATH "Bin/Shaders/"
+
+#define MT_RAWSHADERPATH "Bin/Shaders/Source/"
+
+#define MT_CONTENTPATH "Content/"
+
+#define MT_CONFIGPATH "Configs/"
 
 		struct MARKTECH_API MGameInfo
 		{
@@ -27,13 +27,16 @@ namespace MarkTech
 
 			void Destroy();
 
-			MConfigValue<int>	gameversion;
-			MConfigValue<char*> GameName;
-			MConfigValue<char*> ShaderPath;
-			MConfigValue<char*> RawShaderPath;
+			int		gameversion;
+			char	GameName[256];
+			char	ShaderPath[256];
+			char	RawShaderPath[256];
+			char	ContentPath[256];
+			char	ConfigPath[256];
 
 		private:
-			MGameInfo() :gameversion(0), GameName(""), ShaderPath(""), RawShaderPath("") {}
+			MGameInfo() :gameversion(0), GameName(MT_NAME), ShaderPath(MT_SHADERPATH), RawShaderPath(MT_RAWSHADERPATH), ContentPath(MT_CONTENTPATH), ConfigPath(MT_CONFIGPATH) {}
+			~MGameInfo() {}
 
 			static MGameInfo* m_gGInfo;
 		};
@@ -47,12 +50,12 @@ namespace MarkTech
 
 			void Destroy();
 
-			MConfigValue<int> nVSWidth;
-			MConfigValue<int> nVSLength;
-			MConfigValue<int> bVSWindowed;
-			MConfigValue<int> bVSVSync;
+			int nVSWidth;
+			int nVSHeight;
+			int bVSWindowed;
+			int bVSVSync;
 		private:
-			MUserSettings() :nVSWidth(0), nVSLength(0), bVSWindowed(0), bVSVSync(0) {}
+			MUserSettings() :nVSWidth(0), nVSHeight(0), bVSWindowed(0), bVSVSync(0) {}
 
 			static MUserSettings* m_gUserSettings;
 		};

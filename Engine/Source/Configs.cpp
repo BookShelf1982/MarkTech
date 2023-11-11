@@ -4,20 +4,34 @@ namespace MarkTech
 {
 	namespace Configs
 	{
-		MGameInfo* MGameInfo::m_gGInfo;
+		MGameInfo* MGameInfo::m_gGInfo = new MGameInfo();
 
-		MUserSettings* MUserSettings::m_gUserSettings;
+		MUserSettings* MUserSettings::m_gUserSettings = new MUserSettings();
 
 		bool MGameInfo::Init()
 		{
 			mINI::INIFile file("GameInfo.ini");
 			mINI::INIStructure ini;
 
-			file.read(ini);
+			bool bReadFile = file.read(ini);
 
-			std::string string = ini["MarkTech.GameInfo"]["Game.GameName"];
+			if (!bReadFile)
+			{
+				return false;
+			}
 
+			std::string tempGameName = ini["MarkTech.GameInfo"]["Game.GameName"];
+			std::string tempShaderPath = ini["MarkTech.GameInfo"]["Game.ShaderPath"];
+			std::string tempRawShaderPath = ini["MarkTech.GameInfo"]["Game.RawShaderPath"];
+			std::string tempContentPath = ini["MarkTech.GameInfo"]["Game.ContentPath"];
+			std::string tempConfigPath = ini["MarkTech.GameInfo"]["Game.ConfigPath"];
 
+			strcpy(this->GameName, tempGameName.c_str());
+			strcpy(this->ShaderPath, tempShaderPath.c_str());
+			strcpy(this->RawShaderPath, tempRawShaderPath.c_str());
+			strcpy(this->ContentPath, tempContentPath.c_str());
+			strcpy(this->ConfigPath, tempConfigPath.c_str());
+			
 			return true;
 		}
 
@@ -28,12 +42,35 @@ namespace MarkTech
 
 		bool MUserSettings::Init()
 		{
-			mINI::INIFile file("GameInfo.ini");
+			char* szPath = MGameInfo::GetGameInfo()->ConfigPath;
+			char szFile[256] = "UserSettings.ini";
+			strcat(szPath, szFile);
+			mINI::INIFile file(szPath);
 			mINI::INIStructure ini;
 
-			file.read(ini);
+			if (!file.read(ini))
+			{
+				ini["MarkTech.VideoSettings"]["VideoSettings.Width"] = "800";
+				ini["MarkTech.VideoSettings"]["VideoSettings.Height"] = "600";
+				ini["MarkTech.VideoSettings"]["VideoSettings.Windowed"] = "1";
+				ini["MarkTech.VideoSettings"]["VideoSettings.VSync"] = "1";
 
-			std::string string = ini["MarkTech.GameInfo"]["Game.GameName"];
+				if (!file.generate(ini))
+					return false;
+
+				return true;
+			}
+
+			std::string widthStr = ini["MarkTech.VideoSettings"]["VideoSettings.Width"];
+			std::string heightStr = ini["MarkTech.VideoSettings"]["VideoSettings.Height"];
+			std::string windowStr = ini["MarkTech.VideoSettings"]["VideoSettings.Windowed"];
+			std::string vsyncStr = ini["MarkTech.VideoSettings"]["VideoSettings.VSync"];
+
+			char *charPtr;
+			this->nVSWidth = (int)strtol(widthStr.c_str(), &charPtr, 10);
+			this->nVSHeight = (int)strtol(heightStr.c_str(), &charPtr, 10);
+			this->bVSWindowed = (int)strtol(windowStr.c_str(), &charPtr, 10);
+			this->bVSVSync = (int)strtol(vsyncStr.c_str(), &charPtr, 10);
 
 			return true;
 		}
