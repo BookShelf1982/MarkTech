@@ -24,7 +24,7 @@ project "Engine"
     {
         "MT_PLATFORM_WINDOWS",
 		"MT_BUILD_DLL",
-		"_CRT_SECURE_NO_WARNINGS"
+		"_CRT_SECURE_NO_WARNINGS",
     }
 	
 	links

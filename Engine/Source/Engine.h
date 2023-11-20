@@ -17,8 +17,6 @@ namespace MarkTech
 
 		bool InitEngine(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow);
 
-		bool InitEngineEditor(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow);
-
 		bool ReadConfigFiles();
 
 		void StartEngineLoop();
@@ -37,8 +35,6 @@ namespace MarkTech
 		bool bClosing;
 		bool bShowDemoWindow;
 		UINT nResizeWidth = 0, nResizeHeight = 0;
-		LARGE_INTEGER nTickFrequency, nCurrentTick, nLastTick;
-		int64_t nElapsedTicks;
 		float flDeltaTime;
 		CWinWindow* Window;
 	};

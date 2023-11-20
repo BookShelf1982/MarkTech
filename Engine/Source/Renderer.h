@@ -9,16 +9,13 @@
 
 namespace MarkTech
 {
-	namespace Renderer
+	class MARKTECH_API CRenderer
 	{
-		class MARKTECH_API CRenderer
-		{
-		public:
-			virtual bool InitRenderer(HWND hwnd) { return false; };
+	public:
+		virtual bool InitRenderer(HWND hwnd) = 0;
 
-			virtual void CreateShaders() {};
+		virtual void CreateShaders() = 0;;
 
-			virtual void RenderFrame(HWND hwnd) {};
-		};
-	}
+		virtual void RenderFrame(HWND hwnd) = 0;
+	};
 }

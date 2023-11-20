@@ -1,5 +1,6 @@
 #pragma once
-
+namespace MarkTech
+{
 #define MTVK_MAX_KEYS 120
 
 
@@ -60,7 +61,7 @@
 #define MTVK_World1 200, /* non-US #1 */
 #define MTVK_World2 201, /* non-US #2 */
 
-/* Function keys */
+	/* Function keys */
 #define MTVK_Escape		48
 #define MTVK_Enter		49
 #define MTVK_Tab		50
@@ -133,3 +134,4 @@
 #define MTVK_RightAlt	115
 #define MTVK_RightSuper 116
 #define MTVK_Menu		117
+}

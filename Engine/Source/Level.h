@@ -5,25 +5,56 @@
 
 namespace MarkTech
 {
-	namespace Level
+	class MARKTECH_API CLevel
 	{
-		class MARKTECH_API CLevel
+	public:
+		bool InitLevel();
+
+		void DestroyLevel();
+
+		void UpdateLevel(float flDeltaTime);
+
+		static CLevel* GetLevel() { return g_pLevel; }
+		
+		template<class T>
+		bool HasComponent(uint64_t id)
 		{
-		public:
-			bool InitLevel();
+			for (int i = 0; i < m_Comps.GetSize(); i++)
+			{
+				//Is specified type
+				auto comp = dynamic_cast<T*>(m_Comps[i]);
+				if (comp != nullptr)
+				{
+					//Is owned by specified entity
+					if (m_Comps[i]->GetOwnerId() == id)
+					{
+						return true;
+					}
+				}
+			}
+			//return false if we can't find it
+			return false;
+		}
 
-			void DestroyLevel();
+		template<class T>
+		void CreateComponent(uint64_t ownerId)
+		{
+			T* comp = new T(ownerId);
+			m_Comps.Push(comp);
+		}
 
-			static CLevel* GetLevel() { return g_pLevel; }
+		CBaseEntity* GetEntityById(uint64_t id);
 
-		private:
-			CLevel() {}
-			~CLevel() {}
+		uint64_t CreateEntity();
 
-			static CLevel* g_pLevel;
+	private:
+		CLevel();
+		~CLevel();
+		static CLevel* g_pLevel;
 
-			CTArray<CBaseEntity> entities;
+		CTArray<CBaseEntity> m_Ents;
+		CTArray<CBaseComponent*> m_Comps;
+	};
 
-		};
-	}
+	static CLevel* GetLevel() { return CLevel::GetLevel(); }
 }

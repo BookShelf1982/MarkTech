@@ -1,5 +1,5 @@
 #include "Engine.h"
-#include <string>
+#include "TransformComponent.h"
 
 namespace MarkTech
 {
@@ -15,10 +15,10 @@ namespace MarkTech
 	{
 		DestroyWindow(Window->GetHWND());
 		delete Window;
-		Renderer::CD3D11Renderer::GetD3DRenderer()->DestroyRenderer();
-		Configs::MGameInfo::GetGameInfo()->Destroy();
-		Configs::MUserSettings::GetUserSettings()->Destroy();
-		Level::CLevel::GetLevel()->DestroyLevel();
+		CD3D11Renderer::GetD3DRenderer()->DestroyRenderer();
+		MGameInfo::GetGameInfo()->Destroy();
+		MUserSettings::GetUserSettings()->Destroy();
+		CLevel::GetLevel()->DestroyLevel();
 	}
 
 	bool CEngine::InitEngine(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
@@ -35,20 +35,26 @@ namespace MarkTech
 			L"jknds",									//Window Title
 			CW_USEDEFAULT,								//X Pos
 			CW_USEDEFAULT,								//Y Pos
-			Configs::MUserSettings::GetUserSettings()->nVSWidth,										//Configured Width
-			Configs::MUserSettings::GetUserSettings()->nVSHeight,										//Configured Length
+			MUserSettings::GetUserSettings()->nVSWidth,										//Configured Width
+			MUserSettings::GetUserSettings()->nVSHeight,										//Configured Length
 			hInstance,									//hImstance
 			nCmdShow);									//nCmdShow
 
-		Level::CLevel::GetLevel()->InitLevel();			//Initialize Level
-
-		if (!Renderer::CD3D11Renderer::GetD3DRenderer()->InitRenderer(Window->GetHWND()))
+		if (!GetLevel()->InitLevel())	//Initialize Level
 		{
 			return false;
 		}
 
-		QueryPerformanceCounter(&nLastTick);
-		QueryPerformanceFrequency(&nTickFrequency);
+		if (!CD3D11Renderer::GetD3DRenderer()->InitRenderer(Window->GetHWND()))
+		{
+			return false;
+		}
+
+		uint64_t ent1Id = GetLevel()->CreateEntity();
+		CBaseEntity* ent1 = GetLevel()->GetEntityById(ent1Id);
+		//ent1->AddComponent<CTransformComponent>();
+
+		bool boolean = ent1->HasComponent<CTransformComponent>();
 
 		return true;
 	}
@@ -56,13 +62,13 @@ namespace MarkTech
 	bool CEngine::ReadConfigFiles()
 	{
 		//Read alues from GameInfo.ini file
-		if (!Configs::MGameInfo::GetGameInfo()->Init())
+		if (!MGameInfo::GetGameInfo()->Init())
 		{
 			Window->CreateErrorBox(L"Unable to find GameInfo.ini");
 			return false;
 		}
 
-		if (!Configs::MUserSettings::GetUserSettings()->Init())
+		if (!MUserSettings::GetUserSettings()->Init())
 		{
 			Window->CreateErrorBox(L"Unable to find or generate UserSettings.ini");
 			return false;
@@ -74,12 +80,7 @@ namespace MarkTech
 	{
 		while (!bClosing)
 		{
-			QueryPerformanceCounter(&nCurrentTick);
-			nElapsedTicks = nCurrentTick.QuadPart - nLastTick.QuadPart;
-
-			flDeltaTime = (float)nElapsedTicks / (float)nTickFrequency.QuadPart;
-
-			nLastTick = nCurrentTick;
+			flDeltaTime = (float)Window->nElapsedTicks / (float)Window->nTickFrequency.QuadPart;
 
 			MSG msg = {};
 			while (PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE))
@@ -91,19 +92,6 @@ namespace MarkTech
 				{
 					bClosing = true;
 				}break;
-
-				case WM_SYSKEYDOWN:
-				case WM_SYSKEYUP:
-				case WM_KEYDOWN:
-				case WM_KEYUP:
-				{
-					uint32_t keycode = (uint32_t)msg.wParam;
-
-					bool bWasDown = (msg.lParam & BIT(30)) != 0;
-					bool bIsDown = (msg.lParam & BIT(31)) == 0;
-
-					CInput::GetInput()->PollInput(keycode, bIsDown, bWasDown);
-				}break;
 				}
 				if (bClosing)
 				{
@@ -111,7 +99,9 @@ namespace MarkTech
 				}
 			}
 
-			Renderer::CD3D11Renderer::GetD3DRenderer()->RenderFrame(Window->GetHWND());
+			GetLevel()->UpdateLevel(flDeltaTime);
+
+			CD3D11Renderer::GetD3DRenderer()->RenderFrame(Window->GetHWND());
 
 			if (CInput::GetInput()->IsKeyDown(MTVK_Escape))
 			{

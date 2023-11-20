@@ -6,8 +6,6 @@
 
 namespace MarkTech
 {
-	namespace Configs
-	{
 #define MT_NAME "MarkTech 2023"
 
 #define MT_SHADERPATH "Bin/Shaders/"
@@ -18,46 +16,46 @@ namespace MarkTech
 
 #define MT_CONFIGPATH "Configs/"
 
-		struct MARKTECH_API MGameInfo
-		{
-		public:
-			static MGameInfo* GetGameInfo() { return m_gGInfo; }
+	class MARKTECH_API MGameInfo
+	{
+	public:
+		static MGameInfo* GetGameInfo() { return m_gGInfo; }
 
-			bool Init();
+		bool Init();
 
-			void Destroy();
+		void Destroy();
 
-			int		gameversion;
-			char	GameName[256];
-			char	ShaderPath[256];
-			char	RawShaderPath[256];
-			char	ContentPath[256];
-			char	ConfigPath[256];
+		int		nGameVersion;
+		char	szGameName[256];
+		char	szShaderPath[256];
+		char	szRawShaderPath[256];
+		char	szContentPath[256];
+		char	szConfigPath[256];
+		char	szImage[256];
 
-		private:
-			MGameInfo() :gameversion(0), GameName(MT_NAME), ShaderPath(MT_SHADERPATH), RawShaderPath(MT_RAWSHADERPATH), ContentPath(MT_CONTENTPATH), ConfigPath(MT_CONFIGPATH) {}
-			~MGameInfo() {}
+	private:
+		MGameInfo() :nGameVersion(0), szGameName(MT_NAME), szShaderPath(MT_SHADERPATH), szRawShaderPath(MT_RAWSHADERPATH), szContentPath(MT_CONTENTPATH), szConfigPath(MT_CONFIGPATH), szImage("img.jpg") {}
+		~MGameInfo() {}
 
-			static MGameInfo* m_gGInfo;
-		};
+		static MGameInfo* m_gGInfo;
+	};
 
-		struct MARKTECH_API MUserSettings
-		{
-		public:
-			static MUserSettings* GetUserSettings() { return m_gUserSettings; }
+	class MARKTECH_API MUserSettings
+	{
+	public:
+		static MUserSettings* GetUserSettings() { return m_gUserSettings; }
 
-			bool Init();
+		bool Init();
 
-			void Destroy();
+		void Destroy();
 
-			int nVSWidth;
-			int nVSHeight;
-			int bVSWindowed;
-			int bVSVSync;
-		private:
-			MUserSettings() :nVSWidth(0), nVSHeight(0), bVSWindowed(0), bVSVSync(0) {}
+		int nVSWidth;
+		int nVSHeight;
+		int bVSWindowed;
+		int bVSVSync;
+	private:
+		MUserSettings() :nVSWidth(0), nVSHeight(0), bVSWindowed(0), bVSVSync(0) {}
 
-			static MUserSettings* m_gUserSettings;
-		};
-	}
+		static MUserSettings* m_gUserSettings;
+	};
 }

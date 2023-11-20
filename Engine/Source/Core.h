@@ -5,3 +5,6 @@
 #include "MString.h"
 
 #define BIT(x) (1 << x)
+
+MAKE_CTARRAY_COMPATIBLE(int);
+MAKE_CTARRAY_COMPATIBLE(float);

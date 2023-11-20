@@ -1,22 +1,13 @@
 #pragma once
 #include <vector>
 #include "Vectors.h"
-
-struct MVertex
+namespace MarkTech
 {
-	MVertex(float x, float y, float z, float u, float v) : Position(x, y, z), TexCoords(u, v) {}
+	struct MVertex
+	{
+		MVertex(float x, float y, float z, float u, float v) : Position(x, y, z), TexCoords(u, v) {}
 
-	MVector3 Position;
-	MVector2 TexCoords;
-};
-
-class CMModel
-{
-public:
-	CMModel() {}
-	~CMModel() {}
-
-	std::vector<MVertex> vertices;
-	std::vector<unsigned long> indices;
-};
-
+		MVector3 Position;
+		MVector2 TexCoords;
+	};
+}

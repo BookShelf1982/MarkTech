@@ -13,35 +13,48 @@
 
 namespace MarkTech
 {
-	namespace Renderer
+	class MARKTECH_API CD3D11Renderer : public CRenderer
 	{
-		class MARKTECH_API CD3D11Renderer : public CRenderer
-		{
-		public:
-			virtual bool InitRenderer(HWND hwnd) override;
+	public:
+		virtual bool InitRenderer(HWND hwnd) override;
 
-			virtual void RenderFrame(HWND hwnd) override;
+		virtual void RenderFrame(HWND hwnd) override;
 
-			void DestroyRenderer();
+		virtual void CreateShaders() override;
 
-			static CD3D11Renderer* GetD3DRenderer() { return g_pd3dRenderer; }
-		private:
-			CD3D11Renderer() {}
-			~CD3D11Renderer() {}
+		ID3DBlob* GetShaderBytecodeFromFile(LPCWSTR Filename, LPCWSTR CompiledFilename, LPCSTR Compiler, LPCSTR Entrypoint);
 
-			static CD3D11Renderer* g_pd3dRenderer;
+		void DestroyRenderer();
 
-			ID3D11Device*				m_pd3dDevice = NULL;
-			ID3D11DeviceContext*		m_pd3dDeviceContext = NULL;
-			IDXGISwapChain*				m_pSwapChain = NULL;
-			ID3D11RenderTargetView*		m_pMainRenderTargetView = NULL;
-			ID3D11Texture2D*			m_pBackBuffer = NULL;
+		static CD3D11Renderer* GetD3DRenderer() { return g_pd3dRenderer; }
+	private:
+		CD3D11Renderer() {}
+		~CD3D11Renderer() {}
 
-			ID3D11Buffer*				m_pMainVertexBuffer = NULL;
-			ID3D11Buffer*				m_pMainIndexBuffer = NULL;
+		static CD3D11Renderer* g_pd3dRenderer;
 
-			ID3D11Debug*				m_pDebug = NULL;
+		ID3D11Device*				m_pd3dDevice = NULL;
+		ID3D11DeviceContext*		m_pd3dDeviceContext = NULL;
+		IDXGISwapChain*				m_pSwapChain = NULL;
+		ID3D11RenderTargetView*		m_pMainRenderTargetView = NULL;
+		ID3D11Texture2D*			m_pBackBuffer = NULL;
 
-		};
-	}
+		ID3D11Buffer*				m_pMainVertexBuffer = NULL;
+		ID3D11Buffer*				m_pMainIndexBuffer = NULL;
+
+		ID3D11VertexShader*			m_pVertexShader = NULL;
+		ID3D11PixelShader*			m_pPixelShader = NULL;
+		ID3D11Texture2D*			m_pTexture = NULL;
+		ID3D11ShaderResourceView*	m_pTextureView = NULL;
+		ID3D11SamplerState*			m_pTextureSampler = NULL;
+		ID3D11InputLayout*			m_pInputLayout = NULL;
+
+		ID3D11Debug*				m_pDebug = NULL;
+
+		UINT stride = (UINT)sizeof(MVertex);
+		UINT offset = 0;
+
+		char* szSourcePath;
+		char* szCompiledPath;
+	};
 }
