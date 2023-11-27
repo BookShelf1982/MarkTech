@@ -16,7 +16,10 @@ namespace MarkTech
     
     void CLevel::UpdateLevel(float flDeltaTime)
     {
-        
+        for (int i = 0; i < m_Comps.GetSize(); i++)
+        {
+            m_Comps.c_arr()[i]->UpdateComponent(flDeltaTime);
+        }
     }
     
     CBaseEntity* CLevel::GetEntityById(uint64_t id)

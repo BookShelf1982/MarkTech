@@ -2,6 +2,85 @@
 #include "DllExport.h"
 
 template<typename T>
+class CTStaticArray
+{
+public:
+	CTStaticArray()
+	{
+		//16384
+		arr = new T[100];
+		size_max = 100;
+		size_current = 0;
+	}
+
+	~CTStaticArray()
+	{
+		delete[] arr;
+	}
+
+	void Push(T element);
+	void SetAtIndex(T elemet, int index);
+	void RemoveAtIndex(int index);
+	T GetElementAtIndex(int index);
+
+	T operator[](int index);
+
+	int GetSize() { return size_current; }
+	int GetMaxSize() { return size_max; }
+	T* c_arr() { return arr; }
+private:
+	T* arr;
+	int size_current;
+	int size_max;
+};
+
+
+template<typename T>
+inline void CTStaticArray<T>::Push(T element)
+{
+	//If max size is equal to current size then double size
+	if (size_current >= size_max)
+	{
+		return;
+	}
+
+	// Insert element
+	arr[size_current] = element;
+	size_current++;
+}
+
+template<typename T>
+inline void CTStaticArray<T>::SetAtIndex(T elemet, int index)
+{
+	if (index >= size_max)
+	{
+		Push(elemet);
+	}
+	else
+	{
+		arr[index] = elemet;
+	}
+}
+
+template<typename T>
+inline void CTStaticArray<T>::RemoveAtIndex(int index)
+{
+
+}
+
+template<typename T>
+inline T CTStaticArray<T>::GetElementAtIndex(int index)
+{
+	return arr[index];
+}
+
+template<typename T>
+inline T CTStaticArray<T>::operator[](int index)
+{
+	return arr[index];
+}
+
+template<typename T>
 class CTArray
 {
 public:
@@ -88,4 +167,5 @@ inline T CTArray<T>::operator[](int index)
 
 
 
-#define MAKE_CTARRAY_COMPATIBLE(Type) MARKTECH_EXTERN template class MARKTECH_API CTArray<Type>
+#define MAKE_CTARRAY_COMPATIBLE(Type) MARKTECH_EXTERN template class MARKTECH_API CTArray<Type>;\
+										MARKTECH_EXTERN template class MARKTECH_API CTStaticArray<Type>

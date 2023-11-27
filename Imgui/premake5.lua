@@ -9,8 +9,7 @@ project "Imgui"
 	
     defines
     {
-        "MT_PLATFORM_WINDOWS",
-        "MT_ENABLE_ASSERTS",
+        "MT_PLATFORM_WINDOWS"
     }
 	
     filter "configurations:Debug"

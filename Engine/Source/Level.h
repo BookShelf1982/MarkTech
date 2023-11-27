@@ -21,12 +21,12 @@ namespace MarkTech
 		{
 			for (int i = 0; i < m_Comps.GetSize(); i++)
 			{
-				//Is specified type
-				auto comp = dynamic_cast<T*>(m_Comps[i]);
-				if (comp != nullptr)
+				//Is owned by specified entity
+				if (m_Comps[i]->GetOwnerId() == id)
 				{
-					//Is owned by specified entity
-					if (m_Comps[i]->GetOwnerId() == id)
+					//Is specified type
+					auto comp = dynamic_cast<T*>(m_Comps[i]);
+					if (comp != nullptr)
 					{
 						return true;
 					}
@@ -41,6 +41,19 @@ namespace MarkTech
 		{
 			T* comp = new T(ownerId);
 			m_Comps.Push(comp);
+		}
+
+		template<class T>
+		T* GetComponentFromEntity(uint64_t entId)
+		{
+			for (int i = 0; i < m_Comps.GetSize(); i++)
+			{
+				if (m_Comps.c_arr()[i]->GetOwnerId() == entId)
+				{
+					return reinterpret_cast<T*>(m_Comps.c_arr()[i]);
+				}
+			}
+			return nullptr;
 		}
 
 		CBaseEntity* GetEntityById(uint64_t id);

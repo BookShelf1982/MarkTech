@@ -10,6 +10,12 @@ namespace MarkTech
         m_WC = { };
     }
 
+    CWinWindow::~CWinWindow()
+    {
+        DestroyWindow(m_Hwnd);
+        UnregisterClassW(m_WC.lpszClassName, m_WC.hInstance);
+    }
+
     void CWinWindow::CreateWinWindow(LPCWSTR ClassName, LPCWSTR WindowName, int iPosX, int iPosY, int iWidth, int iLength, HINSTANCE hInstance, int nCmdShow)
     {
         m_WC.lpfnWndProc = WindowProc;
@@ -18,6 +24,8 @@ namespace MarkTech
 
         RegisterClass(&m_WC);
 
+        nWidth = iWidth;
+        nHeight = iLength;
         m_Hwnd = CreateWindowEx(0, ClassName, WindowName, WS_OVERLAPPEDWINDOW, iPosX, iPosY, iWidth, iLength, NULL, NULL, hInstance, NULL);
 
         ShowWindow(m_Hwnd, nCmdShow);
@@ -27,7 +35,7 @@ namespace MarkTech
         QueryPerformanceFrequency(&nTickFrequency);
     }
 
-    void CWinWindow::CreateErrorBox(LPCWSTR ErrorString)
+    void CWinWindow::CreateErrorBox(const LPCWSTR ErrorString)
     {
         MessageBox(m_Hwnd, ErrorString, L"MARKTECH FATAL ERROR!", MB_ICONWARNING);
     }
@@ -67,5 +75,11 @@ namespace MarkTech
 
         TranslateMessage(&msg);
         DispatchMessage(&msg);
+
+        if (msg.message == WM_SIZE)
+        {
+           nWidth = LOWORD(msg.lParam);
+           nHeight = HIWORD(msg.lParam);
+        }
     }
 }

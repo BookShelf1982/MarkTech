@@ -23,6 +23,12 @@ namespace MarkTech
 			GetLevel()->CreateComponent<T>(m_nId);
 		}
 
+		template<typename T>
+		T* GetComponent()
+		{
+			return GetLevel()->GetComponentFromEntity<T>(m_nId);
+		}
+
 		uint64_t GetId() { return m_nId; }
 
 	protected:

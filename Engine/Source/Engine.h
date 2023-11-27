@@ -4,7 +4,6 @@
 #include "Level.h"
 #include "D3D11Renderer.h"
 #include "WinWindow.h"
-#include "Input.h"
 #include "Configs.h"
 
 namespace MarkTech
@@ -16,6 +15,7 @@ namespace MarkTech
 		void Quit();
 
 		bool InitEngine(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow);
+		bool InitEditor(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow);
 
 		bool ReadConfigFiles();
 
@@ -24,6 +24,8 @@ namespace MarkTech
 		void DestroyEngine();
 
 		static CEngine* GetEngine() { return g_pEngine; }
+
+		bool bIsEditor;
 
 	private:
 
@@ -36,7 +38,7 @@ namespace MarkTech
 		bool bShowDemoWindow;
 		UINT nResizeWidth = 0, nResizeHeight = 0;
 		float flDeltaTime;
-		CWinWindow* Window;
+		CWinWindow* m_pMainWindow;
 	};
 }
 
@@ -44,5 +46,7 @@ namespace MarkTech
 extern "C"
 {
 	MARKTECH_API int LaunchEngine(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow);
+
+	MARKTECH_API int LaunchEditor(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow);
 }
 #endif // MT_PLATFORM_WINDOWS

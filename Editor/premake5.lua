@@ -1,5 +1,5 @@
 project "Editor"
-    kind "ConsoleApp"
+    kind "WindowedApp"
     language "C++"
 	
     files { "Source/**.h", "Source/**.cpp" }
@@ -9,20 +9,25 @@ project "Editor"
 	
 	includedirs
 	{
-		"%{wks.location}/Imgui/Source"
+		"%{wks.location}/Imgui/Source",
+		"%{wks.location}/Engine/Source",
+		"%{wks.location}/Engine/ThirdParty"
 	}
 	
 	links
 	{
-		"Imgui",
 		"d3d11.lib"
 	}
 	
 	defines
     {
-        "MT_PLATFORM_WINDOWS",
-        "MT_ENABLE_ASSERTS"
+        "MT_PLATFORM_WINDOWS"
     }
+	
+	postbuildcommands
+	{
+		"{COPYFILE} %{wks.location}/bin/" .. outputdir .. "/%{prj.name}/Editor.exe %{wks.location}/Build/"
+	}
 	
     filter "configurations:Debug"
         defines { "DEBUG" }

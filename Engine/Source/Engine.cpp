@@ -1,5 +1,6 @@
 #include "Engine.h"
 #include "TransformComponent.h"
+#include <fstream>
 
 namespace MarkTech
 {
@@ -8,19 +9,19 @@ namespace MarkTech
 	CEngine::CEngine()
 	{
 		bClosing = false;
-		Window = new CWinWindow();
+		m_pMainWindow = new CWinWindow();
 	}
 
 	CEngine::~CEngine()
 	{
-		DestroyWindow(Window->GetHWND());
-		delete Window;
 		CD3D11Renderer::GetD3DRenderer()->DestroyRenderer();
 		MGameInfo::GetGameInfo()->Destroy();
 		MUserSettings::GetUserSettings()->Destroy();
 		CLevel::GetLevel()->DestroyLevel();
+		delete m_pMainWindow;
 	}
 
+	//Engine init func
 	bool CEngine::InitEngine(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
 	{
 		//Read values from GameInfo.ini file
@@ -30,31 +31,62 @@ namespace MarkTech
 		}
 
 		//Create Window
-		Window->CreateWinWindow(
-			L"WinWindow",								//Class Name
-			L"jknds",									//Window Title
-			CW_USEDEFAULT,								//X Pos
-			CW_USEDEFAULT,								//Y Pos
-			MUserSettings::GetUserSettings()->nVSWidth,										//Configured Width
-			MUserSettings::GetUserSettings()->nVSHeight,										//Configured Length
-			hInstance,									//hImstance
-			nCmdShow);									//nCmdShow
+		m_pMainWindow->CreateWinWindow(
+			L"WinWindow",									//Class Name
+			L"jknds",										//Window Title
+			CW_USEDEFAULT,									//X Pos
+			CW_USEDEFAULT,									//Y Pos
+			MUserSettings::GetUserSettings()->nVSWidth,		//Configured Width
+			MUserSettings::GetUserSettings()->nVSHeight,	//Configured Length
+			hInstance,										//hImstance
+			nCmdShow);										//nCmdShow
 
 		if (!GetLevel()->InitLevel())	//Initialize Level
 		{
 			return false;
 		}
 
-		if (!CD3D11Renderer::GetD3DRenderer()->InitRenderer(Window->GetHWND()))
+		if (!CD3D11Renderer::GetD3DRenderer()->InitRenderer(*m_pMainWindow))
 		{
 			return false;
 		}
 
-		uint64_t ent1Id = GetLevel()->CreateEntity();
-		CBaseEntity* ent1 = GetLevel()->GetEntityById(ent1Id);
-		//ent1->AddComponent<CTransformComponent>();
+		bIsEditor = false;
 
-		bool boolean = ent1->HasComponent<CTransformComponent>();
+		return true;
+	}
+
+	//editor init func
+	bool CEngine::InitEditor(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
+	{
+		//Read values from GameInfo.ini file
+		if (!ReadConfigFiles())
+		{
+			return false;
+		}
+
+		//Create Window
+		m_pMainWindow->CreateWinWindow(
+			L"WinWindow",									//Class Name
+			L"jknds",										//Window Title
+			CW_USEDEFAULT,									//X Pos
+			CW_USEDEFAULT,									//Y Pos
+			MUserSettings::GetUserSettings()->nVSWidth,		//Configured Width
+			MUserSettings::GetUserSettings()->nVSHeight,	//Configured Length
+			hInstance,										//hImstance
+			nCmdShow);										//nCmdShow
+
+		if (!GetLevel()->InitLevel())	//Initialize Level
+		{
+			return false;
+		}
+
+		if (!CD3D11Renderer::GetD3DRenderer()->InitRenderer(*m_pMainWindow))
+		{
+			return false;
+		}
+
+		bIsEditor = true;
 
 		return true;
 	}
@@ -64,13 +96,13 @@ namespace MarkTech
 		//Read alues from GameInfo.ini file
 		if (!MGameInfo::GetGameInfo()->Init())
 		{
-			Window->CreateErrorBox(L"Unable to find GameInfo.ini");
+			m_pMainWindow->CreateErrorBox(L"Unable to find GameInfo.ini");
 			return false;
 		}
 
 		if (!MUserSettings::GetUserSettings()->Init())
 		{
-			Window->CreateErrorBox(L"Unable to find or generate UserSettings.ini");
+			m_pMainWindow->CreateErrorBox(L"Unable to find or generate UserSettings.ini");
 			return false;
 		}
 		return true;
@@ -80,12 +112,12 @@ namespace MarkTech
 	{
 		while (!bClosing)
 		{
-			flDeltaTime = (float)Window->nElapsedTicks / (float)Window->nTickFrequency.QuadPart;
+			flDeltaTime = (float)m_pMainWindow->nElapsedTicks / (float)m_pMainWindow->nTickFrequency.QuadPart;
 
 			MSG msg = {};
 			while (PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE))
 			{
-				Window->MessageLoop(msg);
+				m_pMainWindow->MessageLoop(msg);
 				switch (msg.message)
 				{
 				case WM_QUIT:
@@ -99,9 +131,10 @@ namespace MarkTech
 				}
 			}
 
-			GetLevel()->UpdateLevel(flDeltaTime);
+			if (bIsEditor)
+				GetLevel()->UpdateLevel(flDeltaTime);
 
-			CD3D11Renderer::GetD3DRenderer()->RenderFrame(Window->GetHWND());
+			CD3D11Renderer::GetD3DRenderer()->RenderFrame(*m_pMainWindow);
 
 			if (CInput::GetInput()->IsKeyDown(MTVK_Escape))
 			{
@@ -124,6 +157,17 @@ namespace MarkTech
 int LaunchEngine(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
 {
 	if (!MarkTech::CEngine::GetEngine()->InitEngine(hInstance, pCmdLine, nCmdShow))
+	{
+		return 1;
+	}
+	MarkTech::CEngine::GetEngine()->StartEngineLoop();
+	MarkTech::CEngine::GetEngine()->DestroyEngine();
+	return 0;
+}
+
+int LaunchEditor(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
+{
+	if (!MarkTech::CEngine::GetEngine()->InitEditor(hInstance, pCmdLine, nCmdShow))
 	{
 		return 1;
 	}

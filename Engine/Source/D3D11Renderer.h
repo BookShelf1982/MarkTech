@@ -5,6 +5,7 @@
 #include <dxgi.h>
 #include <d3dcompiler.h>
 #include <d3d11sdklayers.h>
+#include <DirectXMath.h>
 
 #pragma comment( lib, "user32" )          // link against the win32 library
 #pragma comment( lib, "d3d11.lib" )       // direct3D library
@@ -13,16 +14,24 @@
 
 namespace MarkTech
 {
+	struct MConstBuffer
+	{
+		DirectX::XMMATRIX WVP;
+	};
+
+
 	class MARKTECH_API CD3D11Renderer : public CRenderer
 	{
 	public:
-		virtual bool InitRenderer(HWND hwnd) override;
+		virtual bool InitRenderer(const CWinWindow& window) override;
 
-		virtual void RenderFrame(HWND hwnd) override;
+		virtual void RenderFrame(const CWinWindow& window) override;
 
 		virtual void CreateShaders() override;
 
 		ID3DBlob* GetShaderBytecodeFromFile(LPCWSTR Filename, LPCWSTR CompiledFilename, LPCSTR Compiler, LPCSTR Entrypoint);
+
+		void UpdateCameraData(const MCameraData& data);
 
 		void DestroyRenderer();
 
@@ -38,6 +47,8 @@ namespace MarkTech
 		IDXGISwapChain*				m_pSwapChain = NULL;
 		ID3D11RenderTargetView*		m_pMainRenderTargetView = NULL;
 		ID3D11Texture2D*			m_pBackBuffer = NULL;
+		ID3D11DepthStencilView*		m_pDepthStencilView = NULL;
+		ID3D11Texture2D*			m_pDepthStencilBuffer = NULL;
 
 		ID3D11Buffer*				m_pMainVertexBuffer = NULL;
 		ID3D11Buffer*				m_pMainIndexBuffer = NULL;
@@ -47,6 +58,7 @@ namespace MarkTech
 		ID3D11Texture2D*			m_pTexture = NULL;
 		ID3D11ShaderResourceView*	m_pTextureView = NULL;
 		ID3D11SamplerState*			m_pTextureSampler = NULL;
+		ID3D11Buffer*				m_pConstBuffer = NULL;
 		ID3D11InputLayout*			m_pInputLayout = NULL;
 
 		ID3D11Debug*				m_pDebug = NULL;
@@ -56,5 +68,10 @@ namespace MarkTech
 
 		char* szSourcePath;
 		char* szCompiledPath;
+
+		//Camera
+		MCameraData camData;
+		
 	};
+	static CD3D11Renderer* GetD3DRenderer() { return CD3D11Renderer::GetD3DRenderer(); }
 }
