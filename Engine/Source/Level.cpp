@@ -21,6 +21,14 @@ namespace MarkTech
             m_Comps.c_arr()[i]->UpdateComponent(flDeltaTime);
         }
     }
+
+    CAssetHandle CLevel::LoadAsset(const char* filepath, EAssetType type)
+    {
+        CAssetHandle tempHandle;
+        MAssetData* asset = m_AssetRegistry.LoadAsset(filepath, type);
+        tempHandle.Initialize(asset);
+        return tempHandle;
+    }
     
     CBaseEntity* CLevel::GetEntityById(uint64_t id)
     {

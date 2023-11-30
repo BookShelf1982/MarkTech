@@ -1,6 +1,7 @@
 #pragma once
 #include "DllExport.h"
 #include "Core.h"
+#include "AssetRegistry.h"
 #include "BaseEntity.h"
 
 namespace MarkTech
@@ -15,6 +16,10 @@ namespace MarkTech
 		void UpdateLevel(float flDeltaTime);
 
 		static CLevel* GetLevel() { return g_pLevel; }
+
+		CAssetRegistry* GetAssetRegistry() { return &m_AssetRegistry; }
+
+		CAssetHandle LoadAsset(const char* filepath, EAssetType type);
 		
 		template<class T>
 		bool HasComponent(uint64_t id)
@@ -40,6 +45,7 @@ namespace MarkTech
 		void CreateComponent(uint64_t ownerId)
 		{
 			T* comp = new T(ownerId);
+			comp->InitComponent();
 			m_Comps.Push(comp);
 		}
 
@@ -67,6 +73,8 @@ namespace MarkTech
 
 		CTArray<CBaseEntity> m_Ents;
 		CTArray<CBaseComponent*> m_Comps;
+
+		CAssetRegistry m_AssetRegistry;
 	};
 
 	static CLevel* GetLevel() { return CLevel::GetLevel(); }

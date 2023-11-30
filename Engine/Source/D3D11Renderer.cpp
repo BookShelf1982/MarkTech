@@ -1,7 +1,9 @@
 #include "D3D11Renderer.h"
 #include <fstream>
 #include "Configs.h"
+#include "Level.h"
 #include "DirectXTex\DirectXTex.h"
+
 
 
 namespace MarkTech
@@ -39,7 +41,7 @@ namespace MarkTech
 #ifdef DEBUG
 		hr = m_pd3dDevice->QueryInterface(__uuidof(ID3D11Debug), (void**)&m_pDebug); //Create debug interface
 		assert(SUCCEEDED(hr));
-#endif / DEBUG
+#endif // DEBUG
 
 		hr = m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&m_pBackBuffer);	//Get backbuffer from swap cahin
 		assert(SUCCEEDED(hr));
@@ -91,6 +93,7 @@ namespace MarkTech
 		D3D11_BUFFER_DESC VSDesc;
 		ZeroMemory(&VSDesc, sizeof(D3D11_BUFFER_DESC));
 		VSDesc.ByteWidth = sizeof(MVertex) * 4;
+		//VSDesc.Usage = D3D11_USAGE_DYNAMIC;
 		VSDesc.Usage = D3D11_USAGE_DEFAULT;
 		VSDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 		VSDesc.CPUAccessFlags = 0;
@@ -123,28 +126,16 @@ namespace MarkTech
 		hr = m_pd3dDevice->CreateBuffer(&ISDesc, &ISSrc, &m_pMainIndexBuffer); //Allocate mempry for index buffer
 		assert(SUCCEEDED(hr));
 
-		std::fstream file;
-		file.open(MGameInfo::GetGameInfo()->szImage, std::ios::in | std::ios::binary);
+		CAssetHandle assetHandle = GetLevel()->LoadAsset("Textures/grass.mtex", MTexture);
 
-		if (!file.is_open())
-			return false;
-
-		file.seekg((std::streamoff)0, file.end);
-		int length = file.tellg();
-		char* pImg = new char[length];
-		file.seekg((std::streamoff)0, file.beg);
-
-		file.read((char*)pImg, length);
-		file.close();
-
-		DirectX::ScratchImage scImg;
+		DirectX::ScratchImage img;
 		DirectX::TexMetadata metadata;
 
-		DirectX::LoadFromDDSMemory(pImg, length, DirectX::DDS_FLAGS_NONE, &metadata, scImg);
-
-		hr = DirectX::CreateShaderResourceView(m_pd3dDevice, scImg.GetImages(), scImg.GetImageCount(), scImg.GetMetadata(), &m_pTextureView);
+		hr = DirectX::LoadFromDDSMemory(assetHandle.GetAssetDataPtr()->pData, assetHandle.GetAssetDataPtr()->nDataSize, DirectX::DDS_FLAGS_NONE, &metadata, img);
 		assert(SUCCEEDED(hr));
 
+		hr = DirectX::CreateShaderResourceView(m_pd3dDevice, img.GetImages(), img.GetImageCount(), img.GetMetadata(), &m_pTextureView);
+		assert(SUCCEEDED(hr));
 
 		D3D11_SAMPLER_DESC ImageSamplerDesc;
 		ZeroMemory(&ImageSamplerDesc, sizeof(D3D11_SAMPLER_DESC));
@@ -160,6 +151,7 @@ namespace MarkTech
 
 		hr = m_pd3dDevice->CreateSamplerState(&ImageSamplerDesc, &m_pTextureSampler);
 		assert(SUCCEEDED(hr));
+
 
 		CreateShaders();
 
@@ -183,8 +175,6 @@ namespace MarkTech
 		m_pd3dDeviceContext->RSSetViewports(1, &viewport);
 
 		m_pd3dDeviceContext->VSSetShader(m_pVertexShader, NULL, 0);
-		//m_pd3dDeviceContext->VSSetConstantBuffers(0, 0, &m_pConstBuffer);
-
 		m_pd3dDeviceContext->PSSetShader(m_pPixelShader, NULL, 0);
 		m_pd3dDeviceContext->PSSetShaderResources(0, 1, &m_pTextureView);
 		m_pd3dDeviceContext->PSSetSamplers(0, 1, &m_pTextureSampler);
@@ -196,7 +186,7 @@ namespace MarkTech
 
 		m_pd3dDeviceContext->DrawIndexed(6, 0, 0);
 
-		m_pSwapChain->Present(1, 0);
+		m_pSwapChain->Present(0, 0);
 	}
 
 	void CD3D11Renderer::CreateShaders()
@@ -266,9 +256,6 @@ namespace MarkTech
 				&blob,
 				&ErrorBlob);
 			if (FAILED(hr)) {
-				OutputDebugStringA((char*)ErrorBlob->GetBufferPointer());
-				if (ErrorBlob) { ErrorBlob->Release(); }
-				if (blob) { blob->Release(); }
 				assert(false);
 			}
 			else
@@ -304,11 +291,11 @@ namespace MarkTech
 		m_pMainIndexBuffer->Release();
 		m_pVertexShader->Release();
 		m_pPixelShader->Release();
-		m_pTexture->Release();
-		m_pTextureSampler->Release();
-		m_pTextureView->Release();
 		m_pInputLayout->Release();
 		m_pDepthStencilBuffer->Release();
+		m_pDepthStencilView->Release();
+		m_pTextureSampler->Release();
+		m_pTextureView->Release();
 
 		//m_pConstBuffer->Release();
 

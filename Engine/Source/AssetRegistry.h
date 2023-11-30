@@ -3,56 +3,51 @@
 
 namespace MarkTech
 {
-	enum MEAssetType
+	enum MARKTECH_API EAssetType
 	{
-		METexture,
-		MEModel,
+		MUnknown,
+		MTexture,
+		MModel,
+		MShader,
+		MMaterial
 	};
 
-	class CAssetData
+	struct MARKTECH_API MAssetData
 	{
-	public:
-		uint64_t nAssetId;
-		MEAssetType Type;
+		uint64_t nId;
+		EAssetType Type;
 		void* pData;
+		size_t nDataSize;
 	};
 
-	MAKE_CTARRAY_COMPATIBLE(CAssetData);
-	MAKE_CTARRAY_COMPATIBLE(CAssetData*);
+	MAKE_CTARRAY_COMPATIBLE(MAssetData);
+	MAKE_CTARRAY_COMPATIBLE(MAssetData*);
 
-	template<class T>
-	class CTAssetReadWrite
+	class MARKTECH_API CAssetHandle
 	{
 	public:
+		CAssetHandle();
+
+		void Initialize(MAssetData* asset);
+
+		MAssetData* GetAssetDataPtr() { return m_pAsset; }
 
 	private:
-		T m_Asset;
+		MAssetData* m_pAsset;
 	};
 
-	class CAssetRegistry
+	class MARKTECH_API CAssetRegistry
 	{
 	public:
 		CAssetRegistry();
 		~CAssetRegistry();
 
-		bool LoadAsset(const char* filepath);
+		MAssetData* LoadAsset(const char* filepath, EAssetType type);
+		MAssetData* FindAssetById(uint64_t id);
+		uint64_t GetAssetId(const char* filepath);
 	private:
-		CTArray<CAssetData*> m_RegisteredAssets;
-	};
+		MAssetData LoadTexture(const char* filepath);
 
-	enum METextureCompression
-	{
-		MENormal,
-		MEDXT1,
-		MEDXT5
-	};
-
-	class CTextureAssetData : public CAssetData
-	{
-	public:
-		int nWidth;
-		int nHeight;
-		int nChannels;
-		METextureCompression Compression;
+		CTArray<MAssetData> m_RegisteredAssets;
 	};
 }

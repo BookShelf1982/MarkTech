@@ -8,16 +8,17 @@
 
 void WICToMTex(const char** argv)
 {
+	DirectX::ScratchImage* currentImage;
 	DirectX::TexMetadata metadata;
 	DirectX::ScratchImage image;
 	HRESULT hr;
 
-	wchar_t* filepath = new wchar_t[strlen(argv[3]) + 1];
+	wchar_t* filepath = new wchar_t[strlen(argv[2]) + 1];
 
-	if (argv[3] == nullptr)
+	if (argv[2] == nullptr)
 		return;
 
-	mbstowcs(filepath, argv[3], strlen(argv[3]) + 1);
+	mbstowcs(filepath, argv[2], strlen(argv[2]) + 1);
 
 	hr = DirectX::LoadFromWICFile(
 		filepath,
@@ -33,49 +34,64 @@ void WICToMTex(const char** argv)
 
 	std::cout << "Loaded image!\n";
 
+	currentImage = &image;
+
 	DirectX::ScratchImage mipImage;
 
 	int mipsAmount;
 
-	if ((strcmp(argv[5], "-mips") == 0))
+	if ((strcmp(argv[4], "-nomips") != 0))
 	{
-		char* pchar;
-		mipsAmount = strtol(argv[6], &pchar, 10);
-	}
-	else
-	{
-		mipsAmount = 3;
-	}
+		if ((strcmp(argv[4], "-mips") == 0))
+		{
+			char* pchar;
+			mipsAmount = strtol(argv[5], &pchar, 10);
+		}
+		else
+		{
+			mipsAmount = 3;
+		}
 
-	hr = DirectX::GenerateMipMaps(*image.GetImage(0, 0, 0), DirectX::TEX_FILTER_DEFAULT, mipsAmount, mipImage);
+		hr = DirectX::GenerateMipMaps(*image.GetImage(0, 0, 0), DirectX::TEX_FILTER_DEFAULT, mipsAmount, mipImage);
 
-	if (FAILED(hr))
-	{
-		std::cout << "Failed to generate mipmaps!\n";
-		std::cin.get();
-		return;
+		if (FAILED(hr))
+		{
+			std::cout << "Failed to generate mipmaps!\n";
+			std::cin.get();
+			return;
+		}
+
+		std::cout << "Generated mipmaps!\n";
+
+		currentImage = &mipImage;
 	}
-
-	std::cout << "Generated mipmaps!\n";
 
 	DirectX::ScratchImage bcImage;
+	DirectX::Blob imgBlob;
 
-	hr = DirectX::Compress(mipImage.GetImages(), mipImage.GetImageCount(), mipImage.GetMetadata(), DXGI_FORMAT_BC3_UNORM_SRGB, DirectX::TEX_COMPRESS_SRGB_IN | DirectX::TEX_COMPRESS_DEFAULT, 0.5, bcImage);
-
-	if (FAILED(hr))
+	if (argv[6] != nullptr)
 	{
-		std::cout << "Failed to compress image\n";
-		std::cin.get();
-		return;
+		if ((strcmp(argv[6], "-compress") == 0))
+		{
+			hr = DirectX::Compress(currentImage->GetImages(), currentImage->GetImageCount(), currentImage->GetMetadata(), DXGI_FORMAT_BC1_UNORM_SRGB, DirectX::TEX_COMPRESS_SRGB_IN | DirectX::TEX_COMPRESS_DEFAULT, 0.5, bcImage);
+
+			if (FAILED(hr))
+			{
+				std::cout << "Failed to compress image\n";
+				std::cin.get();
+				return;
+			}
+
+			std::cout << "Image compressed!\n";
+
+			currentImage = &bcImage;
+		}
 	}
 
-	std::cout << "Image compressed!\n";
-
-	DirectX::Blob imgBlob;
-	hr = DirectX::SaveToDDSMemory(mipImage.GetImages(), mipImage.GetImageCount(), mipImage.GetMetadata(), DirectX::DDS_FLAGS_NONE, imgBlob);
+	hr = DirectX::SaveToDDSMemory(currentImage->GetImages(), currentImage->GetImageCount(), currentImage->GetMetadata(), DirectX::DDS_FLAGS_NONE, imgBlob);
 
 	std::fstream file;
-	file.open(argv[4], std::ios::out | std::ios::binary);
+	file.open(argv[3], std::ios::out | std::ios::binary);
 	if (!file.is_open())
 	{
 		std::cout << "Couldn't find output directory\n";
@@ -86,34 +102,15 @@ void WICToMTex(const char** argv)
 	std::uniform_int_distribution<uint64_t> dist;
 	uint64_t id = dist(rd);
 
+	std::cout << "Asset id: " << id << "\n";
+
+	file.write((char*)&id, sizeof(id));
 	file.write((char*)imgBlob.GetBufferPointer(), imgBlob.GetBufferSize());
 	file.close();
 
 	std::cout << "Image exported!\n";
 
 	return;
-}
-
-void MTexToMemory(const char* argv[])
-{
-	std::fstream file;
-	file.open(argv[3], std::ios::in | std::ios::binary);
-
-	if (!file.is_open())
-		return;
-
-	file.seekg(0, file.end);
-	int length = file.tellg();
-	char* pImg = new char[length];
-	file.seekg(0, file.beg);
-
-	file.read((char*)pImg, length);
-	file.close();
-
-	DirectX::ScratchImage scImg;
-	DirectX::TexMetadata metadata;
-
-	DirectX::LoadFromDDSMemory(pImg, length, DirectX::DDS_FLAGS_NONE, &metadata, scImg);
 }
 
 int main(int argc, const char *argv[])
@@ -123,18 +120,8 @@ int main(int argc, const char *argv[])
 	int str = strcmp(argv[1], "-mtex");
 	if (str == 0)
 	{
-		str = strcmp(argv[2], "-write");
-		if (str == 0)
-		{
-			WICToMTex(argv);
-			return 0;
-		}
-
-		str = strcmp(argv[2], "-read");
-		if (str == 0)
-		{
-			MTexToMemory(argv);
-		}
+		WICToMTex(argv);
+		return 0;
 	}
 
 	return 0;

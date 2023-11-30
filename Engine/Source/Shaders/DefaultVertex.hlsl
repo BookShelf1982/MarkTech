@@ -1,10 +1,5 @@
 #include "Core.hlsli"
 
-cbuffer cbPerObject
-{
-    float4x4 WVP;
-};
-
 struct VS_INPUT
 {
     float3 pos : POS;

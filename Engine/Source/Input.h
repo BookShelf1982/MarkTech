@@ -1,12 +1,13 @@
 #pragma once
 #include "Core.h"
 #include "Keycodes.h"
+#include "Vectors.h"
 #include <Windows.h>
 namespace MarkTech
 {
-	struct MKeyState
+	struct MButtonState
 	{
-		MKeyState(bool isDown = false, bool wasDown = false) : IsDown(isDown), WasDown(wasDown) {}
+		MButtonState(bool isDown = false, bool wasDown = false) : IsDown(isDown), WasDown(wasDown) {}
 
 		bool IsDown, WasDown;
 	};
@@ -14,8 +15,17 @@ namespace MarkTech
 	struct MKeyboardInput
 	{
 		MKeyboardInput() {}
-		MKeyState keys[MTVK_MAX_KEYS];
+		MButtonState keys[MTVK_MAX_KEYS];
 	};
+
+	struct MMouseInput
+	{
+		MMouseInput() : x(0), y(0) {}
+		MButtonState buttons[MTVM_MAX_BUTTONS];
+		int x;
+		int y;
+	};
+
 
 	class CInput
 	{
@@ -23,12 +33,21 @@ namespace MarkTech
 		bool IsKeyDown(uint32_t keycode);
 		bool IsKeyUp(uint32_t keycode);
 
+		MButtonState GetKeyState(uint32_t keycode);
+
+		bool IsButtonDown(uint32_t buttoncode);
+		bool IsButtonUp(uint32_t buttoncode);
+
+		MVector2 GetMousePos();
+
+		static CInput* GetInput() { return Input; }
+
 		/**DO NOT USE THS FOR GAMEPLAY!* Use GetState(), IsKeyDown() IsKeyUp() instead. */
 		void PollInput(uint32_t keycode, bool IsDown, bool WasDown);
 
-		MKeyState GetKeyState(uint32_t keycode);
+		void PollMouseInput(WPARAM wParam);
 
-		static CInput* GetInput() { return Input; }
+		void PollMousePos(int x, int y);
 
 	private:
 		CInput() {}
@@ -36,6 +55,8 @@ namespace MarkTech
 		static CInput* Input;
 
 		static MKeyboardInput keyboard;
+
+		static MMouseInput mouse;
 
 	};
 }

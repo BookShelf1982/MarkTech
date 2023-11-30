@@ -48,18 +48,6 @@ namespace MarkTech
         {
             PostQuitMessage(0);
             return 0;
-        }
-        case WM_SYSKEYDOWN:
-        case WM_SYSKEYUP:
-        case WM_KEYDOWN:
-        case WM_KEYUP:
-        {
-            uint32_t keycode = (uint32_t)wParam;
-
-            bool bWasDown = (lParam & BIT(30)) != 0;
-            bool bIsDown = (lParam & BIT(31)) == 0;
-
-            CInput::GetInput()->PollInput(keycode, bIsDown, bWasDown);
         }break;
         }
         return DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -76,10 +64,38 @@ namespace MarkTech
         TranslateMessage(&msg);
         DispatchMessage(&msg);
 
-        if (msg.message == WM_SIZE)
+        switch (msg.message)
         {
-           nWidth = LOWORD(msg.lParam);
-           nHeight = HIWORD(msg.lParam);
+        case WM_SIZE:
+        {
+            nWidth = LOWORD(msg.lParam);
+            nHeight = HIWORD(msg.lParam);
+        }break;
+        case WM_SYSKEYDOWN:
+        case WM_SYSKEYUP:
+        case WM_KEYDOWN:
+        case WM_KEYUP:
+        {
+            uint32_t keycode = (uint32_t)msg.wParam;
+            bool bWasDown = (msg.lParam & BIT(30)) != 0;
+            bool bIsDown = (msg.lParam & BIT(31)) == 0;
+            CInput::GetInput()->PollInput(keycode, bIsDown, bWasDown);
+        }break;
+        case WM_MOUSEMOVE:
+        {
+            CInput::GetInput()->PollMousePos(GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam));
+        }break;
+        case WM_LBUTTONUP:
+        case WM_LBUTTONDOWN:
+        case WM_RBUTTONUP:
+        case WM_RBUTTONDOWN:
+        case WM_MBUTTONUP:
+        case WM_MBUTTONDOWN:
+        case WM_XBUTTONUP:
+        case WM_XBUTTONDOWN:
+        {
+            CInput::GetInput()->PollMouseInput(msg.wParam);
+        }break;
         }
     }
 }

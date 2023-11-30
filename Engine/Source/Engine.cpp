@@ -1,6 +1,6 @@
 #include "Engine.h"
 #include "TransformComponent.h"
-#include <fstream>
+#include "TextureComponent.h"
 
 namespace MarkTech
 {
@@ -131,7 +131,7 @@ namespace MarkTech
 				}
 			}
 
-			if (bIsEditor)
+			if (!bIsEditor)
 				GetLevel()->UpdateLevel(flDeltaTime);
 
 			CD3D11Renderer::GetD3DRenderer()->RenderFrame(*m_pMainWindow);

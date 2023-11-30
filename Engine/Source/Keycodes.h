@@ -134,4 +134,13 @@ namespace MarkTech
 #define MTVK_RightAlt	115
 #define MTVK_RightSuper 116
 #define MTVK_Menu		117
+
+#define MTVM_MAX_BUTTONS 5
+
+#define MTVM_Mouse1		0
+#define MTVM_Mouse2		1
+#define MTVM_Mouse3		2
+#define MTVM_MouseX1	3
+#define MTVM_MouseX2	4
+
 }

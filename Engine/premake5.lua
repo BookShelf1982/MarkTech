@@ -35,6 +35,9 @@ project "Engine"
 	
 	postbuildcommands
 	{
+		"{MKDIR} %{wks.location}Build/Bin/Shaders/Source",
+		"{MKDIR} %{wks.location}Build/Content/",
+		"{MKDIR} %{wks.location}Build/Configs/",
 		"{COPYFILE} %{prj.location}Source/Shaders/ %{wks.location}/Build/Bin/Shaders/Source/",
 		"{COPYFILE} %{wks.location}bin/" .. outputdir .. "/%{prj.name}/Engine.dll %{wks.location}/Build/Bin"
 	}

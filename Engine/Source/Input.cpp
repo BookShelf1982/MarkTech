@@ -5,6 +5,8 @@ namespace MarkTech
 
     MKeyboardInput CInput::keyboard;
 
+    MMouseInput CInput::mouse;
+
     bool CInput::IsKeyDown(uint32_t keycode)
     {
         return keyboard.keys[keycode].IsDown;
@@ -15,9 +17,24 @@ namespace MarkTech
         return !keyboard.keys[keycode].IsDown;
     }
 
-    MKeyState CInput::GetKeyState(uint32_t keycode)
+    MButtonState CInput::GetKeyState(uint32_t keycode)
     {
         return keyboard.keys[keycode];
+    }
+
+    bool CInput::IsButtonDown(uint32_t buttoncode)
+    {
+        return mouse.buttons[buttoncode].IsDown;
+    }
+
+    bool CInput::IsButtonUp(uint32_t buttoncode)
+    {
+        return !mouse.buttons[buttoncode].IsDown;
+    }
+
+    MVector2 CInput::GetMousePos()
+    {
+        return MVector2((float)mouse.x, (float)mouse.y);
     }
 
     void CInput::PollInput(uint32_t keycode, const bool IsDown, const bool WasDown)
@@ -61,5 +78,26 @@ namespace MarkTech
                 keyboard.keys[MTVK_Escape].WasDown = WasDown;
             }
         }
+    }
+
+    void CInput::PollMouseInput(WPARAM wParam)
+    {
+        mouse.buttons[MTVM_Mouse1].WasDown = mouse.buttons[MTVM_Mouse1].IsDown;
+        mouse.buttons[MTVM_Mouse2].WasDown = mouse.buttons[MTVM_Mouse2].IsDown;
+        mouse.buttons[MTVM_Mouse3].WasDown = mouse.buttons[MTVM_Mouse3].IsDown;
+        mouse.buttons[MTVM_MouseX1].WasDown = mouse.buttons[MTVM_MouseX1].IsDown;
+        mouse.buttons[MTVM_MouseX2].WasDown = mouse.buttons[MTVM_MouseX2].IsDown;
+
+        mouse.buttons[MTVM_Mouse1].IsDown = wParam & MK_LBUTTON;
+        mouse.buttons[MTVM_Mouse2].IsDown = wParam & MK_RBUTTON;
+        mouse.buttons[MTVM_Mouse3].IsDown = wParam & MK_MBUTTON;
+        mouse.buttons[MTVM_MouseX1].IsDown = wParam & MK_XBUTTON1;
+        mouse.buttons[MTVM_MouseX2].IsDown = wParam & MK_XBUTTON2;
+    }
+
+    void CInput::PollMousePos(int x, int y)
+    {
+        mouse.x = x;
+        mouse.y = y;
     }
 }

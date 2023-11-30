@@ -3,10 +3,12 @@
 #include "Core.h"
 #include "Input.h"
 #include <Windows.h>
+#include <windowsx.h>
 namespace MarkTech
 {
 	class MARKTECH_API CWinWindow
 	{
+	friend CInput;
 	public:
 
 		CWinWindow();
