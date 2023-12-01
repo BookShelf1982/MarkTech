@@ -146,7 +146,7 @@ namespace MarkTech
 		ImageSamplerDesc.MipLODBias = 0.0f;
 		ImageSamplerDesc.MaxAnisotropy = 1;
 		ImageSamplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-		ImageSamplerDesc.MinLOD = -FLT_MAX;
+		ImageSamplerDesc.MinLOD = 0;
 		ImageSamplerDesc.MaxLOD = FLT_MAX;
 
 		hr = m_pd3dDevice->CreateSamplerState(&ImageSamplerDesc, &m_pTextureSampler);
