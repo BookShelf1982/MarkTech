@@ -10,12 +10,13 @@ namespace MarkTech
 	{
 	public:
 		CCameraComponent();
+		CCameraComponent(uint64_t ownerId);
 		~CCameraComponent();
 
 		virtual void InitComponent() override;
 		virtual void UpdateComponent(float flDeltaTime) override;
 
 	protected:
-
+		MCameraData m_CamData;
 	};
 }

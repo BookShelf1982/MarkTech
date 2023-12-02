@@ -71,17 +71,17 @@ namespace MarkTech
 
 		m_pd3dDeviceContext->OMSetRenderTargets(1, &m_pMainRenderTargetView, m_pDepthStencilView);
 
-		m_pBackBuffer->Release(); //Destroy backbuffer
+		m_pBackBuffer->Release(); //Release backbuffer
 
-		/*D3D11_BUFFER_DESC cbuffDesc;
+		D3D11_BUFFER_DESC cbuffDesc;
 		ZeroMemory(&cbuffDesc, sizeof(D3D11_BUFFER_DESC));
-		cbuffDesc.ByteWidth = sizeof(cbPerObject);
+		cbuffDesc.ByteWidth = sizeof(constBuffer);
 		cbuffDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 		cbuffDesc.CPUAccessFlags = 0;
 		cbuffDesc.MiscFlags = 0;
 
 		hr = m_pd3dDevice->CreateBuffer(&cbuffDesc, NULL, &m_pConstBuffer);
-		assert(SUCCEEDED(hr));*/
+		assert(SUCCEEDED(hr));
 
 		MVertex v[4] = {
 			{-1.0f, -1.0f, 0.0f, 0.0f, 1.0f},
@@ -175,6 +175,7 @@ namespace MarkTech
 		m_pd3dDeviceContext->RSSetViewports(1, &viewport);
 
 		m_pd3dDeviceContext->VSSetShader(m_pVertexShader, NULL, 0);
+		m_pd3dDeviceContext->VSSetConstantBuffers(0, 1, &m_pConstBuffer);
 		m_pd3dDeviceContext->PSSetShader(m_pPixelShader, NULL, 0);
 		m_pd3dDeviceContext->PSSetShaderResources(0, 1, &m_pTextureView);
 		m_pd3dDeviceContext->PSSetSamplers(0, 1, &m_pTextureSampler);
@@ -186,7 +187,29 @@ namespace MarkTech
 
 		m_pd3dDeviceContext->DrawIndexed(6, 0, 0);
 
-		m_pSwapChain->Present(0, 0);
+		if(MUserSettings::GetUserSettings()->bVSVSync >= 1)
+			m_pSwapChain->Present(1, 0);
+		else
+			m_pSwapChain->Present(0, 0);
+	}
+
+	void CD3D11Renderer::UpdateRender(const CWinWindow& window)
+	{
+		rcamPosition = DirectX::XMVectorSet(camData.camPos.y, camData.camPos.z, camData.camPos.x, 0.0f);
+		rcamTarget = DirectX::XMVectorSet(0.0f, 0.0f, 10.0f, 0.0f);
+		rcamUp = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+		camView = DirectX::XMMatrixLookAtLH(rcamPosition, rcamTarget, rcamUp);
+
+		camProjection = DirectX::XMMatrixPerspectiveFovLH(camData.flFov * 3.14f, (float)window.nWidth/ window.nHeight, camData.flNearZ, camData.flFarZ);
+
+		World = DirectX::XMMatrixIdentity();
+
+		WVP = World * camView * camProjection;
+
+		constBuffer.WVP = DirectX::XMMatrixTranspose(WVP);	
+
+		m_pd3dDeviceContext->UpdateSubresource(m_pConstBuffer, 0, NULL, &constBuffer, 0, 0);
 	}
 
 	void CD3D11Renderer::CreateShaders()
@@ -296,8 +319,7 @@ namespace MarkTech
 		m_pDepthStencilView->Release();
 		m_pTextureSampler->Release();
 		m_pTextureView->Release();
-
-		//m_pConstBuffer->Release();
+		m_pConstBuffer->Release();
 
 #ifdef DEBUG 
 		m_pDebug->Release();

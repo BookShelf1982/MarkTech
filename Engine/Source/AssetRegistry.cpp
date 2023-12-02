@@ -36,12 +36,13 @@ namespace MarkTech
 			strcpy(path, MGameInfo::GetGameInfo()->szContentPath);
 			strcat(path, filepath);
 			uint64_t assetId = GetAssetId(path);
-			if (FindAssetById(assetId) == nullptr)
+			MAssetData* asset = FindAssetById(assetId);
+			if (asset == nullptr)
 			{
 				m_RegisteredAssets.Push(LoadTexture(path));
 				return FindAssetById(assetId);
 			}
-			return nullptr;
+			return asset;
 		}break;
 		case MModel:
 		{

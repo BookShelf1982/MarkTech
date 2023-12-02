@@ -1,6 +1,7 @@
 #include "Engine.h"
 #include "TransformComponent.h"
 #include "TextureComponent.h"
+#include "CameraComponent.h"
 
 namespace MarkTech
 {
@@ -52,6 +53,11 @@ namespace MarkTech
 		}
 
 		bIsEditor = false;
+
+		uint64_t entid = GetLevel()->CreateEntity();
+
+		GetLevel()->CreateComponent<CTransformComponent>(entid);
+		GetLevel()->CreateComponent<CCameraComponent>(entid);
 
 		return true;
 	}
@@ -133,6 +139,8 @@ namespace MarkTech
 
 			if (!bIsEditor)
 				GetLevel()->UpdateLevel(flDeltaTime);
+
+			CD3D11Renderer::GetD3DRenderer()->UpdateRender(*m_pMainWindow);
 
 			CD3D11Renderer::GetD3DRenderer()->RenderFrame(*m_pMainWindow);
 

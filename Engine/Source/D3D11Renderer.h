@@ -12,6 +12,8 @@
 #pragma comment( lib, "dxgi.lib" )        // directx graphics interface
 #pragma comment( lib, "d3dcompiler.lib" ) // shader compiler
 
+#pragma warning(disable : 4251)
+
 namespace MarkTech
 {
 	struct MConstBuffer
@@ -28,6 +30,8 @@ namespace MarkTech
 		virtual void RenderFrame(const CWinWindow& window) override;
 
 		virtual void CreateShaders() override;
+
+		void UpdateRender(const CWinWindow& window);
 
 		ID3DBlob* GetShaderBytecodeFromFile(LPCWSTR Filename, LPCWSTR CompiledFilename, LPCSTR Compiler, LPCSTR Entrypoint);
 
@@ -68,6 +72,18 @@ namespace MarkTech
 
 		char* szSourcePath;
 		char* szCompiledPath;
+
+		MConstBuffer constBuffer;
+
+		//Math
+		DirectX::XMMATRIX WVP;
+		DirectX::XMMATRIX World;
+		DirectX::XMMATRIX camView;
+		DirectX::XMMATRIX camProjection;
+
+		DirectX::XMVECTOR rcamPosition;
+		DirectX::XMVECTOR rcamTarget;
+		DirectX::XMVECTOR rcamUp;
 
 		//Camera
 		MCameraData camData;
