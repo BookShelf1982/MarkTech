@@ -28,11 +28,12 @@ namespace MarkTech
 	public:
 		CAssetHandle();
 
-		void Initialize(MAssetData* asset);
+		void Initialize(uint64_t assetId);
 
-		MAssetData* GetAssetDataPtr() { return m_pAsset; }
+		MAssetData* GetAssetDataPtr();
 
 	private:
+		uint64_t m_nAssetId;
 		MAssetData* m_pAsset;
 	};
 
@@ -42,7 +43,7 @@ namespace MarkTech
 		CAssetRegistry();
 		~CAssetRegistry();
 
-		MAssetData* LoadAsset(const char* filepath, EAssetType type);
+		uint64_t LoadAsset(const char* filepath, EAssetType type);
 		MAssetData* FindAssetById(uint64_t id);
 		uint64_t GetAssetId(const char* filepath);
 	private:

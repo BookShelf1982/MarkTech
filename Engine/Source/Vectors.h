@@ -1,5 +1,6 @@
 #pragma once
 #include "Core.h"
+#include <DirectXMath.h>
 
 namespace MarkTech
 {
@@ -90,6 +91,9 @@ namespace MarkTech
 		MVector3 Position, Scale;
 		MRotator Rotation;
 
-		MTransform(MVector3 Position = MVector3(), MRotator Rotation = MRotator(), MVector3 Scale = MVector3()) : Position(Position), Rotation(Rotation), Scale(Scale) {}
+		MVector3 Forward, Right;
+
+		MTransform(MVector3 Position = MVector3(), MRotator Rotation = MRotator(), MVector3 Scale = MVector3()) : Position(Position), Rotation(Rotation), Scale(Scale), 
+			Forward(MVector3()), Right(MVector3()) {}
 	};
 }

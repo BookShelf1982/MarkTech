@@ -25,8 +25,8 @@ namespace MarkTech
     CAssetHandle CLevel::LoadAsset(const char* filepath, EAssetType type)
     {
         CAssetHandle tempHandle;
-        MAssetData* asset = m_AssetRegistry.LoadAsset(filepath, type);
-        tempHandle.Initialize(asset);
+        uint64_t assetId = m_AssetRegistry.LoadAsset(filepath, type);
+        tempHandle.Initialize(assetId);
         return tempHandle;
     }
     

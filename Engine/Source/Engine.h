@@ -36,7 +36,8 @@ namespace MarkTech
 
 		bool bClosing;
 		bool bShowDemoWindow;
-		UINT nResizeWidth = 0, nResizeHeight = 0;
+		LARGE_INTEGER nTickFrequency, nCurrentTick, nLastTick;
+		int64_t nElapsedTicks;
 		float flDeltaTime;
 		CWinWindow* m_pMainWindow;
 	};

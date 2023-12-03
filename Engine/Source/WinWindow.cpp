@@ -30,9 +30,6 @@ namespace MarkTech
 
         ShowWindow(m_Hwnd, nCmdShow);
         UpdateWindow(m_Hwnd);
-
-        QueryPerformanceCounter(&nLastTick);
-        QueryPerformanceFrequency(&nTickFrequency);
     }
 
     void CWinWindow::CreateErrorBox(const LPCWSTR ErrorString)
@@ -56,11 +53,6 @@ namespace MarkTech
 
     void CWinWindow::MessageLoop(MSG msg)
     {
-        QueryPerformanceCounter(&nCurrentTick);
-        nElapsedTicks = nCurrentTick.QuadPart - nLastTick.QuadPart;
-
-        nLastTick = nCurrentTick;
-
         TranslateMessage(&msg);
         DispatchMessage(&msg);
 

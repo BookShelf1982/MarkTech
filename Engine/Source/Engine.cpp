@@ -59,6 +59,11 @@ namespace MarkTech
 		GetLevel()->CreateComponent<CTransformComponent>(entid);
 		GetLevel()->CreateComponent<CCameraComponent>(entid);
 
+		CAssetHandle shader = GetLevel()->LoadAsset("Vert.mfx", MShader);
+
+		QueryPerformanceCounter(&nLastTick);
+		QueryPerformanceFrequency(&nTickFrequency);
+
 		return true;
 	}
 
@@ -94,6 +99,9 @@ namespace MarkTech
 
 		bIsEditor = true;
 
+		QueryPerformanceCounter(&nLastTick);
+		QueryPerformanceFrequency(&nTickFrequency);
+
 		return true;
 	}
 
@@ -118,7 +126,12 @@ namespace MarkTech
 	{
 		while (!bClosing)
 		{
-			flDeltaTime = (float)m_pMainWindow->nElapsedTicks / (float)m_pMainWindow->nTickFrequency.QuadPart;
+			QueryPerformanceCounter(&nCurrentTick);
+			nElapsedTicks = nCurrentTick.QuadPart - nLastTick.QuadPart;
+
+			flDeltaTime = (float)nElapsedTicks / (float)nTickFrequency.QuadPart;
+
+			nLastTick = nCurrentTick;
 
 			MSG msg = {};
 			while (PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE))
@@ -137,17 +150,16 @@ namespace MarkTech
 				}
 			}
 
-			if (!bIsEditor)
-				GetLevel()->UpdateLevel(flDeltaTime);
-
-			CD3D11Renderer::GetD3DRenderer()->UpdateRender(*m_pMainWindow);
-
-			CD3D11Renderer::GetD3DRenderer()->RenderFrame(*m_pMainWindow);
-
 			if (CInput::GetInput()->IsKeyDown(MTVK_Escape))
 			{
 				Quit();
 			}
+
+			GetLevel()->UpdateLevel(flDeltaTime);
+
+			CD3D11Renderer::GetD3DRenderer()->UpdateRender(*m_pMainWindow);
+
+			CD3D11Renderer::GetD3DRenderer()->RenderFrame(*m_pMainWindow);
 		}
 	}
 

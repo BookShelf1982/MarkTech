@@ -1,17 +1,35 @@
 #include "AssetRegistry.h"
 #include "Configs.h"
+#include "Shader.h"
 #include <fstream>
 
 namespace MarkTech
 {
 	CAssetHandle::CAssetHandle()
-		:m_pAsset(nullptr)
+		:m_pAsset(nullptr), m_nAssetId(0)
 	{
 	}
 
-	void CAssetHandle::Initialize(MAssetData* asset)
+	void CAssetHandle::Initialize(uint64_t assetId)
 	{
-		m_pAsset = asset;
+		m_nAssetId = assetId;
+		m_pAsset = GetLevel()->GetAssetRegistry()->FindAssetById(m_nAssetId);
+	}
+
+	MAssetData* CAssetHandle::GetAssetDataPtr()
+	{
+		if (m_pAsset == nullptr)
+		{
+			return GetLevel()->GetAssetRegistry()->FindAssetById(m_nAssetId);
+		}
+		if (m_pAsset->nId != m_nAssetId)
+		{
+			return GetLevel()->GetAssetRegistry()->FindAssetById(m_nAssetId);
+		}
+		else
+		{
+			return m_pAsset;
+		}
 	}
 
 	CAssetRegistry::CAssetRegistry()
@@ -22,13 +40,13 @@ namespace MarkTech
 	{
 	}
 
-	MAssetData* CAssetRegistry::LoadAsset(const char* filepath, EAssetType type)
+	uint64_t CAssetRegistry::LoadAsset(const char* filepath, EAssetType type)
 	{
 		switch (type)
 		{
 		case MUnknown:
 		{
-			return nullptr;
+			return 0;
 		}break;
 		case MTexture:
 		{
@@ -40,24 +58,32 @@ namespace MarkTech
 			if (asset == nullptr)
 			{
 				m_RegisteredAssets.Push(LoadTexture(path));
-				return FindAssetById(assetId);
 			}
-			return asset;
+			return assetId;
 		}break;
 		case MModel:
 		{
-			return nullptr;
+			return 0;
 		}break;
 		case MShader:
 		{
-			return nullptr;
+			char path[256];
+			strcpy(path, MGameInfo::GetGameInfo()->szShaderPath);
+			strcat(path, filepath);
+			uint64_t assetId = GetAssetId(path);
+			MAssetData* asset = FindAssetById(assetId);
+			if (asset == nullptr)
+			{
+				m_RegisteredAssets.Push(LoadShader(path));
+			}
+			return assetId;
 		}break;
 		case MMaterial:
 		{
-			return nullptr;
+			return 0;
 		}break;
 		}
-		return nullptr;
+		return 0;
 	}
 
 	MAssetData* CAssetRegistry::FindAssetById(uint64_t id)
@@ -93,6 +119,8 @@ namespace MarkTech
 		tempAsset.Type = MTexture;
 		std::fstream file;
 		file.open(filepath, std::ios::in | std::ios::binary);
+		if (!file.is_open())
+			return tempAsset;
 
 		file.read((char*)&tempAsset.nId, sizeof(uint64_t));
 		file.seekg((std::streamoff)sizeof(uint64_t), file.end);

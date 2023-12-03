@@ -83,16 +83,20 @@ namespace MarkTech
 		hr = m_pd3dDevice->CreateBuffer(&cbuffDesc, NULL, &m_pConstBuffer);
 		assert(SUCCEEDED(hr));
 
-		MVertex v[4] = {
-			{-1.0f, -1.0f, 0.0f, 0.0f, 1.0f},
-			{-1.0f,  1.0f, 0.0f, 0.0f, 0.0f},
-			{1.0f,  1.0f, 0.0f, 1.0f, 0.0f},
-			{1.0f, -1.0f, 0.0f, 1.0f, 1.0f}
+		MVertex v[8] = {
+			{-1.0f, -1.0f, -1.0f, 1.0f, 0.0f},
+			{-1.0f, +1.0f, -1.0f, 0.0f, 1.0f},
+			{+1.0f, +1.0f, -1.0f, 0.0f, 0.0f},
+			{+1.0f, -1.0f, -1.0f, 1.0f, 1.0f},
+			{-1.0f, -1.0f, +1.0f, 0.0f, 1.0f},
+			{-1.0f, +1.0f, +1.0f, 1.0f, 1.0f},
+			{+1.0f, +1.0f, +1.0f, 1.0f, 0.0f},
+			{+1.0f, -1.0f, +1.0f, 1.0f, 0.0f}
 		};
 
 		D3D11_BUFFER_DESC VSDesc;
 		ZeroMemory(&VSDesc, sizeof(D3D11_BUFFER_DESC));
-		VSDesc.ByteWidth = sizeof(MVertex) * 4;
+		VSDesc.ByteWidth = sizeof(MVertex) * 8;
 		//VSDesc.Usage = D3D11_USAGE_DYNAMIC;
 		VSDesc.Usage = D3D11_USAGE_DEFAULT;
 		VSDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
@@ -106,14 +110,35 @@ namespace MarkTech
 		hr = m_pd3dDevice->CreateBuffer(&VSDesc, &VSSrc, &m_pMainVertexBuffer); //Allocate memory for vertex buffer
 		assert(SUCCEEDED(hr));
 
-		DWORD indices[6] = {
-			0,1,2,
-			0,2,3
+		DWORD indices[36] = {
+			// front face
+			0, 1, 2,
+			0, 2, 3,
+
+			// back face
+			4, 6, 5,
+			4, 7, 6,
+
+			// left face
+			4, 5, 1,
+			4, 1, 0,
+
+			// right face
+			3, 2, 6,
+			3, 6, 7,
+
+			// top face
+			1, 5, 6,
+			1, 6, 2,
+
+			// bottom face
+			4, 0, 3,
+			4, 3, 7
 		};
 
 		D3D11_BUFFER_DESC ISDesc;
 		ZeroMemory(&ISDesc, sizeof(D3D11_BUFFER_DESC));
-		ISDesc.ByteWidth = sizeof(DWORD) * 6;
+		ISDesc.ByteWidth = sizeof(DWORD) * 12 * 3;
 		ISDesc.Usage = D3D11_USAGE_DEFAULT;
 		ISDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 		ISDesc.CPUAccessFlags = 0;
@@ -144,7 +169,7 @@ namespace MarkTech
 		ImageSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
 		ImageSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
 		ImageSamplerDesc.MipLODBias = 0.0f;
-		ImageSamplerDesc.MaxAnisotropy = 1;
+		ImageSamplerDesc.MaxAnisotropy = 16;
 		ImageSamplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
 		ImageSamplerDesc.MinLOD = 0;
 		ImageSamplerDesc.MaxLOD = FLT_MAX;
@@ -199,13 +224,15 @@ namespace MarkTech
 		rcamTarget = DirectX::XMVectorSet(0.0f, 0.0f, 10.0f, 0.0f);
 		rcamUp = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
+
+
 		camView = DirectX::XMMatrixLookAtLH(rcamPosition, rcamTarget, rcamUp);
 
 		camProjection = DirectX::XMMatrixPerspectiveFovLH(camData.flFov * 3.14f, (float)window.nWidth/ window.nHeight, camData.flNearZ, camData.flFarZ);
 
-		World = DirectX::XMMatrixIdentity();
+		objectWorld = DirectX::XMMatrixIdentity();
 
-		WVP = World * camView * camProjection;
+		WVP = objectWorld * camView * camProjection;
 
 		constBuffer.WVP = DirectX::XMMatrixTranspose(WVP);	
 
@@ -214,21 +241,19 @@ namespace MarkTech
 
 	void CD3D11Renderer::CreateShaders()
 	{
-		ID3DBlob* pVsBlob = NULL, * pPsBlob = NULL;
-		pVsBlob = GetShaderBytecodeFromFile(L"DefaultVertex.hlsl", L"Vertex.cso", "vs_5_0", "main");
-		pPsBlob = GetShaderBytecodeFromFile(L"Albedo.hlsl", L"Pixel.cso", "ps_5_0", "main");
+		CAssetHandle VertexShader = GetLevel()->LoadAsset("Vert.mfx", MShader);
+		CAssetHandle PixelShader = GetLevel()->LoadAsset("AlbedoShader.mfx", MShader);
 
 		HRESULT hr = m_pd3dDevice->CreateVertexShader(
-			pVsBlob->GetBufferPointer(),
-			pVsBlob->GetBufferSize(),
+			VertexShader.GetAssetDataPtr()->pData,
+			VertexShader.GetAssetDataPtr()->nDataSize,
 			NULL,
 			&m_pVertexShader);
 		assert(SUCCEEDED(hr));
 
-
 		hr = m_pd3dDevice->CreatePixelShader(
-			pPsBlob->GetBufferPointer(),
-			pPsBlob->GetBufferSize(),
+			PixelShader.GetAssetDataPtr()->pData,
+			PixelShader.GetAssetDataPtr()->nDataSize,
 			NULL,
 			&m_pPixelShader);
 		assert(SUCCEEDED(hr));
@@ -242,8 +267,8 @@ namespace MarkTech
 		hr = m_pd3dDevice->CreateInputLayout(
 			inputElementDesc,
 			ARRAYSIZE(inputElementDesc),
-			pVsBlob->GetBufferPointer(),
-			pVsBlob->GetBufferSize(),
+			VertexShader.GetAssetDataPtr()->pData,
+			VertexShader.GetAssetDataPtr()->nDataSize,
 			&m_pInputLayout);
 		assert(SUCCEEDED(hr));
 	}

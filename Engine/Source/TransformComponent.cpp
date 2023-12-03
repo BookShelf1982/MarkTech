@@ -38,8 +38,8 @@ namespace MarkTech
 	{
 		m_Transform.Scale = scale;
 	}
-
-	/*const MVector3& CTransformComponent::GetForwardVector()
+/*
+	const MVector3& CTransformComponent::GetForwardVector()
 	{
 		// TODO: insert return statement here
 	}
@@ -47,5 +47,6 @@ namespace MarkTech
 	const MVector3& CTransformComponent::GetRightVector()
 	{
 		// TODO: insert return statement here
-	}*/
+	}
+*/
 }

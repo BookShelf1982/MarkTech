@@ -21,9 +21,6 @@ namespace MarkTech
 
 		HWND GetHWND() const { return m_Hwnd; }
 
-		LARGE_INTEGER nTickFrequency, nCurrentTick, nLastTick;
-		int64_t nElapsedTicks;
-
 		int nWidth, nHeight;
 
 	private:

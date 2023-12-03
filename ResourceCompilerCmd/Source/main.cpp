@@ -1,7 +1,8 @@
 #include <iostream>
 #include <Windows.h>
 
-typedef int (*pfnImportTexture)(const char*, const char*, int, int); // const char* filepath, int mips, int compression
+typedef int (*pfnImportTexture)(const char*, const char*, int, int); // const char* filepath, const char* output, int mips, int compression
+typedef int (*pfnImportShader)(const char*, const char*, const char*, const char*); // const char* filepath, const char* output, const char* shadertype, const char* entrypoint
 
 int main(int argc, const char* argv[])
 {
@@ -44,6 +45,25 @@ int main(int argc, const char* argv[])
 			compression = 1;
 
 		pfnLoadTex(argv[2], argv[3], mips, compression);
+	}
+
+	if ((strcmp("-mfx", argv[1]) == 0))
+	{
+		pfnImportShader pfnLoadShader = (pfnImportShader)GetProcAddress(ResourceCompilerLib, "LoadShader");
+		if ((strcmp("-compiler", argv[4]) != 0))
+		{
+			std::cout << "Couldn't find -compiler argument!\nPress enter to exit...\n";
+			std::cin.get();
+			return -1;
+		}
+		if ((strcmp("-entrypoint", argv[6]) != 0))
+		{
+			std::cout << "Couldn't find -entrypoint argument!\nPress enter to exit...\n";
+			std::cin.get();
+			return -1;
+		}
+
+		pfnLoadShader(argv[2], argv[3], argv[5], argv[7]);
 	}
 
 	return 0;
