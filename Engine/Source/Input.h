@@ -49,8 +49,11 @@ namespace MarkTech
 
 		void PollMousePos(int x, int y);
 
+		void DestroyInput();
+
 	private:
 		CInput() {}
+		~CInput() {}
 
 		static CInput* Input;
 

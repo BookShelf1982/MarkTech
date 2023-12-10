@@ -3,9 +3,6 @@
 #include "TextureComponent.h"
 #include "CameraComponent.h"
 #include "ModelComponent.h"
-#define _CRTDBG_MAP_ALLOC
-#include <stdlib.h>
-#include <crtdbg.h>
 
 namespace MarkTech
 {
@@ -13,7 +10,6 @@ namespace MarkTech
 
 	CEngine::CEngine()
 	{
-		_CrtCheckMemory();
 		bClosing = false;
 		m_pMainWindow = new CWinWindow();
 	}
@@ -24,6 +20,7 @@ namespace MarkTech
 		MGameInfo::GetGameInfo()->Destroy();
 		MUserSettings::GetUserSettings()->Destroy();
 		CLevel::GetLevel()->DestroyLevel();
+		CInput::GetInput()->DestroyInput();
 		delete m_pMainWindow;
 	}
 
@@ -190,8 +187,9 @@ int LaunchEngine(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
 	}
 	MarkTech::CEngine::GetEngine()->StartEngineLoop();
 	MarkTech::CEngine::GetEngine()->DestroyEngine();
-	_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_DEBUG);
+#ifdef DEBUG
 	_CrtDumpMemoryLeaks();
+#endif
 	return 0;
 }
 

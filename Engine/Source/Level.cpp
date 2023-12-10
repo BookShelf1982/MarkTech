@@ -56,5 +56,10 @@ namespace MarkTech
     
     CLevel::~CLevel()
     {
+        for (int i = 0; i < m_Comps.GetSize(); i++)
+        {
+            OutputDebugStringA("Deleted Component!");
+            delete m_Comps.c_arr()[i];
+        }
     }
 }

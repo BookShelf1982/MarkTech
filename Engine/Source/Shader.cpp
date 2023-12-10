@@ -9,6 +9,7 @@ namespace MarkTech
 	}
 	CShader::~CShader()
 	{
+		OutputDebugStringA("Deleted Shader!\n");
 	}
 
 	void CShader::Release()
@@ -17,6 +18,7 @@ namespace MarkTech
 		sprintf_s(str, sizeof(str), "Deleted Memory Block of: %i bytes! \n", (int)m_nShaderByteCodeSize);
 		OutputDebugStringA(str);
 		m_pShaderByteCode.Release();
+		delete this;
 	}
 
 	CAssetObject* LoadShader(const char* filepath)

@@ -2,13 +2,12 @@
 #define UNICODE
 #endif // !UNICODE
 #include <Windows.h>
-#include <fstream>
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
 	typedef int (*pfnLaunchEngine)(HINSTANCE, PWSTR, int);	//Formatting for LaunchEngine Function
 
-HMODULE Library = LoadLibraryA("Bin/Engine.dll");
+	HMODULE Library = LoadLibraryA("Bin/Engine.dll");
 
 	if (Library == NULL)
 	{
@@ -28,7 +27,6 @@ HMODULE Library = LoadLibraryA("Bin/Engine.dll");
 		{
 			pfnLaunchEng(hInstance, pCmdLine, nCmdShow);	//Call LaunchEngine Function
 			FreeLibrary(Library);	//Free library when shut down
-			_CrtDumpMemoryLeaks();
 			return 0;
 		}
 	}

@@ -20,8 +20,6 @@ namespace MarkTech
 		CAssetRegistry* GetAssetRegistry() { return &m_AssetRegistry; }
 
 		CAssetHandle LoadAsset(const char* filepath, EAssetType type);
-
-
 		
 		template<class T>
 		bool HasComponent(uint64_t id)

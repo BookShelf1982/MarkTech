@@ -100,4 +100,9 @@ namespace MarkTech
         mouse.x = x;
         mouse.y = y;
     }
+
+    void CInput::DestroyInput()
+    {
+        delete Input;
+    }
 }
