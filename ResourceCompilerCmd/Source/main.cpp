@@ -3,6 +3,7 @@
 
 typedef int (*pfnImportTexture)(const char*, const char*, int, int); // const char* filepath, const char* output, int mips, int compression
 typedef int (*pfnImportShader)(const char*, const char*, const char*, const char*); // const char* filepath, const char* output, const char* shadertype, const char* entrypoint
+typedef int (*pfnImportModel)(const char*, const char*); // const char* filepath, const char* output
 
 int main(int argc, const char* argv[])
 {
@@ -64,6 +65,25 @@ int main(int argc, const char* argv[])
 		}
 
 		pfnLoadShader(argv[2], argv[3], argv[5], argv[7]);
+	}
+
+	if ((strcmp("-mmdl", argv[1]) == 0))
+	{
+		pfnImportModel pfnLoadModel = (pfnImportModel)GetProcAddress(ResourceCompilerLib, "LoadModel");
+		if (argv[2] == nullptr)
+		{
+			std::cout << "Please intput an input file path argument!\nPress enter to exit...\n";
+			std::cin.get();
+			return -1;
+		}
+		if (argv[3] == nullptr)
+		{
+			std::cout << "Please input an output file path argument!\nPress enter to exit...\n";
+			std::cin.get();
+			return -1;
+		}
+
+		pfnLoadModel(argv[2], argv[3]);
 	}
 
 	return 0;

@@ -4,8 +4,6 @@
 #include "Level.h"
 #include "DirectXTex\DirectXTex.h"
 
-
-
 namespace MarkTech
 {
 	CD3D11Renderer* CD3D11Renderer::g_pd3dRenderer = new CD3D11Renderer();
@@ -83,100 +81,27 @@ namespace MarkTech
 		hr = m_pd3dDevice->CreateBuffer(&cbuffDesc, NULL, &m_pConstBuffer);
 		assert(SUCCEEDED(hr));
 
-		MVertex v[8] = {
-			{-1.0f, -1.0f, -1.0f, 1.0f, 0.0f},
-			{-1.0f, +1.0f, -1.0f, 0.0f, 1.0f},
-			{+1.0f, +1.0f, -1.0f, 0.0f, 0.0f},
-			{+1.0f, -1.0f, -1.0f, 1.0f, 1.0f},
-			{-1.0f, -1.0f, +1.0f, 0.0f, 1.0f},
-			{-1.0f, +1.0f, +1.0f, 1.0f, 1.0f},
-			{+1.0f, +1.0f, +1.0f, 1.0f, 0.0f},
-			{+1.0f, -1.0f, +1.0f, 1.0f, 0.0f}
-		};
-
 		D3D11_BUFFER_DESC VSDesc;
 		ZeroMemory(&VSDesc, sizeof(D3D11_BUFFER_DESC));
-		VSDesc.ByteWidth = sizeof(MVertex) * 8;
-		//VSDesc.Usage = D3D11_USAGE_DYNAMIC;
-		VSDesc.Usage = D3D11_USAGE_DEFAULT;
+		VSDesc.ByteWidth = sizeof(MVertex) * MAX_VERTICES_PER_DRAWCALL;
+		VSDesc.Usage = D3D11_USAGE_DYNAMIC;
 		VSDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		VSDesc.CPUAccessFlags = 0;
+		VSDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		VSDesc.MiscFlags = 0;
 
-		D3D11_SUBRESOURCE_DATA VSSrc;
-		ZeroMemory(&VSSrc, sizeof(D3D11_SUBRESOURCE_DATA));
-		VSSrc.pSysMem = v;
-
-		hr = m_pd3dDevice->CreateBuffer(&VSDesc, &VSSrc, &m_pMainVertexBuffer); //Allocate memory for vertex buffer
+		hr = m_pd3dDevice->CreateBuffer(&VSDesc, NULL, &m_pMainVertexBuffer); //Allocate memory for vertex buffer
 		assert(SUCCEEDED(hr));
-
-		DWORD indices[36] = {
-			// front face
-			0, 1, 2,
-			0, 2, 3,
-
-			// back face
-			4, 6, 5,
-			4, 7, 6,
-
-			// left face
-			4, 5, 1,
-			4, 1, 0,
-
-			// right face
-			3, 2, 6,
-			3, 6, 7,
-
-			// top face
-			1, 5, 6,
-			1, 6, 2,
-
-			// bottom face
-			4, 0, 3,
-			4, 3, 7
-		};
 
 		D3D11_BUFFER_DESC ISDesc;
 		ZeroMemory(&ISDesc, sizeof(D3D11_BUFFER_DESC));
-		ISDesc.ByteWidth = sizeof(DWORD) * 12 * 3;
-		ISDesc.Usage = D3D11_USAGE_DEFAULT;
+		ISDesc.ByteWidth = sizeof(uint32_t) * MAX_INDICES_PER_DRAWCALL;
+		ISDesc.Usage = D3D11_USAGE_DYNAMIC;
 		ISDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-		ISDesc.CPUAccessFlags = 0;
+		ISDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		ISDesc.MiscFlags = 0;
 
-		D3D11_SUBRESOURCE_DATA ISSrc;
-		ZeroMemory(&ISSrc, sizeof(D3D11_SUBRESOURCE_DATA));
-		ISSrc.pSysMem = indices;
-
-		hr = m_pd3dDevice->CreateBuffer(&ISDesc, &ISSrc, &m_pMainIndexBuffer); //Allocate mempry for index buffer
+		hr = m_pd3dDevice->CreateBuffer(&ISDesc, NULL, &m_pMainIndexBuffer); //Allocate mempry for index buffer
 		assert(SUCCEEDED(hr));
-
-		CAssetHandle assetHandle = GetLevel()->LoadAsset("Textures/grass.mtex", MTexture);
-
-		DirectX::ScratchImage img;
-		DirectX::TexMetadata metadata;
-
-		hr = DirectX::LoadFromDDSMemory(assetHandle.GetAssetDataPtr()->pData, assetHandle.GetAssetDataPtr()->nDataSize, DirectX::DDS_FLAGS_NONE, &metadata, img);
-		assert(SUCCEEDED(hr));
-
-		hr = DirectX::CreateShaderResourceView(m_pd3dDevice, img.GetImages(), img.GetImageCount(), img.GetMetadata(), &m_pTextureView);
-		assert(SUCCEEDED(hr));
-
-		D3D11_SAMPLER_DESC ImageSamplerDesc;
-		ZeroMemory(&ImageSamplerDesc, sizeof(D3D11_SAMPLER_DESC));
-		ImageSamplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
-		ImageSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-		ImageSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-		ImageSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-		ImageSamplerDesc.MipLODBias = 0.0f;
-		ImageSamplerDesc.MaxAnisotropy = 16;
-		ImageSamplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-		ImageSamplerDesc.MinLOD = 0;
-		ImageSamplerDesc.MaxLOD = FLT_MAX;
-
-		hr = m_pd3dDevice->CreateSamplerState(&ImageSamplerDesc, &m_pTextureSampler);
-		assert(SUCCEEDED(hr));
-
 
 		CreateShaders();
 
@@ -185,6 +110,12 @@ namespace MarkTech
 
 	void CD3D11Renderer::RenderFrame(const CWinWindow& window)
 	{
+		D3D11_MAPPED_SUBRESOURCE VertSubResource;
+		ZeroMemory(&VertSubResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+
+		D3D11_MAPPED_SUBRESOURCE IndSubResource;
+		ZeroMemory(&IndSubResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+
 		float color[4] = {0.0f,0.0f,0.25f,1.0f};
 
 		m_pd3dDeviceContext->ClearRenderTargetView(m_pMainRenderTargetView, color);
@@ -199,23 +130,12 @@ namespace MarkTech
 		viewport.MinDepth = 0.0f;
 		m_pd3dDeviceContext->RSSetViewports(1, &viewport);
 
-		m_pd3dDeviceContext->VSSetShader(m_pVertexShader, NULL, 0);
-		m_pd3dDeviceContext->VSSetConstantBuffers(0, 1, &m_pConstBuffer);
-		m_pd3dDeviceContext->PSSetShader(m_pPixelShader, NULL, 0);
-		m_pd3dDeviceContext->PSSetShaderResources(0, 1, &m_pTextureView);
-		m_pd3dDeviceContext->PSSetSamplers(0, 1, &m_pTextureSampler);
-
-		m_pd3dDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		m_pd3dDeviceContext->IASetInputLayout(m_pInputLayout);
-		m_pd3dDeviceContext->IASetVertexBuffers(0, 1, &m_pMainVertexBuffer, &stride, &offset);
-		m_pd3dDeviceContext->IASetIndexBuffer(m_pMainIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-
-		m_pd3dDeviceContext->DrawIndexed(6, 0, 0);
-
 		if(MUserSettings::GetUserSettings()->bVSVSync >= 1)
 			m_pSwapChain->Present(1, 0);
 		else
 			m_pSwapChain->Present(0, 0);
+
+
 	}
 
 	void CD3D11Renderer::UpdateRender(const CWinWindow& window)
@@ -223,8 +143,6 @@ namespace MarkTech
 		rcamPosition = DirectX::XMVectorSet(camData.camPos.y, camData.camPos.z, camData.camPos.x, 0.0f);
 		rcamTarget = DirectX::XMVectorSet(0.0f, 0.0f, 10.0f, 0.0f);
 		rcamUp = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-
-
 
 		camView = DirectX::XMMatrixLookAtLH(rcamPosition, rcamTarget, rcamUp);
 
@@ -242,22 +160,23 @@ namespace MarkTech
 	void CD3D11Renderer::CreateShaders()
 	{
 		CAssetHandle VertexShader = GetLevel()->LoadAsset("Vert.mfx", MShader);
-		CAssetHandle PixelShader = GetLevel()->LoadAsset("AlbedoShader.mfx", MShader);
+		CAssetHandle PixelShader = GetLevel()->LoadAsset("Unlit.mfx", MShader);
 
 		HRESULT hr = m_pd3dDevice->CreateVertexShader(
-			VertexShader.GetAssetDataPtr()->pData,
-			VertexShader.GetAssetDataPtr()->nDataSize,
+			reinterpret_cast<CShader*>(VertexShader.GetAssetDataPtr())->m_pShaderByteCode.GetPtr(),
+			reinterpret_cast<CShader*>(VertexShader.GetAssetDataPtr())->m_nShaderByteCodeSize,
 			NULL,
-			&m_pVertexShader);
+			&m_pVertexShader
+		);
 		assert(SUCCEEDED(hr));
 
 		hr = m_pd3dDevice->CreatePixelShader(
-			PixelShader.GetAssetDataPtr()->pData,
-			PixelShader.GetAssetDataPtr()->nDataSize,
+			reinterpret_cast<CShader*>(PixelShader.GetAssetDataPtr())->m_pShaderByteCode.GetPtr(),
+			reinterpret_cast<CShader*>(PixelShader.GetAssetDataPtr())->m_nShaderByteCodeSize,
 			NULL,
-			&m_pPixelShader);
+			&m_pPixelShader
+		);
 		assert(SUCCEEDED(hr));
-
 
 		D3D11_INPUT_ELEMENT_DESC inputElementDesc[] = {
 			{ "POS", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -267,8 +186,8 @@ namespace MarkTech
 		hr = m_pd3dDevice->CreateInputLayout(
 			inputElementDesc,
 			ARRAYSIZE(inputElementDesc),
-			VertexShader.GetAssetDataPtr()->pData,
-			VertexShader.GetAssetDataPtr()->nDataSize,
+			reinterpret_cast<CShader*>(VertexShader.GetAssetDataPtr())->m_pShaderByteCode.GetPtr(),
+			reinterpret_cast<CShader*>(VertexShader.GetAssetDataPtr())->m_nShaderByteCodeSize,
 			&m_pInputLayout);
 		assert(SUCCEEDED(hr));
 	}
@@ -329,22 +248,33 @@ namespace MarkTech
 		camData.flFov = data.flFov;
 	}
 
+	void CD3D11Renderer::SubmitModel(CAssetHandle model)
+	{
+		/*CModel TempModel;
+		TempModel.Init(model.GetAssetDataPtr());
+		m_SubmittedModels.Push(TempModel);*/
+	}
+
 	void CD3D11Renderer::DestroyRenderer()
 	{
 		m_pSwapChain->Release();
 		m_pd3dDevice->Release();
 		m_pd3dDeviceContext->Release();
 		m_pMainRenderTargetView->Release();
-		m_pMainVertexBuffer->Release();
-		m_pMainIndexBuffer->Release();
+
+		if(m_pMainVertexBuffer)
+			m_pMainVertexBuffer->Release();
+		if(m_pMainIndexBuffer)
+			m_pMainIndexBuffer->Release();
+
 		m_pVertexShader->Release();
 		m_pPixelShader->Release();
 		m_pInputLayout->Release();
 		m_pDepthStencilBuffer->Release();
 		m_pDepthStencilView->Release();
-		m_pTextureSampler->Release();
-		m_pTextureView->Release();
 		m_pConstBuffer->Release();
+
+		//m_pDebug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
 
 #ifdef DEBUG 
 		m_pDebug->Release();

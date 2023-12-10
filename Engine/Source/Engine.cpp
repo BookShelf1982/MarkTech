@@ -2,6 +2,10 @@
 #include "TransformComponent.h"
 #include "TextureComponent.h"
 #include "CameraComponent.h"
+#include "ModelComponent.h"
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
 
 namespace MarkTech
 {
@@ -9,6 +13,7 @@ namespace MarkTech
 
 	CEngine::CEngine()
 	{
+		_CrtCheckMemory();
 		bClosing = false;
 		m_pMainWindow = new CWinWindow();
 	}
@@ -55,11 +60,14 @@ namespace MarkTech
 		bIsEditor = false;
 
 		uint64_t entid = GetLevel()->CreateEntity();
-
 		GetLevel()->CreateComponent<CTransformComponent>(entid);
 		GetLevel()->CreateComponent<CCameraComponent>(entid);
 
-		CAssetHandle shader = GetLevel()->LoadAsset("Vert.mfx", MShader);
+		/*uint64_t mdlentid = GetLevel()->CreateEntity();
+		GetLevel()->CreateComponent<CTransformComponent>(mdlentid);
+		GetLevel()->CreateComponent<CModelComponent>(mdlentid);
+
+		GetLevel()->LoadAsset("output.mmdl", MModel);*/
 
 		QueryPerformanceCounter(&nLastTick);
 		QueryPerformanceFrequency(&nTickFrequency);
@@ -182,6 +190,8 @@ int LaunchEngine(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
 	}
 	MarkTech::CEngine::GetEngine()->StartEngineLoop();
 	MarkTech::CEngine::GetEngine()->DestroyEngine();
+	_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_DEBUG);
+	_CrtDumpMemoryLeaks();
 	return 0;
 }
 

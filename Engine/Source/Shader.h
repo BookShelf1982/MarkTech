@@ -4,17 +4,17 @@
 
 namespace MarkTech
 {
-	class MARKTECH_API CShader
+	class MARKTECH_API CShader : public CAssetObject
 	{
 	public:
 		CShader();
-		~CShader();
+		virtual ~CShader() override;
+		
+		virtual void Release() override;
 
-		void Initialize(const void* bytecode, size_t size);
-	protected:
-		const void* m_pShaderByteCode;
+		CTMemoryBlob<char> m_pShaderByteCode;
 		size_t m_nShaderByteCodeSize;
 	};
 
-	MAssetData LoadShader(const char* filepath);
+	CAssetObject* LoadShader(const char* filepath);
 }

@@ -3,31 +3,46 @@
 
 namespace MarkTech
 {
-	void CShader::Initialize(const void* bytecode, size_t size)
+	CShader::CShader()
+		: CAssetObject::CAssetObject(), m_nShaderByteCodeSize(0), m_pShaderByteCode()
 	{
-		m_pShaderByteCode = bytecode;
-		m_nShaderByteCodeSize = size;
+	}
+	CShader::~CShader()
+	{
 	}
 
-	MAssetData LoadShader(const char* filepath)
+	void CShader::Release()
 	{
-		MAssetData TempAssetData = {};
+		char str[256];
+		sprintf_s(str, sizeof(str), "Deleted Memory Block of: %i bytes! \n", (int)m_nShaderByteCodeSize);
+		OutputDebugStringA(str);
+		m_pShaderByteCode.Release();
+	}
+
+	CAssetObject* LoadShader(const char* filepath)
+	{
+		CShader* shader = new CShader();
+
+		uint64_t nTempId = 0;
+		size_t nSourceSize = 0;
+		size_t nBytecodeSize = 0;
+
 
 		std::fstream file;
 		file.open(filepath, std::ios::in | std::ios::binary);
 		if (!file.is_open())
-			return TempAssetData;
+			return nullptr;
 
-		size_t nSourcelength = 0;
+		file.read((char*)&shader->m_nAssetId, sizeof(uint64_t));	//Get Asset Id
+		file.read((char*)&nSourceSize, sizeof(size_t));				//Get Shader source size
+		file.read((char*)&nBytecodeSize, sizeof(size_t));			//Get Shader bytecode size
+		file.seekg(nSourceSize, std::ios::cur);						//Skip shader source data
+		shader->m_pShaderByteCode.Initialize(nBytecodeSize);
+		file.read((char*)shader->m_pShaderByteCode.GetPtr(), nBytecodeSize);	//Get Shader bytecode
+		file.close();												//Close file
 
-		file.read((char*)&TempAssetData.nId, sizeof(uint64_t));
-		file.read((char*)&nSourcelength, sizeof(size_t));
-		file.read((char*)&TempAssetData.nDataSize, sizeof(size_t));
-		TempAssetData.pData = new char[TempAssetData.nDataSize];
-		file.seekg(nSourcelength, std::ios::cur);
-		file.read((char*)TempAssetData.pData, TempAssetData.nDataSize);
-		file.close();
+		shader->m_nShaderByteCodeSize = nBytecodeSize;
 
-		return TempAssetData;
+		return shader;
 	}
 }

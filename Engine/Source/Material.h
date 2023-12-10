@@ -8,8 +8,8 @@ namespace MarkTech
 	class MARKTECH_API CMaterial
 	{
 	public:
-
+		
 	private:
-		CAssetHandle m_Shader;
+		
 	};
 }

@@ -1,4 +1,6 @@
 #pragma once
+#include <stdio.h>
+#include <Windows.h>
 #include "DllExport.h"
 
 template<typename T>
@@ -15,6 +17,11 @@ public:
 
 	~CTStaticArray()
 	{
+#ifdef DEBUG
+		char str[256];
+		sprintf_s(str, sizeof(str), "Deleted Array of: %d Elements! \n", size_current);
+		OutputDebugStringA(str);
+#endif // DEBUG
 		delete[] arr;
 	}
 
@@ -93,18 +100,23 @@ public:
 
 	~CTArray()
 	{
+#ifdef DEBUG
+		char str[256];
+		sprintf_s(str, sizeof(str), "Deleted Array of: %d Elements! \n", size_current);
+		OutputDebugStringA(str);
+#endif // DEBUG
 		delete[] arr;
 	}
 
 	void Push(T element);
 	void SetAtIndex(T elemet, int index);
 	void RemoveAtIndex(int index);
-	T GetElementAtIndex(int index);
+	const T& GetElementAtIndex(int index) const;
 
 	T operator[](int index);
 
-	int GetSize() { return size_current; }
-	int GetMaxSize() { return size_max; }
+	int GetSize() const { return size_current; }
+	int GetMaxSize() const { return size_max; }
 	T* c_arr() { return arr; }
 private:
 	T* arr;
@@ -154,7 +166,7 @@ inline void CTArray<T>::RemoveAtIndex(int index)
 }
 
 template<typename T>
-inline T CTArray<T>::GetElementAtIndex(int index)
+inline const T& CTArray<T>::GetElementAtIndex(int index) const
 {
 	return arr[index];
 }

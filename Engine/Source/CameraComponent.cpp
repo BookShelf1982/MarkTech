@@ -29,12 +29,6 @@ namespace MarkTech
 
 	void CCameraComponent::UpdateComponent(float flDeltaTime)
 	{
-		if (CInput::GetInput()->IsButtonDown(MTVK_Up))
-		{
-
-		}
-
-
 		if (GetLevel()->HasComponent<CTransformComponent>(m_nOwnerId))
 		{
 			CTransformComponent* comp =  GetLevel()->GetComponentFromEntity<CTransformComponent>(m_nOwnerId);

@@ -12,16 +12,19 @@ namespace MarkTech
 		MMaterial
 	};
 
-	struct MARKTECH_API MAssetData
+	class MARKTECH_API CAssetObject
 	{
-		uint64_t nId;
-		EAssetType Type;
-		void* pData;
-		size_t nDataSize;
+	public:
+		CAssetObject();
+		virtual ~CAssetObject();
+
+		virtual void Release();
+
+		uint64_t m_nAssetId;
 	};
 
-	MAKE_CTARRAY_COMPATIBLE(MAssetData);
-	MAKE_CTARRAY_COMPATIBLE(MAssetData*);
+	MAKE_CTARRAY_COMPATIBLE(CAssetObject);
+	MAKE_CTARRAY_COMPATIBLE(CAssetObject*);
 
 	class MARKTECH_API CAssetHandle
 	{
@@ -30,11 +33,11 @@ namespace MarkTech
 
 		void Initialize(uint64_t assetId);
 
-		MAssetData* GetAssetDataPtr();
+		CAssetObject* GetAssetDataPtr();
 
 	private:
 		uint64_t m_nAssetId;
-		MAssetData* m_pAsset;
+		CAssetObject* m_pAsset;
 	};
 
 	class MARKTECH_API CAssetRegistry
@@ -44,11 +47,11 @@ namespace MarkTech
 		~CAssetRegistry();
 
 		uint64_t LoadAsset(const char* filepath, EAssetType type);
-		MAssetData* FindAssetById(uint64_t id);
+		CAssetObject* FindAssetById(uint64_t id);
 		uint64_t GetAssetId(const char* filepath);
 	private:
-		MAssetData LoadTexture(const char* filepath);
+		//MAssetData LoadTexture(const char* filepath);
 
-		CTArray<MAssetData> m_RegisteredAssets;
+		CTArray<CAssetObject*> m_RegisteredAssets;
 	};
 }

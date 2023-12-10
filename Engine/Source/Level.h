@@ -20,6 +20,8 @@ namespace MarkTech
 		CAssetRegistry* GetAssetRegistry() { return &m_AssetRegistry; }
 
 		CAssetHandle LoadAsset(const char* filepath, EAssetType type);
+
+
 		
 		template<class T>
 		bool HasComponent(uint64_t id)
@@ -56,7 +58,7 @@ namespace MarkTech
 			{
 				if (m_Comps.c_arr()[i]->GetOwnerId() == entId)
 				{
-					return reinterpret_cast<T*>(m_Comps.c_arr()[i]);
+					return dynamic_cast<T*>(m_Comps.c_arr()[i]);
 				}
 			}
 			return nullptr;

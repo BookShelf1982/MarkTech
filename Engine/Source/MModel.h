@@ -1,6 +1,9 @@
 #pragma once
 #include "Core.h"
 #include "Vectors.h"
+#include "AssetRegistry.h"
+#include "Material.h"
+
 namespace MarkTech
 {
 	struct MVertex
@@ -13,22 +16,23 @@ namespace MarkTech
 	};
 
 	MAKE_CTARRAY_COMPATIBLE(MVertex);
-	MAKE_CTARRAY_COMPATIBLE(int);
 
-	class MARKTECH_API CModel
+	class MARKTECH_API CModel : public CAssetObject
 	{
 	public:
 		CModel();
 		~CModel();
 
-		
-
-	private:
-		CTArray<MVertex> m_Vertices;
-		CTArray<int> m_Indices;
-
-
+	protected:
+		uint64_t assetId;
+		MVertex* m_pVerts;
+		uint32_t* m_pInds;
+		size_t m_nVertsAmount;
+		size_t m_nIndsAmount;
+		CMaterial m_Material;
 	};
 
+	MAKE_CTARRAY_COMPATIBLE(CModel);
 
+	CAssetObject* LoadModel(const char* filepath);
 }
