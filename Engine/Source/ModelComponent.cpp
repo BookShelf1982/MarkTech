@@ -1,4 +1,5 @@
 #include "ModelComponent.h"
+#include "Configs.h"
 
 namespace MarkTech
 {
@@ -9,8 +10,9 @@ namespace MarkTech
 
 
 	CModelComponent::CModelComponent(uint64_t ownerId)
-		:CBaseComponent::CBaseComponent(ownerId), m_pszAssetPath("teapot.mmdl")
+		:CBaseComponent::CBaseComponent(ownerId), m_pszAssetPath("")
 	{
+		m_pszAssetPath = MGameInfo::GetGameInfo()->szModel;
 	}
 
 	CModelComponent::~CModelComponent()

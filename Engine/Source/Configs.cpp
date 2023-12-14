@@ -24,6 +24,7 @@ namespace MarkTech
 		std::string tempContentPath = ini["MarkTech.GameInfo"]["Game.ContentPath"];
 		std::string tempConfigPath = ini["MarkTech.GameInfo"]["Game.ConfigPath"];
 		std::string tempImage = ini["MarkTech.GameInfo"]["Game.Image"];
+		std::string tempModel = ini["MarkTech.GameInfo"]["Game.Model"];
 
 		strcpy(this->szGameName, tempGameName.c_str());
 		strcpy(this->szShaderPath, tempShaderPath.c_str());
@@ -31,6 +32,7 @@ namespace MarkTech
 		strcpy(this->szContentPath, tempContentPath.c_str());
 		strcpy(this->szConfigPath, tempConfigPath.c_str());
 		strcpy(this->szImage, tempImage.c_str());
+		strcpy(this->szModel, tempModel.c_str());
 
 		
 		return true;

@@ -84,6 +84,16 @@ int LoadTexture(const char* filepath, const char* compiledname, int mips, int co
 		currentImage = &bcImage;
 	}
 
+	std::string Path = compiledname;
+	std::fstream model;
+	// If the file is not an .mmdl file return false
+	if (Path.substr(Path.size() - 5, 5) != ".mtex")
+	{
+		std::cout << "Output file is not an mtex file.\nPress enter to exit...\n";
+		std::cin.get();
+		return -1;
+	}
+
 	std::fstream exportfile;
 	exportfile.open(compiledname, std::ios::out | std::ios::binary);
 

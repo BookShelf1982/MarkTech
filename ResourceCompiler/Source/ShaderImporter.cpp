@@ -48,6 +48,16 @@ int LoadShader(const char* filepath, const char* output, const char* shadertype,
 
 	std::cout << "Shader compile succeded!\n";
 
+	std::string Path = output;
+	std::fstream model;
+	// If the file is not an .mmdl file return false
+	if (Path.substr(Path.size() - 5, 5) != ".mfx")
+	{
+		std::cout << "Output file is not an mfx file.\nPress enter to exit...\n";
+		std::cin.get();
+		return -1;
+	}
+
 	std::fstream OutputFile;
 	OutputFile.open(output, std::ios::out | std::ios::binary);
 

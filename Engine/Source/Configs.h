@@ -32,9 +32,10 @@ namespace MarkTech
 		char	szContentPath[256];
 		char	szConfigPath[256];
 		char	szImage[256];
+		char	szModel[256];
 
 	private:
-		MGameInfo() :nGameVersion(0), szGameName(MT_NAME), szShaderPath(MT_SHADERPATH), szRawShaderPath(MT_RAWSHADERPATH), szContentPath(MT_CONTENTPATH), szConfigPath(MT_CONFIGPATH), szImage("img.jpg") {}
+		MGameInfo() :nGameVersion(0), szGameName(MT_NAME), szShaderPath(MT_SHADERPATH), szRawShaderPath(MT_RAWSHADERPATH), szContentPath(MT_CONTENTPATH), szConfigPath(MT_CONFIGPATH), szImage("img.jpg"), szModel("") {}
 		~MGameInfo() {}
 
 		static MGameInfo* m_gGInfo;

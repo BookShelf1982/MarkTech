@@ -106,7 +106,7 @@ namespace MarkTech
 		hr = m_pd3dDevice->CreateBuffer(&ISDesc, NULL, &m_pMainIndexBuffer); //Allocate mempry for index buffer
 		assert(SUCCEEDED(hr));
 
-		CAssetHandle assetHandle = GetLevel()->LoadAsset("Textures/grass.mtex", MTexture);
+		CAssetHandle assetHandle = GetLevel()->LoadAsset(MGameInfo::GetGameInfo()->szImage, MTexture);
 
 		DirectX::ScratchImage img;
 		DirectX::TexMetadata metadata;
@@ -210,7 +210,7 @@ namespace MarkTech
 
 		camProjection = DirectX::XMMatrixPerspectiveFovLH(camData.flFov * 3.14f, (float)window.nWidth/ window.nHeight, camData.flNearZ, camData.flFarZ);
 
-		yaxis = yaxis + 0.005;
+		yaxis -= 0.005;
 
 		objectWorld = DirectX::XMMatrixRotationAxis(DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), yaxis);
 
