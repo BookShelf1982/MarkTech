@@ -85,6 +85,6 @@ int main(int argc, const char* argv[])
 
 		pfnLoadModel(argv[2], argv[3]);
 	}
-
+	FreeLibrary(ResourceCompilerLib);
 	return 0;
 }

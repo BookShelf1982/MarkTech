@@ -37,7 +37,7 @@ namespace MarkTech
 
 		void UpdateCameraData(const MCameraData& data);
 
-		void SubmitModel(CAssetHandle model);
+		void SubmitModel(CModel* model);
 
 		void DestroyRenderer();
 
@@ -63,6 +63,8 @@ namespace MarkTech
 		ID3D11PixelShader*			m_pPixelShader = NULL;
 		ID3D11Buffer*				m_pConstBuffer = NULL;
 		ID3D11InputLayout*			m_pInputLayout = NULL;
+		ID3D11ShaderResourceView*	m_pTextureView = NULL;
+		ID3D11SamplerState*			m_pTextureSampler = NULL;
 
 		ID3D11Debug*				m_pDebug = NULL;
 
@@ -91,7 +93,8 @@ namespace MarkTech
 		MCameraData camData;
 
 		//Mesh
-		CTArray<CModel> m_SubmittedModels;
+		CTArray<CModel*> m_SubmittedModels;
+		float yaxis = 0.0f;
 		
 	};
 	static CD3D11Renderer* GetD3DRenderer() { return CD3D11Renderer::GetD3DRenderer(); }

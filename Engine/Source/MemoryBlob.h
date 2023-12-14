@@ -12,6 +12,8 @@ public:
 	void Initialize(size_t size);
 	void Release();
 
+	size_t GetPtrSize();
+
 	T* GetPtr() const { return ptr; }
 
 	void operator=(T* blob);
@@ -55,6 +57,12 @@ inline void CTMemoryBlob<T>::Release()
 		delete[] ptr;
 	else
 		delete ptr;
+}
+
+template<typename T>
+inline size_t CTMemoryBlob<T>::GetPtrSize()
+{
+	return size_t();
 }
 
 template<typename T>

@@ -211,6 +211,10 @@ namespace objl
 		// Index List
 		std::vector<unsigned int> Indices;
 
+		std::vector<Vector3> pos;
+
+		unsigned int NumVerts;
+
 		// Material
 		Material MeshMaterial;
 	};
@@ -678,6 +682,8 @@ namespace objl
 				// Create Mesh
 				tempMesh = Mesh(Vertices, Indices);
 				tempMesh.MeshName = meshname;
+				tempMesh.pos = Positions;
+				tempMesh.NumVerts = Positions.size();
 
 				// Insert Mesh
 				LoadedMeshes.push_back(tempMesh);

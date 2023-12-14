@@ -2,6 +2,7 @@
 #include <fstream>
 #include "Configs.h"
 #include "Level.h"
+#include "Texture.h"
 #include "DirectXTex\DirectXTex.h"
 
 namespace MarkTech
@@ -88,6 +89,8 @@ namespace MarkTech
 		VSDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 		VSDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		VSDesc.MiscFlags = 0;
+		VSDesc.StructureByteStride = 0;
+
 
 		hr = m_pd3dDevice->CreateBuffer(&VSDesc, NULL, &m_pMainVertexBuffer); //Allocate memory for vertex buffer
 		assert(SUCCEEDED(hr));
@@ -101,6 +104,31 @@ namespace MarkTech
 		ISDesc.MiscFlags = 0;
 
 		hr = m_pd3dDevice->CreateBuffer(&ISDesc, NULL, &m_pMainIndexBuffer); //Allocate mempry for index buffer
+		assert(SUCCEEDED(hr));
+
+		CAssetHandle assetHandle = GetLevel()->LoadAsset("Textures/grass.mtex", MTexture);
+
+		DirectX::ScratchImage img;
+		DirectX::TexMetadata metadata;
+
+		hr = DirectX::LoadFromDDSMemory(dynamic_cast<CTexture*>(assetHandle.GetAssetDataPtr())->m_pImgData.GetPtr(), dynamic_cast<CTexture*>(assetHandle.GetAssetDataPtr())->m_nImgDataSize, DirectX::DDS_FLAGS_NONE, &metadata, img);
+		assert(SUCCEEDED(hr));
+
+		hr = DirectX::CreateShaderResourceView(m_pd3dDevice, img.GetImages(), img.GetImageCount(), img.GetMetadata(), &m_pTextureView);
+		assert(SUCCEEDED(hr));
+
+		D3D11_SAMPLER_DESC ImageSamplerDesc;
+		ZeroMemory(&ImageSamplerDesc, sizeof(D3D11_SAMPLER_DESC));
+		ImageSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+		ImageSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+		ImageSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+		ImageSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+		ImageSamplerDesc.MipLODBias = 0.0f;
+		ImageSamplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+		ImageSamplerDesc.MinLOD = 0;
+		ImageSamplerDesc.MaxLOD = FLT_MAX;
+
+		hr = m_pd3dDevice->CreateSamplerState(&ImageSamplerDesc, &m_pTextureSampler);
 		assert(SUCCEEDED(hr));
 
 		CreateShaders();
@@ -130,12 +158,46 @@ namespace MarkTech
 		viewport.MinDepth = 0.0f;
 		m_pd3dDeviceContext->RSSetViewports(1, &viewport);
 
+		m_pd3dDeviceContext->VSSetShader(m_pVertexShader, NULL, 0);
+		m_pd3dDeviceContext->VSSetConstantBuffers(0, 1, &m_pConstBuffer);
+		m_pd3dDeviceContext->PSSetShader(m_pPixelShader, NULL, 0);
+		m_pd3dDeviceContext->PSSetShaderResources(0, 1, &m_pTextureView);
+		m_pd3dDeviceContext->PSSetSamplers(0, 1, &m_pTextureSampler);
+
+		m_pd3dDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		m_pd3dDeviceContext->IASetInputLayout(m_pInputLayout);
+		m_pd3dDeviceContext->IASetVertexBuffers(0, 1, &m_pMainVertexBuffer, &stride, &offset);
+		m_pd3dDeviceContext->IASetIndexBuffer(m_pMainIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+		for (int i = 0; i < m_SubmittedModels.GetSize(); i++)
+		{
+			m_pd3dDeviceContext->Map(m_pMainVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &VertSubResource);
+			//memcpy(VertSubResource.pData, m_SubmittedModels.c_arr()[i]->m_pVerts.GetPtr(), m_SubmittedModels.c_arr()[i]->m_nVertsAmount * sizeof(MVertex));
+			memcpy_s(
+				VertSubResource.pData, 
+				VertSubResource.RowPitch,
+				m_SubmittedModels.c_arr()[i]->m_pVerts.GetPtr(), 
+				m_SubmittedModels.c_arr()[i]->m_nVertsAmount * sizeof(MVertex)
+			);
+			m_pd3dDeviceContext->Unmap(m_pMainVertexBuffer, 0);
+
+			m_pd3dDeviceContext->Map(m_pMainIndexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &IndSubResource);
+			memcpy(IndSubResource.pData, m_SubmittedModels.c_arr()[i]->m_pInds.GetPtr(), m_SubmittedModels.c_arr()[i]->m_nIndsAmount * sizeof(uint32_t));
+			m_pd3dDeviceContext->Unmap(m_pMainIndexBuffer, 0);
+
+			m_pd3dDeviceContext->DrawIndexed(m_SubmittedModels.c_arr()[i]->m_nIndsAmount, 0, 0);
+		}
+
 		if(MUserSettings::GetUserSettings()->bVSVSync >= 1)
 			m_pSwapChain->Present(1, 0);
 		else
 			m_pSwapChain->Present(0, 0);
 
-
+		for (int i = 0; i < m_SubmittedModels.GetSize(); i++)
+		{
+			m_SubmittedModels.c_arr()[i] = 0;
+		}
+		m_SubmittedModels.SetSize(0);
 	}
 
 	void CD3D11Renderer::UpdateRender(const CWinWindow& window)
@@ -148,7 +210,9 @@ namespace MarkTech
 
 		camProjection = DirectX::XMMatrixPerspectiveFovLH(camData.flFov * 3.14f, (float)window.nWidth/ window.nHeight, camData.flNearZ, camData.flFarZ);
 
-		objectWorld = DirectX::XMMatrixIdentity();
+		yaxis = yaxis + 0.005;
+
+		objectWorld = DirectX::XMMatrixRotationAxis(DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), yaxis);
 
 		WVP = objectWorld * camView * camProjection;
 
@@ -160,11 +224,11 @@ namespace MarkTech
 	void CD3D11Renderer::CreateShaders()
 	{
 		CAssetHandle VertexShader = GetLevel()->LoadAsset("Vert.mfx", MShader);
-		CAssetHandle PixelShader = GetLevel()->LoadAsset("Unlit.mfx", MShader);
+		CAssetHandle PixelShader = GetLevel()->LoadAsset("Lambert.mfx", MShader);
 
 		HRESULT hr = m_pd3dDevice->CreateVertexShader(
-			reinterpret_cast<CShader*>(VertexShader.GetAssetDataPtr())->m_pShaderByteCode.GetPtr(),
-			reinterpret_cast<CShader*>(VertexShader.GetAssetDataPtr())->m_nShaderByteCodeSize,
+			dynamic_cast<CShader*>(VertexShader.GetAssetDataPtr())->m_pShaderByteCode.GetPtr(),
+			dynamic_cast<CShader*>(VertexShader.GetAssetDataPtr())->m_nShaderByteCodeSize,
 			NULL,
 			&m_pVertexShader
 		);
@@ -180,6 +244,7 @@ namespace MarkTech
 
 		D3D11_INPUT_ELEMENT_DESC inputElementDesc[] = {
 			{ "POS", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		};
 
@@ -192,52 +257,6 @@ namespace MarkTech
 		assert(SUCCEEDED(hr));
 	}
 
-	ID3DBlob* CD3D11Renderer::GetShaderBytecodeFromFile(LPCWSTR Filename, LPCWSTR CompiledFilename, LPCSTR Compiler, LPCSTR Entrypoint)
-	{
-		UINT flags = D3DCOMPILE_ENABLE_STRICTNESS;
-	#if defined( DEBUG )
-		flags |= D3DCOMPILE_DEBUG; // add more debug output
-	#endif
-
-		ID3DBlob* blob, * ErrorBlob;
-
-		std::wstringstream FilePath;
-		FilePath << szCompiledPath << CompiledFilename;
-
-		std::wstringstream SourceFilePath;
-		SourceFilePath << szSourcePath << Filename;
-
-		//Try to get precompiled shader file
-		HRESULT hr = D3DReadFileToBlob(FilePath.str().c_str(), &blob);
-		if (FAILED(hr))
-		{
-			//Compile shader source file
-			HRESULT hr = D3DCompileFromFile(
-				SourceFilePath.str().c_str(),
-				nullptr,
-				D3D_COMPILE_STANDARD_FILE_INCLUDE,
-				Entrypoint,
-				Compiler,
-				flags,
-				0,
-				&blob,
-				&ErrorBlob);
-			if (FAILED(hr)) {
-				assert(false);
-			}
-			else
-			{
-				hr = D3DWriteBlobToFile(blob, FilePath.str().c_str(), TRUE);
-				if (FAILED(hr))
-
-					assert(false);
-				else
-					return blob;
-			}
-		}
-		return blob;
-	}
-
 	void CD3D11Renderer::UpdateCameraData(const MCameraData& data)
 	{
 		camData.camPos = data.camPos;
@@ -248,11 +267,9 @@ namespace MarkTech
 		camData.flFov = data.flFov;
 	}
 
-	void CD3D11Renderer::SubmitModel(CAssetHandle model)
+	void CD3D11Renderer::SubmitModel(CModel* model)
 	{
-		/*CModel TempModel;
-		TempModel.Init(model.GetAssetDataPtr());
-		m_SubmittedModels.Push(TempModel);*/
+		m_SubmittedModels.Push(model);
 	}
 
 	void CD3D11Renderer::DestroyRenderer()
@@ -273,6 +290,8 @@ namespace MarkTech
 		m_pDepthStencilBuffer->Release();
 		m_pDepthStencilView->Release();
 		m_pConstBuffer->Release();
+		m_pTextureSampler->Release();
+		m_pTextureView->Release();
 
 		//m_pDebug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
 

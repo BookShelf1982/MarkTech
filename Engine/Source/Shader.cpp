@@ -21,14 +21,13 @@ namespace MarkTech
 		delete this;
 	}
 
-	CAssetObject* LoadShader(const char* filepath)
+	CShader* LoadShader(const char* filepath)
 	{
 		CShader* shader = new CShader();
 
 		uint64_t nTempId = 0;
 		size_t nSourceSize = 0;
 		size_t nBytecodeSize = 0;
-
 
 		std::fstream file;
 		file.open(filepath, std::ios::in | std::ios::binary);

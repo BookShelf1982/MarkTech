@@ -16,5 +16,5 @@ namespace MarkTech
 		size_t m_nShaderByteCodeSize;
 	};
 
-	CAssetObject* LoadShader(const char* filepath);
+	CShader* LoadShader(const char* filepath);
 }

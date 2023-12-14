@@ -102,7 +102,7 @@ public:
 	{
 #ifdef DEBUG
 		char str[256];
-		sprintf_s(str, sizeof(str), "Deleted Array of: %d Elements! \n", size_current);
+		sprintf_s(str, sizeof(str), "Deleted Array of: %zu Elements! \n", size_current);
 		OutputDebugStringA(str);
 #endif // DEBUG
 		delete[] arr;
@@ -113,15 +113,17 @@ public:
 	void RemoveAtIndex(int index);
 	const T& GetElementAtIndex(int index) const;
 
+	void SetSize(size_t size);
+
 	T operator[](int index);
 
-	int GetSize() const { return size_current; }
-	int GetMaxSize() const { return size_max; }
+	size_t GetSize() const { return size_current; }
+	size_t GetMaxSize() const { return size_max; }
 	T* c_arr() { return arr; }
 private:
 	T* arr;
-	int size_current;
-	int size_max;
+	size_t size_current;
+	size_t size_max;
 };
 
 
@@ -169,6 +171,12 @@ template<typename T>
 inline const T& CTArray<T>::GetElementAtIndex(int index) const
 {
 	return arr[index];
+}
+
+template<typename T>
+inline void CTArray<T>::SetSize(size_t size)
+{
+	size_current = size;
 }
 
 template<typename T>

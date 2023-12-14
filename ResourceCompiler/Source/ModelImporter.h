@@ -2,26 +2,30 @@
 #include <stdint.h>
 #include "OBJ_Loader\OBJ_Loader.h"
 
-struct Vector3
+struct MVector3
 {
-	Vector3() {}
-	Vector3(float x, float y, float z) : x(x), y(y), z(z) {}
+	MVector3() {}
+	MVector3(float x, float y, float z) : x(x), y(y), z(z) {}
 
 	float x, y, z;
 };
 
-struct Vector2
+struct MVector2
 {
-	Vector2() {}
-	Vector2(float x, float y) : x(x), y(y) {}
+	MVector2() {}
+	MVector2(float x, float y) : x(x), y(y) {}
 
 	float x, y;
 };
 
-struct Vertex
+struct MVertex
 {
-	Vector3 pos;
-	Vector2 tex;
+	MVertex() {}
+	MVertex(float x, float y, float z, float nx, float ny, float nz, float u, float v) : pos(x, y, z), norm(nx, ny, nz), tex(u, v) {}
+
+	MVector3 pos;
+	MVector3 norm;
+	MVector2 tex;
 };
 
 extern "C"

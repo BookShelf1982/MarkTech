@@ -2,6 +2,7 @@
 #include "Configs.h"
 #include "Shader.h"
 #include "MModel.h"
+#include "Texture.h"
 #include <fstream>
 
 namespace MarkTech
@@ -31,7 +32,6 @@ namespace MarkTech
 
 	CAssetRegistry::~CAssetRegistry()
 	{
-		OutputDebugStringA("Dingus\n");
 		for (int i = 0; i < m_RegisteredAssets.GetSize(); i++)
 		{
 			m_RegisteredAssets.c_arr()[i]->Release();
@@ -55,7 +55,7 @@ namespace MarkTech
 			CAssetObject* asset = FindAssetById(assetId);
 			if (asset == nullptr)
 			{
-				//m_RegisteredAssets.Push(LoadTexture(path));
+				m_RegisteredAssets.Push(LoadTexture(path));
 			}
 			return assetId;
 		}break;
@@ -119,28 +119,6 @@ namespace MarkTech
 		file.close();
 		return id;
 	}
-
-	/*MAssetData CAssetRegistry::LoadTexture(const char* filepath)
-	{
-		MAssetData tempAsset = {};
-		tempAsset.Type = MTexture;
-		std::fstream file;
-		file.open(filepath, std::ios::in | std::ios::binary);
-		if (!file.is_open())
-			return tempAsset;
-
-		file.read((char*)&tempAsset.nId, sizeof(uint64_t));
-		file.seekg((std::streamoff)sizeof(uint64_t), file.end);
-		std::streampos length = file.tellg();
-		tempAsset.nDataSize = length;
-		tempAsset.pData = new char[length];
-		file.seekg((std::streamoff)sizeof(uint64_t), file.beg);
-		file.read((char*)tempAsset.pData, length);
-		file.close();
-
-		return tempAsset;
-	}*/
-
 
 	CAssetObject::CAssetObject()
 		: m_nAssetId(0)

@@ -9,9 +9,8 @@ namespace MarkTech
 
 
 	CModelComponent::CModelComponent(uint64_t ownerId)
-		:CBaseComponent::CBaseComponent(ownerId)
+		:CBaseComponent::CBaseComponent(ownerId), m_pszAssetPath("teapot.mmdl")
 	{
-		m_pszAssetPath = "output.mmdl";
 	}
 
 	CModelComponent::~CModelComponent()
@@ -25,9 +24,10 @@ namespace MarkTech
 
 	void CModelComponent::UpdateComponent(float flDeltaTime)
 	{
-		/*if (m_Model.GetAssetDataPtr(). != nullptr)
+		if (dynamic_cast<CModel*>(m_Model.GetAssetDataPtr()) != nullptr)
 		{
-			GetD3DRenderer()->SubmitModel(m_Model);
-		}*/
+			//GetD3DRenderer()->SubmitModel(dynamic_cast<CModel*>(m_Model.GetAssetDataPtr()));
+			GetD3DRenderer()->SubmitModel(dynamic_cast<CModel*>(m_Model.GetAssetDataPtr()));
+		}
 	}
 }

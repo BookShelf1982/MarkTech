@@ -4,8 +4,8 @@
 #include "WinWindow.h"
 #include "MModel.h"
 
-#define MAX_VERTICES_PER_DRAWCALL 1024
-#define MAX_INDICES_PER_DRAWCALL 3072
+#define MAX_VERTICES_PER_DRAWCALL 46080
+#define MAX_INDICES_PER_DRAWCALL 138240
 
 namespace MarkTech
 {

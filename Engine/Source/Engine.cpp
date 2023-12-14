@@ -60,11 +60,10 @@ namespace MarkTech
 		GetLevel()->CreateComponent<CTransformComponent>(entid);
 		GetLevel()->CreateComponent<CCameraComponent>(entid);
 
-		/*uint64_t mdlentid = GetLevel()->CreateEntity();
+		uint64_t mdlentid = GetLevel()->CreateEntity();
 		GetLevel()->CreateComponent<CTransformComponent>(mdlentid);
 		GetLevel()->CreateComponent<CModelComponent>(mdlentid);
-
-		GetLevel()->LoadAsset("output.mmdl", MModel);*/
+		
 
 		QueryPerformanceCounter(&nLastTick);
 		QueryPerformanceFrequency(&nTickFrequency);

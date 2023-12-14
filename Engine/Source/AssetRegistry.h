@@ -50,8 +50,6 @@ namespace MarkTech
 		CAssetObject* FindAssetById(uint64_t id);
 		uint64_t GetAssetId(const char* filepath);
 	private:
-		//MAssetData LoadTexture(const char* filepath);
-
 		CTArray<CAssetObject*> m_RegisteredAssets;
 	};
 }
