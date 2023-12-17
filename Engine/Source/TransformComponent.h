@@ -18,6 +18,8 @@ namespace MarkTech
         void SetRotation(MRotator rot);
         void SetScale(MVector3 scale);
 
+        MTransform* GetTransformAddress() { return &m_Transform; }
+
         const MVector3& GetPosition() { return m_Transform.Position; }
         const MRotator& GetRotation() { return m_Transform.Rotation; }
         const MVector3& GetScale() { return m_Transform.Scale; }

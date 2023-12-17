@@ -51,7 +51,7 @@ int LoadShader(const char* filepath, const char* output, const char* shadertype,
 	std::string Path = output;
 	std::fstream model;
 	// If the file is not an .mmdl file return false
-	if (Path.substr(Path.size() - 5, 5) != ".mfx")
+	if (Path.substr(Path.size() - 4, 4) != ".mfx")
 	{
 		std::cout << "Output file is not an mfx file.\nPress enter to exit...\n";
 		std::cin.get();

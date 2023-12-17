@@ -26,10 +26,10 @@ namespace MarkTech
 
 	void CModelComponent::UpdateComponent(float flDeltaTime)
 	{
-		if (dynamic_cast<CModel*>(m_Model.GetAssetDataPtr()) != nullptr)
+		if (dynamic_cast<CModel*>(m_Model.GetAssetDataPtr()) != nullptr && GetLevel()->HasComponent<CTransformComponent>(m_nOwnerId))
 		{
-			//GetD3DRenderer()->SubmitModel(dynamic_cast<CModel*>(m_Model.GetAssetDataPtr()));
 			GetD3DRenderer()->SubmitModel(dynamic_cast<CModel*>(m_Model.GetAssetDataPtr()));
+			GetD3DRenderer()->SubmitTransform(GetLevel()->GetComponentFromEntity<CTransformComponent>(m_nOwnerId)->GetTransformAddress());
 		}
 	}
 }

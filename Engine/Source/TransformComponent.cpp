@@ -38,15 +38,18 @@ namespace MarkTech
 	{
 		m_Transform.Scale = scale;
 	}
-/*
 	const MVector3& CTransformComponent::GetForwardVector()
 	{
-		// TODO: insert return statement here
+		DirectX::XMMATRIX rotationMatrix = DirectX::XMMatrixRotationRollPitchYaw(m_Transform.Rotation.Roll, m_Transform.Rotation.Pitch, m_Transform.Rotation.Yaw);
+		DirectX::XMVECTOR tempForward = DirectX::XMVector3TransformCoord(DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f), rotationMatrix);
+		tempForward = DirectX::XMVector3Normalize(tempForward);
+		return MVector3(DirectX::XMVectorGetX(tempForward), DirectX::XMVectorGetY(tempForward), DirectX::XMVectorGetZ(tempForward));
 	}
-
 	const MVector3& CTransformComponent::GetRightVector()
 	{
-		// TODO: insert return statement here
+		DirectX::XMMATRIX rotationMatrix = DirectX::XMMatrixRotationRollPitchYaw(m_Transform.Rotation.Roll, m_Transform.Rotation.Pitch, m_Transform.Rotation.Yaw);
+		DirectX::XMVECTOR tempRight = DirectX::XMVector3TransformCoord(DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), rotationMatrix);
+		tempRight = DirectX::XMVector3Normalize(tempRight);
+		return MVector3(DirectX::XMVectorGetX(tempRight), DirectX::XMVectorGetY(tempRight), DirectX::XMVectorGetZ(tempRight));
 	}
-*/
 }

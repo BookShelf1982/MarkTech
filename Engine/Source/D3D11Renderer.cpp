@@ -27,6 +27,7 @@ namespace MarkTech
 		SCDesc.BufferCount = 1;
 		SCDesc.OutputWindow = window.GetHWND();
 		SCDesc.Windowed = MUserSettings::GetUserSettings()->bVSWindowed;
+		SCDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 
 		D3D_FEATURE_LEVEL feature_level;
 		UINT flags = D3D11_CREATE_DEVICE_SINGLETHREADED;
@@ -171,8 +172,18 @@ namespace MarkTech
 
 		for (int i = 0; i < m_SubmittedModels.GetSize(); i++)
 		{
+			objectWorld = DirectX::XMMatrixTranslation(
+				m_SubmittedTransforms.c_arr()[i]->Position.y, 
+				m_SubmittedTransforms.c_arr()[i]->Position.z, 
+				m_SubmittedTransforms.c_arr()[i]->Position.x);
+
+			WVP = objectWorld * camView * camProjection;
+
+			constBuffer.WVP = DirectX::XMMatrixTranspose(WVP);
+
+			m_pd3dDeviceContext->UpdateSubresource(m_pConstBuffer, 0, NULL, &constBuffer, 0, 0);
+
 			m_pd3dDeviceContext->Map(m_pMainVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &VertSubResource);
-			//memcpy(VertSubResource.pData, m_SubmittedModels.c_arr()[i]->m_pVerts.GetPtr(), m_SubmittedModels.c_arr()[i]->m_nVertsAmount * sizeof(MVertex));
 			memcpy_s(
 				VertSubResource.pData, 
 				VertSubResource.RowPitch,
@@ -193,32 +204,30 @@ namespace MarkTech
 		else
 			m_pSwapChain->Present(0, 0);
 
-		for (int i = 0; i < m_SubmittedModels.GetSize(); i++)
+		for (size_t i = 0; i < m_SubmittedModels.GetSize(); i++)
 		{
 			m_SubmittedModels.c_arr()[i] = 0;
 		}
+		for (size_t i = 0; i < m_SubmittedTransforms.GetSize(); i++)
+		{
+			m_SubmittedTransforms.c_arr()[i] = 0;
+		}
 		m_SubmittedModels.SetSize(0);
+		m_SubmittedTransforms.SetSize(0);
 	}
 
 	void CD3D11Renderer::UpdateRender(const CWinWindow& window)
 	{
 		rcamPosition = DirectX::XMVectorSet(camData.camPos.y, camData.camPos.z, camData.camPos.x, 0.0f);
-		rcamTarget = DirectX::XMVectorSet(0.0f, 0.0f, 10.0f, 0.0f);
+		rcamTarget = DirectX::XMVectorSet(camData.camTarget.y, camData.camTarget.z, camData.camTarget.x, 0.0f);
+		//rcamTarget = DirectX::XMVectorSet(0.0f, 0.0f, 10.0f, 0.0f);
 		rcamUp = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+		rcamTarget = DirectX::XMVectorAdd(rcamPosition, rcamTarget); 
 
 		camView = DirectX::XMMatrixLookAtLH(rcamPosition, rcamTarget, rcamUp);
 
-		camProjection = DirectX::XMMatrixPerspectiveFovLH(camData.flFov * 3.14f, (float)window.nWidth/ window.nHeight, camData.flNearZ, camData.flFarZ);
-
-		yaxis -= 0.005;
-
-		objectWorld = DirectX::XMMatrixRotationAxis(DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), yaxis);
-
-		WVP = objectWorld * camView * camProjection;
-
-		constBuffer.WVP = DirectX::XMMatrixTranspose(WVP);	
-
-		m_pd3dDeviceContext->UpdateSubresource(m_pConstBuffer, 0, NULL, &constBuffer, 0, 0);
+		camProjection = DirectX::XMMatrixPerspectiveFovLH(camData.flFov * 3.14, (float)window.nWidth / window.nHeight, camData.flNearZ, camData.flFarZ);
 	}
 
 	void CD3D11Renderer::CreateShaders()
@@ -272,8 +281,15 @@ namespace MarkTech
 		m_SubmittedModels.Push(model);
 	}
 
+	void CD3D11Renderer::SubmitTransform(MTransform* transform)
+	{
+		m_SubmittedTransforms.Push(transform);
+	}
+
 	void CD3D11Renderer::DestroyRenderer()
 	{
+		m_pSwapChain->SetFullscreenState(false, NULL);
+
 		m_pSwapChain->Release();
 		m_pd3dDevice->Release();
 		m_pd3dDeviceContext->Release();

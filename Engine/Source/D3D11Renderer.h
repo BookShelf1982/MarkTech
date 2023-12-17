@@ -33,11 +33,11 @@ namespace MarkTech
 
 		void UpdateRender(const CWinWindow& window);
 
-		ID3DBlob* GetShaderBytecodeFromFile(LPCWSTR Filename, LPCWSTR CompiledFilename, LPCSTR Compiler, LPCSTR Entrypoint);
-
 		void UpdateCameraData(const MCameraData& data);
 
 		void SubmitModel(CModel* model);
+
+		void SubmitTransform(MTransform* transform);
 
 		void DestroyRenderer();
 
@@ -79,9 +79,6 @@ namespace MarkTech
 		//Math
 		DirectX::XMMATRIX WVP;
 		DirectX::XMMATRIX objectWorld;
-		DirectX::XMMATRIX objectTranslate;
-		DirectX::XMMATRIX objectRotation;
-		DirectX::XMMATRIX objectScale;
 		DirectX::XMMATRIX camView;
 		DirectX::XMMATRIX camProjection;
 
@@ -94,7 +91,7 @@ namespace MarkTech
 
 		//Mesh
 		CTArray<CModel*> m_SubmittedModels;
-		float yaxis = 0.0f;
+		CTArray<MTransform*> m_SubmittedTransforms;
 		
 	};
 	static CD3D11Renderer* GetD3DRenderer() { return CD3D11Renderer::GetD3DRenderer(); }

@@ -1,6 +1,7 @@
 #pragma once
 #include "Core.h"
 #include "BaseComponent.h"
+#include "TransformComponent.h"
 #include "D3D11Renderer.h"
 
 namespace MarkTech
