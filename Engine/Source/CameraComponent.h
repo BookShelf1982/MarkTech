@@ -18,5 +18,6 @@ namespace MarkTech
 
 	protected:
 		MCameraData m_CamData;
+		bool bIsSpaceDown;
 	};
 }

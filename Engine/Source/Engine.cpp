@@ -64,9 +64,18 @@ namespace MarkTech
 		uint64_t mdlentid = GetLevel()->CreateEntity();
 		GetLevel()->CreateComponent<CTransformComponent>(mdlentid);
 		GetLevel()->GetComponentFromEntity<CTransformComponent>(mdlentid)->SetPosition(MVector3(0.0f, 0.0f, -1.0f));
+		GetLevel()->GetComponentFromEntity<CTransformComponent>(mdlentid)->SetRotation(MRotator(0.0f, 90.0f, 0.0f));
 		GetLevel()->CreateComponent<CModelComponent>(mdlentid);
 
-		MVector3 CamForward = GetLevel()->GetComponentFromEntity<CTransformComponent>(entid)->GetForwardVector();
+		uint64_t mdlentid2 = GetLevel()->CreateEntity();
+		GetLevel()->CreateComponent<CTransformComponent>(mdlentid2);
+		GetLevel()->GetComponentFromEntity<CTransformComponent>(mdlentid2)->SetPosition(MVector3(0.0f, 5.0f, -1.0f));
+		GetLevel()->CreateComponent<CModelComponent>(mdlentid2);
+
+		uint64_t mdlentid3 = GetLevel()->CreateEntity();
+		GetLevel()->CreateComponent<CTransformComponent>(mdlentid3);
+		GetLevel()->GetComponentFromEntity<CTransformComponent>(mdlentid3)->SetPosition(MVector3(0.0f, -5.0f, -1.0f));
+		GetLevel()->CreateComponent<CModelComponent>(mdlentid3);
 
 		QueryPerformanceCounter(&nLastTick);
 		QueryPerformanceFrequency(&nTickFrequency);

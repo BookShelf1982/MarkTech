@@ -15,6 +15,7 @@ namespace MarkTech
     {
         m_pVerts.Release();
         m_pInds.Release();
+        delete this;
     }
 
     CModel* LoadModel(const char* filepath)

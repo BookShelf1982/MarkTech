@@ -24,8 +24,8 @@ namespace MarkTech
         const MRotator& GetRotation() { return m_Transform.Rotation; }
         const MVector3& GetScale() { return m_Transform.Scale; }
 
-        const MVector3& GetForwardVector();
-        const MVector3& GetRightVector();
+        MVector3 GetForwardVector();
+        MVector3 GetRightVector();
 
     protected:
         MTransform m_Transform;

@@ -172,10 +172,16 @@ namespace MarkTech
 
 		for (int i = 0; i < m_SubmittedModels.GetSize(); i++)
 		{
-			objectWorld = DirectX::XMMatrixTranslation(
-				m_SubmittedTransforms.c_arr()[i]->Position.y, 
-				m_SubmittedTransforms.c_arr()[i]->Position.z, 
+			objectTranslate = DirectX::XMMatrixTranslation(
+				m_SubmittedTransforms.c_arr()[i]->Position.y,
+				m_SubmittedTransforms.c_arr()[i]->Position.z,
 				m_SubmittedTransforms.c_arr()[i]->Position.x);
+
+			objectRotation = DirectX::XMMatrixRotationRollPitchYaw(m_SubmittedTransforms.c_arr()[i]->Rotation.Pitch,
+				m_SubmittedTransforms.c_arr()[i]->Rotation.Yaw,
+				m_SubmittedTransforms.c_arr()[i]->Rotation.Roll);
+
+			objectWorld = objectRotation * objectTranslate;
 
 			WVP = objectWorld * camView * camProjection;
 
@@ -196,7 +202,7 @@ namespace MarkTech
 			memcpy(IndSubResource.pData, m_SubmittedModels.c_arr()[i]->m_pInds.GetPtr(), m_SubmittedModels.c_arr()[i]->m_nIndsAmount * sizeof(uint32_t));
 			m_pd3dDeviceContext->Unmap(m_pMainIndexBuffer, 0);
 
-			m_pd3dDeviceContext->DrawIndexed(m_SubmittedModels.c_arr()[i]->m_nIndsAmount, 0, 0);
+			m_pd3dDeviceContext->DrawIndexed((UINT)m_SubmittedModels.c_arr()[i]->m_nIndsAmount, 0, 0);
 		}
 
 		if(MUserSettings::GetUserSettings()->bVSVSync >= 1)
@@ -220,14 +226,13 @@ namespace MarkTech
 	{
 		rcamPosition = DirectX::XMVectorSet(camData.camPos.y, camData.camPos.z, camData.camPos.x, 0.0f);
 		rcamTarget = DirectX::XMVectorSet(camData.camTarget.y, camData.camTarget.z, camData.camTarget.x, 0.0f);
-		//rcamTarget = DirectX::XMVectorSet(0.0f, 0.0f, 10.0f, 0.0f);
 		rcamUp = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
 		rcamTarget = DirectX::XMVectorAdd(rcamPosition, rcamTarget); 
 
 		camView = DirectX::XMMatrixLookAtLH(rcamPosition, rcamTarget, rcamUp);
 
-		camProjection = DirectX::XMMatrixPerspectiveFovLH(camData.flFov * 3.14, (float)window.nWidth / window.nHeight, camData.flNearZ, camData.flFarZ);
+		camProjection = DirectX::XMMatrixPerspectiveFovLH(camData.flFov * 3.14f, (float)window.nWidth / window.nHeight, camData.flNearZ, camData.flFarZ);
 	}
 
 	void CD3D11Renderer::CreateShaders()

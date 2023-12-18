@@ -79,6 +79,8 @@ namespace MarkTech
 		//Math
 		DirectX::XMMATRIX WVP;
 		DirectX::XMMATRIX objectWorld;
+		DirectX::XMMATRIX objectTranslate;
+		DirectX::XMMATRIX objectRotation;
 		DirectX::XMMATRIX camView;
 		DirectX::XMMATRIX camProjection;
 

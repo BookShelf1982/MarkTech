@@ -1,5 +1,6 @@
 #include "CameraComponent.h"
 #include "Level.h"
+#include "ModelComponent.h"
 
 namespace MarkTech
 {
@@ -11,6 +12,7 @@ namespace MarkTech
 		:CBaseComponent::CBaseComponent(ownerId)
 	{
 		m_CamData = {};
+		bIsSpaceDown = false;
 	}
 
 	CCameraComponent::~CCameraComponent()
@@ -21,7 +23,7 @@ namespace MarkTech
 	{
 		m_CamData.flNearZ = 0.1f;
 		m_CamData.flFarZ = 10000.0f;
-		m_CamData.flFov = 0.04f;
+		m_CamData.flFov = 0.35f;
 	}
 
 	void CCameraComponent::UpdateComponent(float flDeltaTime)
@@ -30,21 +32,21 @@ namespace MarkTech
 		{
 			CTransformComponent* comp = GetLevel()->GetComponentFromEntity<CTransformComponent>(m_nOwnerId);
 
-			if (CInput::GetInput()->IsKeyDown(MTVK_Up))
+			if (CInput::GetInput()->IsKeyDown(MTVK_W))
 			{
 				comp->SetPosition(comp->GetPosition() + comp->GetForwardVector() * (10.0f * flDeltaTime));
 			}
-			if (CInput::GetInput()->IsKeyDown(MTVK_Down))
+			if (CInput::GetInput()->IsKeyDown(MTVK_S))
 			{
 				comp->SetPosition(comp->GetPosition() + comp->GetForwardVector() * (-10.0f * flDeltaTime));
 			}
 			if (CInput::GetInput()->IsKeyDown(MTVK_Left))
 			{
-				comp->SetRotation(MRotator(0.0f, comp->GetRotation().Yaw - 5.0f * flDeltaTime, 0.0f));
+				comp->SetRotation(MRotator(0.0f, comp->GetRotation().Yaw - 4.25f * flDeltaTime, 0.0f));
 			}
 			if (CInput::GetInput()->IsKeyDown(MTVK_Right))
 			{
-				comp->SetRotation(MRotator(0.0f, comp->GetRotation().Yaw + 5.0f * flDeltaTime, 0.0f));
+				comp->SetRotation(MRotator(0.0f, comp->GetRotation().Yaw + 4.25f * flDeltaTime, 0.0f));
 			}
 			if (CInput::GetInput()->IsKeyDown(MTVK_D))
 			{
@@ -69,6 +71,20 @@ namespace MarkTech
 			if (CInput::GetInput()->IsButtonDown(MTVM_Mouse2))
 			{
 				m_CamData.flFov -= 0.1f * flDeltaTime;
+			}
+			if (CInput::GetInput()->IsKeyDown(MTVK_Space) && bIsSpaceDown == false)
+			{
+  				OutputDebugStringA("Hello");
+				bIsSpaceDown = true;
+				uint64_t mdlentid = GetLevel()->CreateEntity();
+				GetLevel()->CreateComponent<CTransformComponent>(mdlentid);
+				GetLevel()->GetComponentFromEntity<CTransformComponent>(mdlentid)->SetPosition(comp->GetPosition());
+				GetLevel()->GetComponentFromEntity<CTransformComponent>(mdlentid)->SetRotation(comp->GetRotation());
+				GetLevel()->CreateComponent<CModelComponent>(mdlentid);
+			}
+			if (CInput::GetInput()->IsKeyUp(MTVK_Space))
+			{
+				bIsSpaceDown = false;
 			}
 
 
