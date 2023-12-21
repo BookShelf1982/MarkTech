@@ -2,9 +2,9 @@
 #include "DllExport.h"
 #include "Core.h"
 #include "Level.h"
-#include "D3D11Renderer.h"
 #include "WinWindow.h"
 #include "Configs.h"
+#include "Globals.h"
 
 namespace MarkTech
 {
@@ -25,8 +25,6 @@ namespace MarkTech
 
 		static CEngine* GetEngine() { return g_pEngine; }
 
-		bool bIsEditor;
-
 	private:
 
 		static CEngine* g_pEngine;
@@ -40,6 +38,10 @@ namespace MarkTech
 		int64_t nElapsedTicks;
 		float flDeltaTime;
 		CWinWindow* m_pMainWindow;
+		CLevel* m_pLevel;
+		MGameInfo* m_pGameInfo;
+		MUserSettings* m_pUserSettings;
+		CInput* m_pInput;
 	};
 }
 
@@ -47,7 +49,5 @@ namespace MarkTech
 extern "C"
 {
 	MARKTECH_API int LaunchEngine(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow);
-
-	MARKTECH_API int LaunchEditor(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow);
 }
 #endif // MT_PLATFORM_WINDOWS

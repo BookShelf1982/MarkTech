@@ -3,7 +3,7 @@
 #include <fstream>
 #include <random>
 
-int LoadTexture(const char* filepath, const char* compiledname, int mips, int compression)
+int LoadTexture(const char* filepath, const char* compiledname, int mips, int compression, bool srgb)
 {
 	DirectX::ScratchImage* currentImage;
 	DirectX::TexMetadata metadata;
@@ -63,10 +63,14 @@ int LoadTexture(const char* filepath, const char* compiledname, int mips, int co
 
 	if (compression >= 0)
 	{
-		if (compression == 0)
-			hr = DirectX::Compress(currentImage->GetImages(), currentImage->GetImageCount(), currentImage->GetMetadata(), DXGI_FORMAT_BC1_UNORM_SRGB, DirectX::TEX_COMPRESS_SRGB_IN | DirectX::TEX_COMPRESS_DEFAULT, 0.5, bcImage);
-		else if (compression == 1)
+		if (compression == 0 && srgb == true)
+			hr = DirectX::Compress(currentImage->GetImages(), currentImage->GetImageCount(), currentImage->GetMetadata(), DXGI_FORMAT_BC1_UNORM, DirectX::TEX_COMPRESS_SRGB_IN | DirectX::TEX_COMPRESS_DEFAULT, 0.5, bcImage);
+		else if(compression == 0)
+			hr = DirectX::Compress(currentImage->GetImages(), currentImage->GetImageCount(), currentImage->GetMetadata(), DXGI_FORMAT_BC1_UNORM, DirectX::TEX_COMPRESS_DEFAULT, 0.5, bcImage);
+		else if (compression == 1 && srgb == true)
 			hr = DirectX::Compress(currentImage->GetImages(), currentImage->GetImageCount(), currentImage->GetMetadata(), DXGI_FORMAT_BC5_UNORM, DirectX::TEX_COMPRESS_SRGB_IN | DirectX::TEX_COMPRESS_DEFAULT, 0.5, bcImage);
+		else if (compression == 1)
+			hr = DirectX::Compress(currentImage->GetImages(), currentImage->GetImageCount(), currentImage->GetMetadata(), DXGI_FORMAT_BC5_UNORM, DirectX::TEX_COMPRESS_DEFAULT, 0.5, bcImage);
 		else
 		{
 			hr = E_FAIL;

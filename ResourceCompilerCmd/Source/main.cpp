@@ -1,7 +1,7 @@
 #include <iostream>
 #include <Windows.h>
 
-typedef int (*pfnImportTexture)(const char*, const char*, int, int); // const char* filepath, const char* output, int mips, int compression
+typedef int (*pfnImportTexture)(const char*, const char*, int, int, bool); // const char* filepath, const char* output, int mips, int compression, bool srgb
 typedef int (*pfnImportShader)(const char*, const char*, const char*, const char*); // const char* filepath, const char* output, const char* shadertype, const char* entrypoint
 typedef int (*pfnImportModel)(const char*, const char*); // const char* filepath, const char* output
 
@@ -45,7 +45,13 @@ int main(int argc, const char* argv[])
 		else if ((strcmp("DXT5", argv[7]) == 0))
 			compression = 1;
 
-		pfnLoadTex(argv[2], argv[3], mips, compression);
+		bool srgb = false;
+		if (argv[8] != nullptr)
+		{
+			if ((strcmp("-srgb", argv[8]) == 0))
+				srgb = true;
+		}
+		pfnLoadTex(argv[2], argv[3], mips, compression, srgb);
 	}
 
 	if ((strcmp("-mfx", argv[1]) == 0))

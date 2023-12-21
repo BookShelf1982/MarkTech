@@ -291,4 +291,54 @@ namespace MarkTech
 	{
 		return MatrixMultiplyByVector4(*this, right);
 	}
+
+	bool MRotator::operator==(const MRotator& other) const
+	{
+		return (Pitch == other.Pitch && Yaw == other.Yaw && Roll == other.Roll);
+	}
+
+	bool MRotator::operator!=(const MRotator& other) const
+	{
+		return !(Pitch == other.Pitch && Yaw == other.Yaw && Roll == other.Roll);
+	}
+
+	MRotator MRotator::operator+(const MRotator& right) const
+	{
+		return MRotator(Pitch + right.Pitch, Yaw + right.Yaw, Roll + right.Roll);
+	}
+
+	MRotator MRotator::operator-(const MRotator& right) const
+	{
+		return MRotator(Pitch - right.Pitch, Yaw - right.Yaw, Roll - right.Roll);
+	}
+
+	MRotator MRotator::operator*(const float& other) const
+	{
+		return MRotator(Pitch * other, Yaw * other, Roll * other);
+	}
+
+	MRotator MRotator::operator/(const float& other) const
+	{
+		return MRotator(Pitch / other, Yaw / other, Roll / other);
+	}
+	bool MVector2::operator==(const MVector2& other) const
+	{
+		return (x == other.x && y == other.y);
+	}
+	bool MVector2::operator!=(const MVector2& other) const
+	{
+		return !(x == other.x && y == other.y);
+	}
+	MVector2 MVector2::operator+(const MVector2& right) const
+	{
+		return MVector2(x + right.x, y+right.y);
+	}
+	MVector2 MVector2::operator-(const MVector2& right) const
+	{
+		return MVector2(x - right.x, y - right.y);
+	}
+	MVector2 MVector2::operator*(const float& other) const
+	{
+		return MVector2(x * other, y * other);
+	}
 }

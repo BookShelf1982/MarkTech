@@ -1,8 +1,4 @@
 #include "Engine.h"
-#include "TransformComponent.h"
-#include "TextureComponent.h"
-#include "CameraComponent.h"
-#include "ModelComponent.h"
 
 namespace MarkTech
 {
@@ -12,15 +8,18 @@ namespace MarkTech
 	{
 		bClosing = false;
 		m_pMainWindow = new CWinWindow();
+		m_pLevel = new CLevel();
+		m_pGameInfo = new MGameInfo();
+		m_pUserSettings = new MUserSettings();
+		m_pInput = new CInput();
 	}
 
 	CEngine::~CEngine()
 	{
-		CD3D11Renderer::GetD3DRenderer()->DestroyRenderer();
-		MGameInfo::GetGameInfo()->Destroy();
-		MUserSettings::GetUserSettings()->Destroy();
-		CLevel::GetLevel()->DestroyLevel();
-		CInput::GetInput()->DestroyInput();
+		delete m_pGameInfo;
+		delete m_pUserSettings;
+		m_pLevel->DestroyLevel();
+		m_pInput->DestroyInput();
 		delete m_pMainWindow;
 	}
 
@@ -39,81 +38,15 @@ namespace MarkTech
 			L"jknds",										//Window Title
 			CW_USEDEFAULT,									//X Pos
 			CW_USEDEFAULT,									//Y Pos
-			MUserSettings::GetUserSettings()->nVSWidth,		//Configured Width
-			MUserSettings::GetUserSettings()->nVSHeight,	//Configured Length
+			GetUserSettings().,						//Configured Width
+			GetUserSettings()->nVSHeight,						//Configured Length
 			hInstance,										//hImstance
 			nCmdShow);										//nCmdShow
 
-		if (!GetLevel()->InitLevel())	//Initialize Level
+		if (!m_pLevel->InitLevel())	//Initialize Level
 		{
 			return false;
 		}
-
-		if (!CD3D11Renderer::GetD3DRenderer()->InitRenderer(*m_pMainWindow))
-		{
-			return false;
-		}
-
-		bIsEditor = false;
-
-		uint64_t entid = GetLevel()->CreateEntity();
-		GetLevel()->CreateComponent<CTransformComponent>(entid);
-		GetLevel()->CreateComponent<CCameraComponent>(entid);
-		GetLevel()->GetComponentFromEntity<CTransformComponent>(entid)->SetPosition(MVector3(-10.0f, 0.0f, 0.0f));
-
-		uint64_t mdlentid = GetLevel()->CreateEntity();
-		GetLevel()->CreateComponent<CTransformComponent>(mdlentid);
-		GetLevel()->GetComponentFromEntity<CTransformComponent>(mdlentid)->SetPosition(MVector3(0.0f, 0.0f, -1.0f));
-		GetLevel()->GetComponentFromEntity<CTransformComponent>(mdlentid)->SetRotation(MRotator(0.0f, 90.0f, 0.0f));
-		GetLevel()->CreateComponent<CModelComponent>(mdlentid);
-
-		uint64_t mdlentid2 = GetLevel()->CreateEntity();
-		GetLevel()->CreateComponent<CTransformComponent>(mdlentid2);
-		GetLevel()->GetComponentFromEntity<CTransformComponent>(mdlentid2)->SetPosition(MVector3(0.0f, 5.0f, -1.0f));
-		GetLevel()->CreateComponent<CModelComponent>(mdlentid2);
-
-		uint64_t mdlentid3 = GetLevel()->CreateEntity();
-		GetLevel()->CreateComponent<CTransformComponent>(mdlentid3);
-		GetLevel()->GetComponentFromEntity<CTransformComponent>(mdlentid3)->SetPosition(MVector3(0.0f, -5.0f, -1.0f));
-		GetLevel()->CreateComponent<CModelComponent>(mdlentid3);
-
-		QueryPerformanceCounter(&nLastTick);
-		QueryPerformanceFrequency(&nTickFrequency);
-
-		return true;
-	}
-
-	//editor init func
-	bool CEngine::InitEditor(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
-	{
-		//Read values from GameInfo.ini file
-		if (!ReadConfigFiles())
-		{
-			return false;
-		}
-
-		//Create Window
-		m_pMainWindow->CreateWinWindow(
-			L"WinWindow",									//Class Name
-			L"jknds",										//Window Title
-			CW_USEDEFAULT,									//X Pos
-			CW_USEDEFAULT,									//Y Pos
-			MUserSettings::GetUserSettings()->nVSWidth,		//Configured Width
-			MUserSettings::GetUserSettings()->nVSHeight,	//Configured Length
-			hInstance,										//hImstance
-			nCmdShow);										//nCmdShow
-
-		if (!GetLevel()->InitLevel())	//Initialize Level
-		{
-			return false;
-		}
-
-		if (!CD3D11Renderer::GetD3DRenderer()->InitRenderer(*m_pMainWindow))
-		{
-			return false;
-		}
-
-		bIsEditor = true;
 
 		QueryPerformanceCounter(&nLastTick);
 		QueryPerformanceFrequency(&nTickFrequency);
@@ -124,13 +57,13 @@ namespace MarkTech
 	bool CEngine::ReadConfigFiles()
 	{
 		//Read alues from GameInfo.ini file
-		if (!MGameInfo::GetGameInfo()->Init())
+		if (!m_pGameInfo->Init())
 		{
 			m_pMainWindow->CreateErrorBox(L"Unable to find GameInfo.ini");
 			return false;
 		}
 
-		if (!MUserSettings::GetUserSettings()->Init())
+		if (!m_pUserSettings->Init(*m_pGameInfo))
 		{
 			m_pMainWindow->CreateErrorBox(L"Unable to find or generate UserSettings.ini");
 			return false;
@@ -166,16 +99,14 @@ namespace MarkTech
 				}
 			}
 
-			if (CInput::GetInput()->IsKeyDown(MTVK_Escape))
+			m_pInput->PollInput();
+
+			if (m_pInput->IsKeyDown(MTIK_ESCAPE))
 			{
 				Quit();
 			}
 
-			GetLevel()->UpdateLevel(flDeltaTime);
-
-			CD3D11Renderer::GetD3DRenderer()->UpdateRender(*m_pMainWindow);
-
-			CD3D11Renderer::GetD3DRenderer()->RenderFrame(*m_pMainWindow);
+			m_pLevel->UpdateLevel(flDeltaTime);
 		}
 	}
 

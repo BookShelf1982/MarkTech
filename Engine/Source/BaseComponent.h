@@ -1,6 +1,5 @@
 #pragma once
 #include "Core.h"
-
 namespace MarkTech
 {
 	class MARKTECH_API CBaseComponent
@@ -20,6 +19,5 @@ namespace MarkTech
 		uint64_t m_nOwnerId;
 	};
 
-	MAKE_CTARRAY_COMPATIBLE(CBaseComponent);
-	MAKE_CTARRAY_COMPATIBLE(CBaseComponent*);
+	uint64_t GenerateId();
 }

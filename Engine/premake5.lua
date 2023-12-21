@@ -17,7 +17,8 @@ project "Engine"
 	{
 		"%{wks.location}/Imgui/Source",
 		"%{wks.location}/Inipp/Source",
-		"%{prj.location}/ThirdParty"
+		"%{prj.location}/ThirdParty",
+		"%{wks.location}/DirectXTex"
 	}
 	
     defines
@@ -30,6 +31,7 @@ project "Engine"
 	links
 	{
 		"d3d11.lib",
+		"DirectXTex",
 		"Imgui"
 	}
 	

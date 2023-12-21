@@ -22,4 +22,11 @@ namespace MarkTech
 	CBaseComponent::~CBaseComponent()
 	{
 	}
+
+	uint64_t GenerateId()
+	{
+		std::random_device rd;
+		std::uniform_int_distribution<uint64_t> dist;
+		return dist(rd);;
+	}
 }

@@ -12,6 +12,24 @@ namespace MarkTech
 		float x, y;
 
 		MVector2(float x = 0.0f, float y = 0.0f) : x(x), y(y) {}
+
+		// Bool Equals Operator Overload
+		bool operator==(const MVector2& other) const;
+
+		// Bool Not Equals Operator Overload
+		bool operator!=(const MVector2& other) const;
+
+		// Addition Operator Overload
+		MVector2 operator+(const MVector2& right) const;
+
+		// Subtraction Operator Overload
+		MVector2 operator-(const MVector2& right) const;
+
+		// Float Multiplication Operator Overload
+		MVector2 operator*(const float& other) const;
+
+		// Float Multiplication Operator Overload
+		MVector2 operator/(const float& f) const;
 	};
 
 	struct MARKTECH_API MVector3
@@ -83,22 +101,22 @@ namespace MarkTech
 		MRotator(float Pitch = 0.0f, float Yaw = 0.0f, float Roll = 0.0f) : Pitch(Pitch), Yaw(Yaw), Roll(Roll) {}
 
 		// Bool Equals Operator Overload
-		bool operator==(const MVector3& other) const;
+		bool operator==(const MRotator& other) const;
 
 		// Bool Not Equals Operator Overload
-		bool operator!=(const MVector3& other) const;
+		bool operator!=(const MRotator& other) const;
 
 		// Addition Operator Overload
-		MVector3 operator+(const MVector3& right) const;
+		MRotator operator+(const MRotator& right) const;
 
 		// Subtraction Operator Overload
-		MVector3 operator-(const MVector3& right) const;
+		MRotator operator-(const MRotator& right) const;
 
 		// Float Multiplication Operator Overload
-		MVector3 operator*(const float& other) const;
+		MRotator operator*(const float& other) const;
 
 		// Float Division Operator Overload
-		MVector3 operator/(const float& other) const;
+		MRotator operator/(const float& other) const;
 	};
 
 	struct MARKTECH_API MMatrix4x4

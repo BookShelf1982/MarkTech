@@ -2,9 +2,14 @@
 
 namespace MarkTech
 {
-	MGameInfo* MGameInfo::m_gGInfo = new MGameInfo();
+	MGameInfo::MGameInfo()
+		:nGameVersion(0), szGameName(MT_NAME), szShaderPath(MT_SHADERPATH), szContentPath(MT_CONTENTPATH), szConfigPath(MT_CONFIGPATH)
+	{
+	}
 
-	MUserSettings* MUserSettings::m_gUserSettings = new MUserSettings();
+	MGameInfo::~MGameInfo()
+	{
+	}
 
 	bool MGameInfo::Init()
 	{
@@ -20,32 +25,30 @@ namespace MarkTech
 
 		std::string tempGameName = ini["MarkTech.GameInfo"]["Game.GameName"];
 		std::string tempShaderPath = ini["MarkTech.GameInfo"]["Game.ShaderPath"];
-		std::string tempRawShaderPath = ini["MarkTech.GameInfo"]["Game.RawShaderPath"];
 		std::string tempContentPath = ini["MarkTech.GameInfo"]["Game.ContentPath"];
 		std::string tempConfigPath = ini["MarkTech.GameInfo"]["Game.ConfigPath"];
-		std::string tempImage = ini["MarkTech.GameInfo"]["Game.Image"];
-		std::string tempModel = ini["MarkTech.GameInfo"]["Game.Model"];
 
 		strcpy(this->szGameName, tempGameName.c_str());
 		strcpy(this->szShaderPath, tempShaderPath.c_str());
-		strcpy(this->szRawShaderPath, tempRawShaderPath.c_str());
 		strcpy(this->szContentPath, tempContentPath.c_str());
 		strcpy(this->szConfigPath, tempConfigPath.c_str());
-		strcpy(this->szImage, tempImage.c_str());
-		strcpy(this->szModel, tempModel.c_str());
 
 		
 		return true;
 	}
 
-	void MGameInfo::Destroy()
+	MUserSettings::MUserSettings()
+		:nVSWidth(0), nVSHeight(0), bVSWindowed(0), bVSVSync(0)
 	{
-		delete m_gGInfo;
 	}
 
-	bool MUserSettings::Init()
+	MUserSettings::~MUserSettings()
 	{
-		char* szPath = MGameInfo::GetGameInfo()->szConfigPath;
+	}
+
+	bool MUserSettings::Init(const MGameInfo& gameinfo)
+	{
+		char* szPath = (char*)gameinfo.GetConfigPath();
 		char szFile[256] = "UserSettings.ini";
 		strcat(szPath, szFile);
 		mINI::INIFile file(szPath);
@@ -76,10 +79,5 @@ namespace MarkTech
 		this->bVSVSync = (int)strtol(vsyncStr.c_str(), &charPtr, 10);
 
 		return true;
-	}
-
-	void MUserSettings::Destroy()
-	{
-		delete m_gUserSettings;
 	}
 }

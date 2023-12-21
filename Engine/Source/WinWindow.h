@@ -3,7 +3,7 @@
 #include "Core.h"
 #include "Input.h"
 #include <Windows.h>
-#include <windowsx.h>
+
 namespace MarkTech
 {
 	class MARKTECH_API CWinWindow
@@ -26,5 +26,6 @@ namespace MarkTech
 	private:
 		HWND m_Hwnd;
 		WNDCLASS m_WC;
+		CInput* m_pInput;
 	};
 }
