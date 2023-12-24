@@ -1,17 +1,10 @@
 #include "Level.h"
 
 namespace MarkTech
-{
-    CLevel* CLevel::g_pLevel = new CLevel();
-    
+{   
     bool CLevel::InitLevel()
     {
         return true;
-    }
-    
-    void CLevel::DestroyLevel()
-    {
-        delete g_pLevel;
     }
     
     void CLevel::UpdateLevel(float flDeltaTime)

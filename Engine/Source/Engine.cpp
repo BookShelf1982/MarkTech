@@ -2,8 +2,6 @@
 
 namespace MarkTech
 {
-	CEngine* CEngine::g_pEngine = new CEngine();
-
 	CEngine::CEngine()
 	{
 		bClosing = false;
@@ -18,8 +16,8 @@ namespace MarkTech
 	{
 		delete m_pGameInfo;
 		delete m_pUserSettings;
-		m_pLevel->DestroyLevel();
-		m_pInput->DestroyInput();
+		delete m_pLevel;
+		delete m_pInput;
 		delete m_pMainWindow;
 	}
 
@@ -32,16 +30,19 @@ namespace MarkTech
 			return false;
 		}
 
+
 		//Create Window
 		m_pMainWindow->CreateWinWindow(
 			L"WinWindow",									//Class Name
 			L"jknds",										//Window Title
 			CW_USEDEFAULT,									//X Pos
 			CW_USEDEFAULT,									//Y Pos
-			GetUserSettings().,						//Configured Width
-			GetUserSettings()->nVSHeight,						//Configured Length
+			m_pUserSettings->GetWidth(),					//Configured Width
+			m_pUserSettings->GetHeight(),					//Configured Length
 			hInstance,										//hImstance
 			nCmdShow);										//nCmdShow
+
+		m_pInput->InitInput(hInstance, m_pMainWindow->GetHWND());
 
 		if (!m_pLevel->InitLevel())	//Initialize Level
 		{
@@ -110,38 +111,8 @@ namespace MarkTech
 		}
 	}
 
-	void CEngine::DestroyEngine()
-	{
-		delete g_pEngine;
-	}
-
 	void CEngine::Quit()
 	{
 		bClosing = true;
 	}
-}
-
-int LaunchEngine(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
-{
-	if (!MarkTech::CEngine::GetEngine()->InitEngine(hInstance, pCmdLine, nCmdShow))
-	{
-		return 1;
-	}
-	MarkTech::CEngine::GetEngine()->StartEngineLoop();
-	MarkTech::CEngine::GetEngine()->DestroyEngine();
-#ifdef DEBUG
-	_CrtDumpMemoryLeaks();
-#endif
-	return 0;
-}
-
-int LaunchEditor(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
-{
-	if (!MarkTech::CEngine::GetEngine()->InitEditor(hInstance, pCmdLine, nCmdShow))
-	{
-		return 1;
-	}
-	MarkTech::CEngine::GetEngine()->StartEngineLoop();
-	MarkTech::CEngine::GetEngine()->DestroyEngine();
-	return 0;
 }

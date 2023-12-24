@@ -16,9 +16,9 @@ project "Engine"
 	includedirs
 	{
 		"%{wks.location}/Imgui/Source",
-		"%{wks.location}/Inipp/Source",
 		"%{prj.location}/ThirdParty",
-		"%{wks.location}/DirectXTex"
+		"%{wks.location}/DirectXTex",
+		"%{wks.location}/Shared"
 	}
 	
     defines
@@ -41,7 +41,7 @@ project "Engine"
 		"{MKDIR} %{wks.location}Build/Content/",
 		"{MKDIR} %{wks.location}Build/Configs/",
 		"{COPYFILE} %{prj.location}Source/Shaders/ %{wks.location}/Build/Bin/Shaders/Source/",
-		"{COPYFILE} %{wks.location}bin/" .. outputdir .. "/%{prj.name}/Engine.dll %{wks.location}/Build/Bin"
+		"{COPYFILE} %{wks.location}bin/" .. outputdir .. "/%{prj.name}/Engine.dll %{wks.location}/Build/Bin/Modules/Engine/"
 	}
 
     filter "configurations:Debug"

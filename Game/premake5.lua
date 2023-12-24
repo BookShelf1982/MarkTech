@@ -11,7 +11,7 @@ project "Game"
 	{
 		"%{wks.location}/Engine/Source",
 		"%{wks.location}/Engine/ThirdParty",
-		"%{wks.location}/Imgui/Source"
+		"%{wks.location}/Shared"
 	}
 	
 	defines

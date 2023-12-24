@@ -1,5 +1,6 @@
 #pragma once
 #include "Core.h"
+#include "Configs.h"
 
 namespace MarkTech
 {
@@ -46,10 +47,13 @@ namespace MarkTech
 		CAssetRegistry();
 		~CAssetRegistry();
 
+		void Init(MGameInfo* ginfo);
+
 		uint64_t LoadAsset(const char* filepath, EAssetType type);
 		CAssetObject* FindAssetById(uint64_t id);
 		uint64_t GetAssetId(const char* filepath);
 	private:
 		CTArray<CAssetObject*> m_RegisteredAssets;
+		MGameInfo* m_pGameInfoRef;
 	};
 }

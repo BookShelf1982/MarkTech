@@ -15,8 +15,6 @@ namespace MarkTech
 
 		bool InitLevel();
 
-		void DestroyLevel();
-
 		void UpdateLevel(float flDeltaTime);
 
 		CAssetRegistry* GetAssetRegistry() { return &m_AssetRegistry; }

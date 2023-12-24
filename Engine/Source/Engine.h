@@ -2,9 +2,8 @@
 #include "DllExport.h"
 #include "Core.h"
 #include "Level.h"
-#include "WinWindow.h"
 #include "Configs.h"
-#include "Globals.h"
+#include "WinWindow.h"
 
 namespace MarkTech
 {
@@ -12,26 +11,15 @@ namespace MarkTech
 	{
 	public:
 
-		void Quit();
-
-		bool InitEngine(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow);
-		bool InitEditor(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow);
-
-		bool ReadConfigFiles();
-
-		void StartEngineLoop();
-
-		void DestroyEngine();
-
-		static CEngine* GetEngine() { return g_pEngine; }
-
-	private:
-
-		static CEngine* g_pEngine;
-
 		CEngine();
 		~CEngine();
 
+		void Quit();
+		bool InitEngine(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow);
+		bool ReadConfigFiles();
+		void StartEngineLoop();
+
+	private:
 		bool bClosing;
 		bool bShowDemoWindow;
 		LARGE_INTEGER nTickFrequency, nCurrentTick, nLastTick;
@@ -44,10 +32,3 @@ namespace MarkTech
 		CInput* m_pInput;
 	};
 }
-
-#ifdef MT_PLATFORM_WINDOWS
-extern "C"
-{
-	MARKTECH_API int LaunchEngine(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow);
-}
-#endif // MT_PLATFORM_WINDOWS

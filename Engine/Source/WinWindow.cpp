@@ -28,8 +28,6 @@ namespace MarkTech
         nHeight = iLength;
         m_Hwnd = CreateWindowEx(0, ClassName, WindowName, WS_OVERLAPPEDWINDOW, iPosX, iPosY, iWidth, iLength, NULL, NULL, hInstance, NULL);
 
-        CInput::GetInput()->InitInput(hInstance, m_Hwnd);
-
         ShowWindow(m_Hwnd, nCmdShow);
         UpdateWindow(m_Hwnd);
 

@@ -69,5 +69,6 @@ namespace MarkTech
 
     CInput::~CInput()
     {
+        DestroyInput();
     }
 }

@@ -15,15 +15,15 @@ namespace MarkTech
 	void CAssetHandle::Initialize(uint64_t assetId)
 	{
 		m_nAssetId = assetId;
-		m_pAsset = GetLevel()->GetAssetRegistry()->FindAssetById(m_nAssetId);
 	}
 
 	CAssetObject* CAssetHandle::GetAssetDataPtr()
 	{
-		if (m_pAsset == nullptr || m_pAsset->m_nAssetId != m_nAssetId)
-			return GetLevel()->GetAssetRegistry()->FindAssetById(m_nAssetId);
+		/*if (m_pAsset == nullptr || m_pAsset->m_nAssetId != m_nAssetId)
+			return CGlobals::GetLevel()->GetAssetRegistry()->FindAssetById(m_nAssetId);
 		else
-			return m_pAsset;
+			return m_pAsset;*/
+		return nullptr;
 	}
 
 	CAssetRegistry::CAssetRegistry()
@@ -38,6 +38,11 @@ namespace MarkTech
 		}
 	}
 
+	void CAssetRegistry::Init(MGameInfo* ginfo)
+	{
+		m_pGameInfoRef = ginfo;
+	}
+
 	uint64_t CAssetRegistry::LoadAsset(const char* filepath, EAssetType type)
 	{
 		switch (type)
@@ -49,7 +54,7 @@ namespace MarkTech
 		case MTexture:
 		{
 			char path[256];
-			strcpy(path, MGameInfo::GetGameInfo()->szContentPath);
+			strcpy(path, m_pGameInfoRef->GetContentPath());
 			strcat(path, filepath);
 			uint64_t assetId = GetAssetId(path);
 			CAssetObject* asset = FindAssetById(assetId);
@@ -62,7 +67,7 @@ namespace MarkTech
 		case MModel:
 		{
 			char path[256];
-			strcpy(path, MGameInfo::GetGameInfo()->szContentPath);
+			strcpy(path, m_pGameInfoRef->GetContentPath());
 			strcat(path, filepath);
 			uint64_t assetId = GetAssetId(path);
 			CAssetObject* asset = FindAssetById(assetId);
@@ -75,7 +80,7 @@ namespace MarkTech
 		case MShader:
 		{
 			char path[256];
-			strcpy(path, MGameInfo::GetGameInfo()->szShaderPath);
+			strcpy(path, m_pGameInfoRef->GetShaderPath());
 			strcat(path, filepath);
 			uint64_t assetId = GetAssetId(path);
 			CAssetObject* asset = FindAssetById(assetId);

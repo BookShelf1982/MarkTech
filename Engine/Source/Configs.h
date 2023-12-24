@@ -2,7 +2,7 @@
 #include "DllExport.h"
 #include "Core.h"
 #define MINI_CASE_SENSITIVE
-#include "mini\ini.h"
+#include "ini.h"
 
 namespace MarkTech
 {
@@ -41,6 +41,11 @@ namespace MarkTech
 		MUserSettings();
 		~MUserSettings();
 		bool Init(const MGameInfo& gameinfo);
+
+		int GetWidth() { return nVSWidth; }
+		int GetHeight() { return nVSHeight; }
+		int GetWindowed() { return bVSWindowed; }
+		int GetVSync() { return bVSVSync; }
 	private:
 		int nVSWidth;
 		int nVSHeight;
