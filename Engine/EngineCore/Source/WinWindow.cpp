@@ -35,9 +35,9 @@ void CWinWindow::KillWindow()
     UnregisterClassW(m_WndClass.lpszClassName, m_WndClass.hInstance);
 }
 
-void CWinWindow::MessageLoop(MSG msg)
+void CWinWindow::SetHInstance(HINSTANCE hInstacne)
 {
-    
+    m_hInstance = hInstacne;
 }
 
 LRESULT WindowProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)

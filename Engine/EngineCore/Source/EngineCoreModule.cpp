@@ -1,5 +1,6 @@
 #include "EngineCoreModule.h"
 #include <Windows.h>
+#include <crtdbg.h>
 
 CEngineCoreModule* CEngineCoreModule::g_pEngineCoreModule = new CEngineCoreModule();
 
@@ -19,11 +20,13 @@ void CEngineCoreModule::PreInit( HINSTANCE hInstance, pfnStopGameLoop pfn )
 {
 	m_hInstance = hInstance;
 	m_pfnStopGameLoop = pfn;
+	m_pEngine->PreInitEngine(hInstance);
 }
 
 void CEngineCoreModule::Init()
 {
-	m_pEngine->InitEngine(m_pfnStopGameLoop);
+	if (!m_pEngine->InitEngine(m_pfnStopGameLoop))
+		m_pfnStopGameLoop();
 }
 
 void CEngineCoreModule::Update()
@@ -34,6 +37,7 @@ void CEngineCoreModule::Update()
 void CEngineCoreModule::Shutdown()
 {
 	delete g_pEngineCoreModule;
+	_CrtDumpMemoryLeaks();
 }
 
 MTRESULT GetInterface(IModuleInterface** pInterface)

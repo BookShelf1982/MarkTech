@@ -10,7 +10,8 @@ public:
 
 	virtual void MakeWindow( String title, int x, int y, int width, int height, EWindowType type ) override;
 	virtual void KillWindow() override;
-	void MessageLoop(MSG msg);
+	HWND GetHWND() { return m_hWnd; }
+	void SetHInstance(HINSTANCE hInstacne);
 private:
 	HWND m_hWnd;
 	WNDCLASS m_WndClass;

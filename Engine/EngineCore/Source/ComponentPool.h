@@ -23,6 +23,7 @@ private:
 
 template<class T>
 CComponentPool<T>::CComponentPool()
+	:m_pComps(nullptr), m_bInitialized(false), m_nDisabled(0), m_nEnabled(0)
 {
 }
 
@@ -35,7 +36,7 @@ template<class T>
 inline void CComponentPool<T>::InitComponentPool(size_t nInitialSize)
 {
 	m_pComps = new T[nInitialSize];
-	bool m_bInitialized = true;
+	m_bInitialized = true;
 	m_nDisabled = nInitialSize;
 	m_nEnabled = 0;
 }
