@@ -19,6 +19,7 @@ project "EngineCore"
 	
 	postbuildcommands
 	{
+		"{MKDIR} %{wks.location}/Build/Bin/Modules/"
 		"{COPYFILE} %{wks.location}/bin/" .. outputdir .. "/%{prj.name}/EngineCore.dll %{wks.location}/Build/Bin/Modules/"
 	}
 	
