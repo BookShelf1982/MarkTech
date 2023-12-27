@@ -21,7 +21,7 @@ project "Game"
 	
 	postbuildcommands
 	{
-		"{MKDIR} %{wks.location}Build/Bin/Modules/",
+		"{MKDIR} %{wks.location}Build\\Bin\\Modules\\",
 		"{COPYFILE} %{wks.location}/bin/" .. outputdir .. "/%{prj.name}/Game.exe %{wks.location}/Build/"
 	}
 	
