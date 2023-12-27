@@ -13,7 +13,7 @@ public:
 	CTestModules();
 	~CTestModules();
 
-	virtual void PreInit(HINSTANCE hInstance) override;
+	virtual void PreInit() override;
 	virtual void Init() override;
 	virtual void Update() override;
 	virtual void Shutdown() override;
