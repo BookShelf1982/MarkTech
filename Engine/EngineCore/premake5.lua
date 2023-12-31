@@ -1,5 +1,5 @@
 project "EngineCore"
-    kind "SharedLib"
+    kind "StaticLib"
     language "C++"
 	
     files { "Source/**.h", "Source/**.cpp" }
@@ -9,19 +9,13 @@ project "EngineCore"
 	
 	includedirs
 	{
-		"%{wks.location}/Shared"
+		"%{wks.location}/Shared/",
 	}
 	
 	defines
     {
         "MT_PLATFORM_WINDOWS",
     }
-	
-	postbuildcommands
-	{
-		"{MKDIR} %{wks.location}Build\\Bin\\Modules\\",
-		"{COPYFILE} %{wks.location}/bin/" .. outputdir .. "/%{prj.name}/EngineCore.dll %{wks.location}/Build/Bin/Modules/"
-	}
 	
     filter "configurations:Debug"
         defines { "DEBUG" }

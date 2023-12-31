@@ -9,8 +9,7 @@ project "Game"
 	
 	includedirs
 	{
-		"%{wks.location}/Engine/Source",
-		"%{wks.location}/Engine/ThirdParty",
+		"%{wks.location}/Engine/EngineCore/Source",
 		"%{wks.location}/Shared"
 	}
 	
@@ -21,8 +20,12 @@ project "Game"
 	
 	postbuildcommands
 	{
-		"{MKDIR} %{wks.location}Build\\Bin\\Modules\\",
 		"{COPYFILE} %{wks.location}/bin/" .. outputdir .. "/%{prj.name}/Game.exe %{wks.location}/Build/"
+	}
+	
+	links
+	{
+		"EngineCore"
 	}
 	
     filter "configurations:Debug"

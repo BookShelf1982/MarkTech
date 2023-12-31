@@ -4,7 +4,6 @@
 #include "BaseComponent.h"
 
 #define MAX_COMPONENTS 65536
-#define MAX_VESSELS 16384
 
 class CComponentRegistry
 {

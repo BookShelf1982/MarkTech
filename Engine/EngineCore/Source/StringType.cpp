@@ -32,3 +32,38 @@ void String::operator=(const String& other)
 	m_pStr = other.m_pStr;
 	m_nLength = other.m_nLength;
 }
+
+
+
+WideString::WideString()
+	:m_lpStr(L""), m_nLength(0)
+{
+}
+
+WideString::WideString(const wchar_t* other)
+	:m_lpStr((wchar_t*)other)
+{
+	m_nLength = wcslen(other);
+}
+
+WideString::~WideString()
+{
+}
+
+void WideString::operator=(const wchar_t* other)
+{
+	m_lpStr = (wchar_t*)other;
+	m_nLength = wcslen(other);
+}
+
+void WideString::operator=(wchar_t* other)
+{
+	m_lpStr = other;
+	m_nLength = wcslen(other);
+}
+
+void WideString::operator=(const WideString& other)
+{
+	m_lpStr = other.m_lpStr;
+	m_nLength = other.m_nLength;
+}

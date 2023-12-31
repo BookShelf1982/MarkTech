@@ -8,10 +8,11 @@ public:
 	CWinWindow();
 	~CWinWindow();
 
-	virtual void MakeWindow( String title, int x, int y, int width, int height, EWindowType type ) override;
+	virtual void MakeWindow( String title, int x, int y, int width, int height, EWindowType type, CInput* m_pInputRef ) override;
 	virtual void KillWindow() override;
+	void MessageLoop(const MSG* pMsg);
 	HWND GetHWND() { return m_hWnd; }
-	void SetHInstance(HINSTANCE hInstacne);
+	void SetHInstance(HINSTANCE hInstance);
 private:
 	HWND m_hWnd;
 	WNDCLASS m_WndClass;
