@@ -39,3 +39,6 @@ private:
 	wchar_t* m_lpStr;
 	size_t m_nLength;
 };
+
+#define CONVERT_STRING_TO_WIDE_STRING(str, wstr, size)	mbstowcs_s(&size, wstr, str.c_str(), size)\
+														

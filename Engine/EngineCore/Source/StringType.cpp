@@ -67,3 +67,12 @@ void WideString::operator=(const WideString& other)
 	m_lpStr = other.m_lpStr;
 	m_nLength = other.m_nLength;
 }
+
+WideString StringToWideString(String str)
+{
+	wchar_t wstr[128];
+	size_t size = 128;
+	mbstowcs_s(&size, wstr, str.c_str(), 128);
+
+	return WideString(wstr);
+}

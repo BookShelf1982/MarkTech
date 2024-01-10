@@ -1,6 +1,6 @@
 #pragma once
 #include <stdint.h>
-#include "OBJ_Loader\OBJ_Loader.h"
+#include <fbxsdk.h>
 
 struct MVector3
 {
@@ -27,6 +27,8 @@ struct MVertex
 	MVector3 norm;
 	MVector2 tex;
 };
+
+void ReadNormals(FbxMesh* inMesh, int inCtrlPointIndex, int inVertexCounter, MVector3& outNormal);
 
 extern "C"
 {

@@ -10,12 +10,18 @@ project "EngineCore"
 	includedirs
 	{
 		"%{wks.location}/Shared/",
+		"%{wks.location}/Imgui/Source/"
 	}
 	
 	defines
     {
         "MT_PLATFORM_WINDOWS",
     }
+	
+	links
+	{
+		"Imgui"
+	}
 	
     filter "configurations:Debug"
         defines { "DEBUG" }

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <Windows.h>
+#include <crtdbg.h>
 
 typedef int (*pfnImportTexture)(const char*, const char*, int, int, bool); // const char* filepath, const char* output, int mips, int compression, bool srgb
 typedef int (*pfnImportShader)(const char*, const char*, const char*, const char*); // const char* filepath, const char* output, const char* shadertype, const char* entrypoint
@@ -80,17 +81,21 @@ int main(int argc, const char* argv[])
 		{
 			std::cout << "Please intput an input file path argument!\nPress enter to exit...\n";
 			std::cin.get();
-			return -1;
+			return 1;
 		}
 		if (argv[3] == nullptr)
 		{
 			std::cout << "Please input an output file path argument!\nPress enter to exit...\n";
 			std::cin.get();
-			return -1;
+			return 1;
 		}
 
 		pfnLoadModel(argv[2], argv[3]);
 	}
 	FreeLibrary(ResourceCompilerLib);
+
+#ifdef DEBUG
+	_CrtDumpMemoryLeaks();
+#endif // DEBUG
 	return 0;
 }

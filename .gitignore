@@ -2,6 +2,7 @@
 bin/
 bin-int/
 Build/
+ResourceCompiler/ThirdParty/FBXSDK/
 
 *.user
 *.sln

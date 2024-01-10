@@ -1,4 +1,5 @@
 #include "WinWindow.h"
+#include "imgui_impl_win32.h"
 
 CWinWindow::CWinWindow()
     :m_hInstance(NULL), m_WndClass(), m_hWnd(NULL)
@@ -20,21 +21,52 @@ void CWinWindow::MakeWindow(String title, int x, int y, int width, int height, E
 
     RegisterClass(&m_WndClass);
 
-    m_nWidth = width;
-    m_nHeight = height;
-    m_nX = x;
-    m_nY = y;
     m_pszTitle = title;
-    m_hWnd = CreateWindowEx(0, m_WndClass.lpszClassName, L"MarkTech 2024", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, x, y, width, height, NULL, NULL, NULL, NULL);
+
+    wchar_t buff[64];
+    size_t size = 64;
+    CONVERT_STRING_TO_WIDE_STRING(title, buff, size);
+
+    m_hWnd = CreateWindowExW(0, m_WndClass.lpszClassName, buff, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, x, y, width, height, NULL, NULL, NULL, NULL);
+
+    RECT rect;
+    GetClientRect(m_hWnd, &rect);
+    m_nWidth = rect.right - rect.left;
+    m_nHeight = rect.bottom - rect.top;
 
     ShowWindow(m_hWnd, SW_SHOWNORMAL);
     UpdateWindow(m_hWnd);
+
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport / Platform Windows
+    io.ConfigWindowsMoveFromTitleBarOnly = true;
+    ImGui::StyleColorsMarkTechDark();
+
+    ImGuiStyle& style = ImGui::GetStyle();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        style.WindowRounding = 0.0f;
+        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+    }
+
+    ImGui_ImplWin32_Init(m_hWnd);
+    io.Fonts->AddFontFromFileTTF("Bin/Resources/Fonts/WorkSans-Bold.ttf", 18.0f);
+    io.FontDefault = io.Fonts->AddFontFromFileTTF("Bin/Resources/Fonts/WorkSans-Regular.ttf", 18.0f);
 }
 
 void CWinWindow::KillWindow()
 {
     DestroyWindow(m_hWnd);
     UnregisterClass(m_WndClass.lpszClassName, m_WndClass.hInstance);
+    ImGui_ImplWin32_Shutdown();
+    ImGui::DestroyPlatformWindows();
 }
 
 void CWinWindow::MessageLoop(const MSG* pMsg)
@@ -66,8 +98,12 @@ void CWinWindow::SetHInstance(HINSTANCE hInstance)
     m_hInstance = hInstance;
 }
 
+extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 LRESULT WindowProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
+    if (ImGui_ImplWin32_WndProcHandler(hWnd, Msg, wParam, lParam))
+        return true;
+
     switch (Msg)
     {
     case WM_DESTROY:

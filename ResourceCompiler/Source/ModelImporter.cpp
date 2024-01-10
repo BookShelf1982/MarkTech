@@ -1,81 +1,120 @@
 #include "ModelImporter.h"
-#include <iostream>
 #include <fstream>
-#include <string>
 #include <random>
+
 
 int LoadModel(const char* filepath, const char* output)
 {
-	objl::Loader loader;
+	FbxManager* pFbxManager = FbxManager::Create();
 
-	if (!loader.LoadFile(filepath))
+	FbxIOSettings* pIos = FbxIOSettings::Create(pFbxManager, IOSROOT);
+	pFbxManager->SetIOSettings(pIos);
+
+	FbxImporter* pFbxImporter = FbxImporter::Create(pFbxManager, "");
+
+	if (!pFbxImporter->Initialize(filepath, -1, pFbxManager->GetIOSettings()))
 	{
-		std::cout << "Could not find obj file.\nPress enter to exit...\n";
-		std::cin.get();
-		return -1;
-	}
-	size_t nVerts = loader.LoadedVertices.size();
-	size_t nInds = loader.LoadedIndices.size();
-
-	MVertex* vert = new MVertex[nVerts];
-	uint32_t* inds = new uint32_t[nInds];
-
-	for (size_t i = 0; i < nVerts; i++)
-	{
-		vert[i] = {
-			loader.LoadedVertices[i].Position.X,
-			loader.LoadedVertices[i].Position.Y,
-			loader.LoadedVertices[i].Position.Z,
-			loader.LoadedVertices[i].Normal.X,
-			loader.LoadedVertices[i].Normal.Y,
-			loader.LoadedVertices[i].Normal.Z,
-			loader.LoadedVertices[i].TextureCoordinate.X,
-			loader.LoadedVertices[i].TextureCoordinate.Y };
+		printf("Call to FbxImporter::Initialize() failed.\n");
+		printf("Error reported: %s\n\n", pFbxImporter->GetStatus().GetErrorString());
+		pFbxImporter->Destroy();
+		pFbxManager->Destroy();
+		return 1;
 	}
 
-	for (size_t i = 0; i < nInds; i++)
+	printf("Sucessfully imported mesh!\n");
+
+	FbxScene* pFbxScene = FbxScene::Create(pFbxManager, "MainScene");
+	pFbxImporter->Import(pFbxScene);
+	pFbxImporter->Destroy();
+
+	fbxsdk::FbxMesh* pMesh = pFbxScene->GetRootNode()->GetChild(0)->GetMesh();
+	if (pMesh == nullptr)
 	{
-		inds[i] = loader.LoadedIndices[i];
+		printf("Failed to get mesh data.\n");
+		pFbxManager->Destroy();
+		return 1;
+	}
+	
+	if (!pMesh->IsTriangleMesh())
+	{
+		printf("Triangulated meshes are only supported in Resource Compiler.\nMesh is now being triangulated.\n");
+		FbxGeometryConverter converter(pFbxManager);
+		if (!converter.Triangulate(pFbxScene, true))
+		{
+			printf("Failed to triangulate mesh.\n");
+			return 1;
+		}
+		printf("Mesh triangulation succeded!\n");
 	}
 
-	std::string Path = output;
-	std::fstream model;
-	// If the file is not an .mmdl file return false
-	if (Path.substr(Path.size() - 5, 5) != ".mmdl")
+	pMesh = pFbxScene->GetRootNode()->GetChild(0)->GetMesh();
+	size_t totalVerts = pMesh->GetControlPointsCount();
+ 	size_t totalFace = pMesh->GetPolygonCount();
+	MVertex* pVertArray = new MVertex[totalVerts];
+	uint32_t* pIndArray = nullptr;
+	printf("Mesh vertex count: %Iu\n", totalVerts);
+	printf("Mesh face count: %Iu\n", totalFace);
+
+	// Mesh Formatting
+	FbxVector4* vert_data = pMesh->GetControlPoints();
+
+	// Get vertices
+	for (size_t i = 0; i < totalVerts; i++)
 	{
-		std::cout << "Output file is not an mmdl file.\nPress enter to exit...\n";
-		std::cin.get();
-		delete[] vert;
-		delete[] inds;
-		return -1;
+		pVertArray[i].pos = MVector3(vert_data[i].mData[0], vert_data[i].mData[1], vert_data[i].mData[2]);
+		printf("vert pos: %f, %f, %f\n", vert_data[i].mData[0], vert_data[i].mData[1], vert_data[i].mData[2]);
+	}
+	
+	// Get indices size
+	size_t indsCount = 0;
+	for (size_t i = 0; i < totalFace; i++)
+	{
+		for (size_t j = 0; j < pMesh->GetPolygonSize(i); j++)
+		{
+			indsCount++;
+		}
 	}
 
-	model.open(output, std::ios::out | std::ios::binary);
-	if (!model.is_open())
+	pIndArray = new uint32_t[indsCount];
+
+	// Get indices
+	uint32_t indCounter = 0;
+	for (size_t i = 0; i < totalFace; i++)
 	{
-		std::cout << "Failed to find output path.\nPress enter to exit...\n";
-		std::cin.get();
-		delete[] vert;
-		delete[] inds;
-		return -1;
+		uint32_t faceSize = pMesh->GetPolygonSize(i);
+		for (size_t j = 0; j < faceSize; j++)
+		{
+			pIndArray[indCounter] = pMesh->GetPolygonVertex(i, j);
+			indCounter++;
+		}
+	}
+
+	// Export mmdl file
+	std::fstream foutput;
+	foutput.open(output, std::ios::out | std::ios::binary);
+	if (!foutput.is_open())
+	{
+		printf("Failed to find output path.\n");
+		pFbxManager->Destroy();
+		return 1;
 	}
 
 	std::random_device rd;
 	std::uniform_int_distribution<uint64_t> dist;
-	uint64_t assetId = dist(rd);
+	uint64_t id = dist(rd);
 
-	std::cout << "Asset Id: " << assetId << "\n";
+	printf("Asset Id: %Iu", id);
 
-	model.write((char*)&assetId, sizeof(uint64_t));
-	model.write((char*)&nVerts, sizeof(size_t));
-	model.write((char*)&nInds, sizeof(size_t));
-	model.write((char*)vert, sizeof(MVertex) * nVerts);
-	model.write((char*)inds, sizeof(uint32_t) * nInds);
+	foutput.write((char*)&id, sizeof(uint64_t));
+	foutput.write((char*)&totalVerts, sizeof(size_t));
+	foutput.write((char*)&indsCount, sizeof(size_t));
+	foutput.write((char*)pVertArray, sizeof(MVertex) * totalVerts);
+	foutput.write((char*)pIndArray, sizeof(uint32_t) * indsCount);
+	foutput.close();
 
-	model.close();
+	delete[] pVertArray;
+	delete[] pIndArray;
 
-	std::cout << "Asset Export Sucess! \n";
-	delete[] vert;
-	delete[] inds;
+	pFbxManager->Destroy();
 	return 0;
 }

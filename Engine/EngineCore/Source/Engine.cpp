@@ -25,7 +25,7 @@ void CEngine::PreInitEngine(HINSTANCE hInstance)
 bool CEngine::InitEngine()
 {
 	m_pWindow->SetHInstance(m_hInstance);
-	m_pWindow->MakeWindow("Marktech", 0, 0, 640, 480, EWindowed, m_pInput);
+	m_pWindow->MakeWindow("Marktech", 0, 0, 1280, 720, EWindowed, m_pInput);
 	if (!m_pInput->InitInput())
 		return false;
 	m_pLevel->InitLevel();
@@ -34,19 +34,12 @@ bool CEngine::InitEngine()
 		return false;
 
 	m_pRenderer->SetWindow(m_pWindow);
+	m_pRenderer->SetLevel(m_pLevel);
 
 	if (!m_pRenderer->InitRenderer())
 		return false;
 
-	MGenericVertex v[3] = {
-		{0.0f, 0.0f, 0.0f},
-		{1.0f, -1.0f, 1.0f},
-		{1.0f, -1.0f, 1.0f}
-	};
 
-	IVertexBuffer* buffer = m_pRenderer->CreateVertexBuffer(v, 3);
-
-	buffer->ReleaseBuffer();
 	return true;
 }
 
@@ -73,13 +66,21 @@ void CEngine::StartEngineLoop()
 				Close();
 			}break;
 			}
+			if (m_bClosing)
+			{
+				break;
+			}
+		}
+		if (m_bClosing)
+		{
+			break;
 		}
 		if (m_pInput->IsKeyDown(MTKI_ESCAPE))
 		{
 			Close();
 		}
 		m_pLevel->UpdateLevel(0);
-		m_pRenderer->RenderFrame();
+		m_pRenderer ->RenderFrame();
 	}
 }
 

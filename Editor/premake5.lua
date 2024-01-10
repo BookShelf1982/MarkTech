@@ -1,5 +1,5 @@
 project "Editor"
-    kind "ConsoleApp"
+    kind "WindowedApp"
     language "C++"
 	
     files { "Source/**.h", "Source/**.cpp" }
@@ -9,13 +9,12 @@ project "Editor"
 	
 	includedirs
 	{
-		"%{wks.location}/Imgui/Source",
+		"%{wks.location}/Engine/EngineCore/Source",
 	}
 	
 	links
 	{
-		"d3d11.lib",
-		"Imgui"
+		"EngineCore"
 	}
 	
 	defines
