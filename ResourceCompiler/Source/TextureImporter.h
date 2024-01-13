@@ -1,5 +1,5 @@
 #pragma once
-#include "DirectXTex\DirectXTex.h"
+#include <DirectXTex.h>
 
 extern "C"
 {

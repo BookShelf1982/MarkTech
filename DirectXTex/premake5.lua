@@ -1,5 +1,5 @@
 project "DirectXTex"
-    kind "StaticLib"
+    kind "SharedLib"
     language "C++"
 
     files 

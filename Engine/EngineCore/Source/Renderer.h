@@ -10,6 +10,11 @@ struct MObjectConstBuffer
 	DirectX::XMMATRIX WorldViewPorjection;
 };
 
+struct MWorldConstBuffer
+{
+	DirectX::XMFLOAT4 SunPos;
+};
+
 struct MGenericVertex
 {
 	MGenericVertex(float x, float y, float z, float u, float v, float nx, float ny, float nz) : pos(x, y, z), tcoords(u, v), norm(nx, ny, nz) {}

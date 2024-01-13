@@ -57,8 +57,7 @@ void CWinWindow::MakeWindow(String title, int x, int y, int width, int height, E
     }
 
     ImGui_ImplWin32_Init(m_hWnd);
-    io.Fonts->AddFontFromFileTTF("Bin/Resources/Fonts/WorkSans-Bold.ttf", 18.0f);
-    io.FontDefault = io.Fonts->AddFontFromFileTTF("Bin/Resources/Fonts/WorkSans-Regular.ttf", 18.0f);
+    io.FontDefault = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\arial.ttf", 18.0f);
 }
 
 void CWinWindow::KillWindow()

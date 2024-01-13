@@ -1,6 +1,8 @@
 #pragma once
 #include <stdint.h>
-#include <fbxsdk.h>
+#include <assimp\Importer.hpp>
+#include <assimp\scene.h>
+#include <assimp\postprocess.h>
 
 struct MVector3
 {
@@ -27,8 +29,6 @@ struct MVertex
 	MVector3 norm;
 	MVector2 tex;
 };
-
-void ReadNormals(FbxMesh* inMesh, int inCtrlPointIndex, int inVertexCounter, MVector3& outNormal);
 
 extern "C"
 {

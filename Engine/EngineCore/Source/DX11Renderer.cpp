@@ -2,7 +2,6 @@
 #include "imgui.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
-#include <fstream>
 
 
 void CDX11Renderer::SetWindow(IWindow* pWindow)
@@ -159,6 +158,7 @@ bool CDX11Renderer::InitRenderer()
     m_pMainVertexBuffer = CreateVertexBuffer(pModelRef->m_pVertData, pModelRef->m_nNumVerts, EBufferUsage::Static);
     m_pMainIndexBuffer = CreateIndexBuffer(pModelRef->m_pIndData, pModelRef->m_nNumInds, EBufferUsage::Static);
     m_pObjectCBuffer = CreateConstantBuffer(sizeof(MObjectConstBuffer));
+    m_pWorldCBuffer = CreateConstantBuffer(sizeof(MWorldConstBuffer));
 
     ImGui_ImplDX11_Init(m_pd3dDevice, m_pd3dDeviceContext);
 
@@ -182,11 +182,17 @@ void CDX11Renderer::RenderFrame()
 
     DirectX::XMMATRIX ViewProj = DirectX::XMMatrixPerspectiveFovLH(0.4f * 3.14f, (float)m_pWindowRef->GetWidth() / m_pWindowRef->GetHeight(), 1.0f, 1000.0f);
 
-    m_ObjectCBufferData.WorldMatrix = DirectX::XMMatrixTranslation(objectPos[1], objectPos[2], objectPos[0]);
+    m_ObjectCBufferData.WorldMatrix = DirectX::XMMatrixRotationRollPitchYaw(objectRot[1], objectRot[2], objectRot[0]) * DirectX::XMMatrixTranslation(objectPos[1], objectPos[2], objectPos[0]);
     DirectX::XMMATRIX WVP = m_ObjectCBufferData.WorldMatrix * LookTo * ViewProj;
-    m_ObjectCBufferData.WorldViewPorjection = DirectX::XMMatrixTranspose(WVP);
+    m_ObjectCBufferData.WorldViewPorjection = WVP;
+    m_WorldCBufferData.SunPos.x = sunPos[1];
+    m_WorldCBufferData.SunPos.y = sunPos[2];
+    m_WorldCBufferData.SunPos.z = sunPos[0];
+    m_WorldCBufferData.SunPos.w = 1.0f;
     UpdateConstantBuffer(m_pObjectCBuffer, &m_ObjectCBufferData);
+    UpdateConstantBuffer(m_pWorldCBuffer, &m_WorldCBufferData);
     BindVertConstantBuffer(0, m_pObjectCBuffer);
+    BindPixelConstantBuffer(0, m_pWorldCBuffer);
     SubmitMesh(m_pMainVertexBuffer, m_pMainIndexBuffer, m_pVertexShader, m_pPixelShader);
     FinishCommandQueue();
     if (m_pd3dCommandList)
@@ -198,11 +204,15 @@ void CDX11Renderer::RenderFrame()
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
+    //ImGui::ShowDemoWindow();
+
     ImGui::Begin("Debug");
     ImGui::ColorEdit4("Clear color", color);
     float min = 1.0f;
     float max = 30.0f;
-    ImGui::SliderScalar("Hello", ImGuiDataType_Float, &objectPos[0], &min, &max);
+    ImGui::DragFloat3("Position", objectPos, 0.1f);
+    ImGui::DragFloat3("Rotation", objectRot, 0.1f);
+    ImGui::DragFloat3("Sun Position", sunPos, 1.0f);
     ImGui::End();
 
     ImGui::Render();
@@ -252,6 +262,7 @@ void CDX11Renderer::ShutdownRenderer()
     m_pVertexShader->ReleaseShader();
     m_pPixelShader->ReleaseShader();
     m_pObjectCBuffer->ReleaseBuffer();
+    m_pWorldCBuffer->ReleaseBuffer();
 
     ImGui_ImplDX11_Shutdown();
     ImGui::DestroyContext();

@@ -1,3 +1,8 @@
+cbuffer cbWorld : register(b0)
+{
+    float3 sunPos;
+};
+
 struct vs_out
 {
     float4 pos : SV_POSITION;
@@ -7,5 +12,7 @@ struct vs_out
 
 float4 main(vs_out input) : SV_TARGET
 {
-	return float4(input.tcoord, 0.0f, 1.0f);
+    float3 sampleColor = input.norm;
+    float3 ambientLight = float3(1.0f, 1.0f, 1.0f) * float1(1.0f);
+    return float4(sampleColor * ambientLight, 1.0f);
 }

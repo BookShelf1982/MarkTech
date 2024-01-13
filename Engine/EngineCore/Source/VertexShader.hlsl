@@ -1,9 +1,8 @@
 cbuffer cbObject : register(b0)
 {
-    float4x4 World;
-    float4x4 WVP;
+    row_major float4x4 World;
+    row_major float4x4 WVP;
 };
-
 
 struct vs_in
 {
@@ -23,7 +22,7 @@ vs_out main(vs_in input)
 {
     vs_out output = (vs_out)0;
     output.pos = mul(float4(input.pos, 1.0), WVP);
-    output.norm = input.norm;
+    output.norm = normalize(mul(float4(input.norm, 0.0f), World));
     output.tcoord = input.tcoord;
     return output;
 }

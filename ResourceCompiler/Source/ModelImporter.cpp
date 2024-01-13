@@ -2,119 +2,86 @@
 #include <fstream>
 #include <random>
 
+#define LOAD_FLAGS (aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices)
 
 int LoadModel(const char* filepath, const char* output)
 {
-	FbxManager* pFbxManager = FbxManager::Create();
+	Assimp::Importer Importer;
 
-	FbxIOSettings* pIos = FbxIOSettings::Create(pFbxManager, IOSROOT);
-	pFbxManager->SetIOSettings(pIos);
-
-	FbxImporter* pFbxImporter = FbxImporter::Create(pFbxManager, "");
-
-	if (!pFbxImporter->Initialize(filepath, -1, pFbxManager->GetIOSettings()))
+	const aiScene* pScene = Importer.ReadFile(filepath, LOAD_FLAGS);
+	if (!pScene)
 	{
-		printf("Call to FbxImporter::Initialize() failed.\n");
-		printf("Error reported: %s\n\n", pFbxImporter->GetStatus().GetErrorString());
-		pFbxImporter->Destroy();
-		pFbxManager->Destroy();
-		return 1;
+		printf("Failed to import model: '%s': '%s'\n", filepath, Importer.GetErrorString());
 	}
 
-	printf("Sucessfully imported mesh!\n");
+	aiMesh* pMesh = pScene->mMeshes[0];
 
-	FbxScene* pFbxScene = FbxScene::Create(pFbxManager, "MainScene");
-	pFbxImporter->Import(pFbxScene);
-	pFbxImporter->Destroy();
+	size_t nNumVerts = pMesh->mNumVertices;
+	size_t nNumFaces = pMesh->mNumFaces;
+	size_t nNumIndices = pMesh->mNumFaces * 3;
 
-	fbxsdk::FbxMesh* pMesh = pFbxScene->GetRootNode()->GetChild(0)->GetMesh();
-	if (pMesh == nullptr)
+	MVertex* pVertArray = new MVertex[nNumVerts];
+	uint32_t* pIndArray = new uint32_t[nNumIndices];
+
+	for (size_t i = 0; i < nNumVerts; i++)
 	{
-		printf("Failed to get mesh data.\n");
-		pFbxManager->Destroy();
-		return 1;
+		pVertArray[i].pos = MVector3(pMesh->mVertices[i].x, pMesh->mVertices[i].y, pMesh->mVertices[i].z);
+		pVertArray[i].norm = MVector3(pMesh->mNormals[i].x, pMesh->mNormals[i].y, pMesh->mNormals[i].z);
 	}
-	
-	if (!pMesh->IsTriangleMesh())
+
+	uint32_t indexCounter = 0;
+	for (size_t i = 0; i < nNumFaces; i++)
 	{
-		printf("Triangulated meshes are only supported in Resource Compiler.\nMesh is now being triangulated.\n");
-		FbxGeometryConverter converter(pFbxManager);
-		if (!converter.Triangulate(pFbxScene, true))
+		for (uint32_t j = 0; j < pMesh->mFaces[i].mNumIndices; j++)
 		{
-			printf("Failed to triangulate mesh.\n");
-			return 1;
-		}
-		printf("Mesh triangulation succeded!\n");
-	}
-
-	pMesh = pFbxScene->GetRootNode()->GetChild(0)->GetMesh();
-	size_t totalVerts = pMesh->GetControlPointsCount();
- 	size_t totalFace = pMesh->GetPolygonCount();
-	MVertex* pVertArray = new MVertex[totalVerts];
-	uint32_t* pIndArray = nullptr;
-	printf("Mesh vertex count: %Iu\n", totalVerts);
-	printf("Mesh face count: %Iu\n", totalFace);
-
-	// Mesh Formatting
-	FbxVector4* vert_data = pMesh->GetControlPoints();
-
-	// Get vertices
-	for (size_t i = 0; i < totalVerts; i++)
-	{
-		pVertArray[i].pos = MVector3(vert_data[i].mData[0], vert_data[i].mData[1], vert_data[i].mData[2]);
-		printf("vert pos: %f, %f, %f\n", vert_data[i].mData[0], vert_data[i].mData[1], vert_data[i].mData[2]);
-	}
-	
-	// Get indices size
-	size_t indsCount = 0;
-	for (size_t i = 0; i < totalFace; i++)
-	{
-		for (size_t j = 0; j < pMesh->GetPolygonSize(i); j++)
-		{
-			indsCount++;
+			if (pMesh->mFaces[i].mNumIndices != 3)
+			{
+				printf("Mesh is not triangulated.");
+				break;
+			}
+			pIndArray[indexCounter] = pMesh->mFaces[i].mIndices[j];
+			indexCounter++;
 		}
 	}
 
-	pIndArray = new uint32_t[indsCount];
+	std::fstream outFile;
+	outFile.open(output, std::ios::out | std::ios::binary);
 
-	// Get indices
-	uint32_t indCounter = 0;
-	for (size_t i = 0; i < totalFace; i++)
+	if (!outFile.is_open())
 	{
-		uint32_t faceSize = pMesh->GetPolygonSize(i);
-		for (size_t j = 0; j < faceSize; j++)
-		{
-			pIndArray[indCounter] = pMesh->GetPolygonVertex(i, j);
-			indCounter++;
-		}
-	}
-
-	// Export mmdl file
-	std::fstream foutput;
-	foutput.open(output, std::ios::out | std::ios::binary);
-	if (!foutput.is_open())
-	{
-		printf("Failed to find output path.\n");
-		pFbxManager->Destroy();
+		printf("Failed to fine output path.\n");
 		return 1;
 	}
 
 	std::random_device rd;
 	std::uniform_int_distribution<uint64_t> dist;
-	uint64_t id = dist(rd);
+	uint64_t nAssetId = dist(rd);
 
-	printf("Asset Id: %Iu", id);
+	printf("Asset Id: %Iu\n", nAssetId);
 
-	foutput.write((char*)&id, sizeof(uint64_t));
-	foutput.write((char*)&totalVerts, sizeof(size_t));
-	foutput.write((char*)&indsCount, sizeof(size_t));
-	foutput.write((char*)pVertArray, sizeof(MVertex) * totalVerts);
-	foutput.write((char*)pIndArray, sizeof(uint32_t) * indsCount);
-	foutput.close();
+	if (!outFile.write((char*)&nAssetId, sizeof(uint64_t)))
+	{
+		printf("Failed to write to file.");
+		return 1;
+	}
+	if(!outFile.write((char*)&nNumVerts, sizeof(size_t)))
+	{
+		printf("Failed to write to file.");
+		return 1;
+	}
+	if(!outFile.write((char*)&nNumIndices, sizeof(size_t)))
+	{
+		printf("Failed to write to file.");
+		return 1;
+	}
+	outFile.write((char*)pVertArray, sizeof(MVertex) * nNumVerts);
+	outFile.write((char*)pIndArray, sizeof(uint32_t) * nNumIndices);
+	outFile.close();
+
+	printf("Asset exported!\n");
 
 	delete[] pVertArray;
 	delete[] pIndArray;
 
-	pFbxManager->Destroy();
 	return 0;
 }

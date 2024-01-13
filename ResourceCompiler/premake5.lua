@@ -1,14 +1,11 @@
 project "ResourceCompiler"
-    kind "SharedLib"
+    kind "ConsoleApp"
     language "C++"
 
     files 
 	{
 		"Source/**.h", 
-		"Source/**.cpp",
-		"ThirdParty/**.h",
-		"ThirdParty/**.cpp",
-		"ThirdParty/**.inl"
+		"Source/**.cpp"
 	}
 	
 	targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
@@ -16,31 +13,31 @@ project "ResourceCompiler"
 	
 	includedirs
 	{
-		"%{prj.location}/ThirdParty/",
-		"%{prj.location}/ThirdParty/FBXSDK/include/"
+		"%{prj.location}/ThirdParty/Assimp/include",
+		"%{wks.location}/DirectXTex"
 	}
 	
 	libdirs
 	{
-		"%{prj.location}/ThirdParty/FBXSDK/lib/vs2022/x64/",
+		"%{prj.location}/ThirdParty/Assimp/lib/x64",
+	}
+	
+	links
+	{
+		"assimp-vc143-mt.lib",
+		"DirectXTex"
 	}
 	
 	postbuildcommands
 	{
 		"{MKDIR} %{wks.location}Build/Bin/",
-		"{COPYFILE} %{wks.location}bin/" .. outputdir .. "/%{prj.name}/ResourceCompiler.dll %{wks.location}/Build/Bin"
+		"{COPYFILE} %{wks.location}bin/" .. outputdir .. "/%{prj.name}/ResourceCompiler.exe %{wks.location}/Build/Bin"
 	}
 
     filter "configurations:Debug"
         defines { "DEBUG" }
         symbols "On"
-		staticruntime "on"
-		runtime "Debug"
-		links {"debug/libfbxsdk-mt.lib", "debug/libxml2-mt.lib", "debug/zlib-mt.lib"}
 
     filter "configurations:Release"
         defines { "NDEBUG" }
         optimize "On"
-		staticruntime "on"
-		runtime "Release"
-		links {"release/libfbxsdk-mt.lib", "release/libxml2-mt.lib", "release/zlib-mt.lib"}

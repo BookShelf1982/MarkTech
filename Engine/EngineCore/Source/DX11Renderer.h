@@ -53,10 +53,14 @@ private:
 	IShader*				m_pPixelShader = NULL;
 
 	IConstantBuffer*		m_pObjectCBuffer = NULL;
+	IConstantBuffer*		m_pWorldCBuffer = NULL;
 	MObjectConstBuffer		m_ObjectCBufferData;
+	MWorldConstBuffer		m_WorldCBufferData;
 
 	float color[4] = { 0.0f, 0.0f, 0.55f, 1.0f };
-	float objectPos[3]{ 0.0f, 0.0f, 0.0f };
+	float objectPos[3] = { 3.0f, 0.0f, 0.0f };
+	float objectRot[3] = { 0.0f, 0.0f, 0.0f };
+	float sunPos[3] = { 10.0f, 0.0f, 10.0f };
 
 #ifdef DEBUG
 	ID3D11Debug* m_pd3dDebug;
