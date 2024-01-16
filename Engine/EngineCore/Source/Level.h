@@ -1,8 +1,11 @@
 #pragma once
 #include "Core.h"
-#include "AssetRegistry.h"
-#include "ComponentRegistry.h"
-#include "VesselRegistry.h"
+#include "Pool.h"
+#include "Vessel.h"
+#include "ModelComponent.h"
+
+#define MAX_VESSELS 2048
+#define MAX_COMPONENTS 1024
 
 class CLevel
 {
@@ -15,17 +18,19 @@ public:
 	void DestroyLevel();
 
 	uint64_t CreateVessel();
+	void DestroyVessel(uint64_t vesselId);
 
 	template<class T>
-	uint64_t AddComponentToVessel(uint64_t id);
+	T CreateComponent();
 
-	uint64_t LoadModelAsset(String path);
-	MModelAsset* GetModelAsset(uint64_t assetId);
-	uint64_t LoadShaderAsset(String path);
-	MShaderAsset* GetShaderAsset(uint64_t assetId);
+	template<class T> 
+	void AttachComponentToVessel(uint64_t vesselId, T component);
 
+	template<class T>
+	void DestroyComponent(uint64_t compId);
+
+	void DestroyAllComponentsFromVessel(uint64_t vesselId);
 private:
-	CAssetRegistry m_AssetRegistry;
-	CVesselRegistry m_Vessels;
-	CComponentRegistry m_Components;
+	CTPool<MVessel> m_Vessels;
+	CTPool<MModelComponent> m_ModelComponents;
 };

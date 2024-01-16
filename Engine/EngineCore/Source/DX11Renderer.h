@@ -9,7 +9,6 @@ class CDX11Renderer : public IRenderer
 {
 public:
 	virtual void SetWindow(IWindow* pWindow) override;
-	virtual void SetLevel(CLevel* pLevel) override;
 	virtual	bool InitRenderer() override;
 	virtual	void RenderFrame() override;
 	virtual	void ShutdownRenderer() override;
@@ -27,9 +26,9 @@ public:
 	virtual void BindPixelConstantBuffer(size_t nSlot, IConstantBuffer* pBuffer) override;
 	virtual void SubmitMesh(IVertexBuffer* pVertex, IIndexBuffer* pIndex, IShader* pVertexShader, IShader* pPixelShader) override;
 	virtual void FinishCommandQueue() override;
+	virtual void SubmitRenderBuffer(CRenderBuffer pBuffer) override;
 private:
 	CWinWindow*				m_pWindowRef = NULL;
-	CLevel*					m_pLevelRef = NULL;
 
 	IDXGIFactory*			m_pDXGIFactory = NULL;
 	ID3D11Device*			m_pd3dDevice = NULL;
@@ -54,13 +53,17 @@ private:
 
 	IConstantBuffer*		m_pObjectCBuffer = NULL;
 	IConstantBuffer*		m_pWorldCBuffer = NULL;
+	IConstantBuffer*		m_pLambertCBuffer = NULL;
 	MObjectConstBuffer		m_ObjectCBufferData;
 	MWorldConstBuffer		m_WorldCBufferData;
+	MLambertProps			mLambertProps;
+
 
 	float color[4] = { 0.0f, 0.0f, 0.55f, 1.0f };
+	float objectColor[4] = { 0.0f, 0.0f, 0.55f, 1.0f };
 	float objectPos[3] = { 3.0f, 0.0f, 0.0f };
 	float objectRot[3] = { 0.0f, 0.0f, 0.0f };
-	float sunPos[3] = { 10.0f, 0.0f, 10.0f };
+	float sunPos[4] = { 10.0f, 0.0f, 10.0f, 1.0f };
 
 #ifdef DEBUG
 	ID3D11Debug* m_pd3dDebug;

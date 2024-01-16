@@ -22,7 +22,8 @@ vs_out main(vs_in input)
 {
     vs_out output = (vs_out)0;
     output.pos = mul(float4(input.pos, 1.0), WVP);
-    output.norm = normalize(mul(float4(input.norm, 0.0f), World));
+    output.norm = normalize(mul(float4(input.norm, 0.0f), World)).rgb;
+    //output.norm = input.norm;
     output.tcoord = input.tcoord;
     return output;
 }

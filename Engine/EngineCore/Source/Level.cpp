@@ -1,4 +1,5 @@
 #include "Level.h"
+#include <random>
 
 CLevel::CLevel()
 {
@@ -10,38 +11,81 @@ CLevel::~CLevel()
 
 bool CLevel::InitLevel()
 {
-	m_Components.InitComponentRegistry();
+	m_Vessels.InitPool(MAX_VESSELS);
+	m_ModelComponents.InitPool(MAX_COMPONENTS);
 	return true;
 }
 
 void CLevel::UpdateLevel(float flDeltaTime)
 {
-	m_Components.UpdateComponentRegistry(flDeltaTime);
+	
 }
 
 void CLevel::DestroyLevel()
 {
-	m_Components.DestroyComponentRegistry();
-	m_AssetRegistry.DestroyAssetRegistry();
+	m_Vessels.DestroyPool();
+	m_ModelComponents.DestroyPool();
 }
 
-uint64_t CLevel::LoadModelAsset(String path)
+uint64_t CLevel::CreateVessel()
 {
-	return m_AssetRegistry.LoadModelAsset(path);
+	std::random_device rd;
+	std::uniform_int_distribution<uint64_t> dist;
+	MVessel tempVessel;
+	tempVessel.nId = dist(rd);
+	tempVessel.nParentId = 0;
+
+	m_Vessels.CreateElement(tempVessel);
+	return tempVessel.nId;
 }
 
-MModelAsset* CLevel::GetModelAsset(uint64_t assetId)
+void CLevel::DestroyVessel(uint64_t vesselId)
 {
-	return m_AssetRegistry.GetModelAsset(assetId);
+	for (size_t i = 0; i < m_Vessels.GetActivatedSize(); i++)
+	{
+		if (m_Vessels.GetElement(i).nId == vesselId)
+		{
+			m_Vessels.DisableElement(i);
+			DestroyAllComponentsFromVessel(vesselId);
+			return;
+		}
+	}
 }
 
-uint64_t CLevel::LoadShaderAsset(String path)
+void CLevel::DestroyAllComponentsFromVessel(uint64_t vesselId)
 {
-	return m_AssetRegistry.LoadShaderAsset(path);
+	for (size_t i = 0; i < m_ModelComponents.GetActivatedSize(); i++)
+	{
+		if (m_ModelComponents.GetElement(i).nOwnerId == vesselId)
+		{
+			m_ModelComponents.DisableElement(i);
+		}
+	}
 }
 
-MShaderAsset* CLevel::GetShaderAsset(uint64_t assetId)
+template<> MModelComponent CLevel::CreateComponent()
 {
-	return m_AssetRegistry.GetShaderAsset(assetId);
+	std::random_device rd;
+	std::uniform_int_distribution<uint64_t> dist;
+	MModelComponent temp;
+	temp.nId = dist(rd);
+	return temp;
 }
 
+template<> void CLevel::AttachComponentToVessel(uint64_t vesselId, MModelComponent component)
+{
+	component.nOwnerId = vesselId;
+	m_ModelComponents.CreateElement(component);
+}
+
+template<> void CLevel::DestroyComponent<MModelComponent>(uint64_t compId)
+{
+	for (size_t i = 0; i < m_ModelComponents.GetActivatedSize(); i++)
+	{
+		if (m_ModelComponents.GetElement(i).nId == compId)
+		{
+			m_ModelComponents.DisableElement(i);
+			return;
+		}
+	}
+}

@@ -2,6 +2,8 @@
 #include "Core.h"
 #include <DirectXMath.h>
 
+#ifndef NO_WRAPPER_TYPES
+
 struct  MVector2
 {
 	float x, y;
@@ -35,16 +37,6 @@ struct  MVector3
 	// Float Multiplication Operator Overload
 	MVector3 operator/(const float& f) const;
 };
-
-float DotProductVector3(const MVector3& a, const MVector3& b);
-
-MVector3 CrossProductVector3(const MVector3& a, const MVector3& b);
-
-MVector3 UnitVector3(const MVector3& a);
-
-float MagnitudeVector3(const MVector3& a);
-
-MVector3 NegateVector3(const MVector3& v);
 
 struct  MVector4
 {
@@ -102,4 +94,5 @@ struct MTransform
 	MRotator Rotation;
 
 	MTransform(MVector3 Position = MVector3(), MRotator Rotation = MRotator(), MVector3 Scale = MVector3()) : Position(Position), Rotation(Rotation), Scale(Scale) {}
-};
+}; 
+#endif // WRAPPER_TYPES

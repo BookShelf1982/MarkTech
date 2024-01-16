@@ -1,11 +1,8 @@
 #pragma once
 #include "Core.h"
 
-class CVessel
+struct MVessel
 {
-public:
-	CVessel();
-	~CVessel();
-private:
-	uint64_t m_nId;
+	uint64_t nId;
+	uint64_t nParentId;
 };

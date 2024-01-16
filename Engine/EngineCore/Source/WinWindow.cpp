@@ -27,7 +27,21 @@ void CWinWindow::MakeWindow(String title, int x, int y, int width, int height, E
     size_t size = 64;
     CONVERT_STRING_TO_WIDE_STRING(title, buff, size);
 
-    m_hWnd = CreateWindowExW(0, m_WndClass.lpszClassName, buff, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, x, y, width, height, NULL, NULL, NULL, NULL);
+    switch (type)
+    {
+    case EFullscreen:
+        m_hWnd = CreateWindowExW(0, m_WndClass.lpszClassName, buff, WS_POPUP | WS_OVERLAPPED | WS_SYSMENU | WS_MAXIMIZEBOX | WS_MINIMIZEBOX, x, y, width, height, NULL, NULL, NULL, NULL);
+        break;
+    case EBorderless:
+        m_hWnd =CreateWindowExW(0, m_WndClass.lpszClassName, buff, WS_POPUP | WS_OVERLAPPED | WS_SYSMENU | WS_MAXIMIZEBOX | WS_MINIMIZEBOX, x, y, width, height, NULL, NULL, NULL, NULL);
+        break;
+    case EWindowed:
+        m_hWnd = CreateWindowExW(0, m_WndClass.lpszClassName, buff, WS_OVERLAPPEDWINDOW, x, y, width, height, NULL, NULL, NULL, NULL);
+        break;
+    default:
+        m_hWnd = CreateWindowExW(0, m_WndClass.lpszClassName, buff, WS_OVERLAPPEDWINDOW, x, y, width, height, NULL, NULL, NULL, NULL);
+        break;
+    }
 
     RECT rect;
     GetClientRect(m_hWnd, &rect);

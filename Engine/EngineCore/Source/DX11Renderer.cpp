@@ -13,11 +13,6 @@ void CDX11Renderer::SetWindow(IWindow* pWindow)
     }
 }
 
-void CDX11Renderer::SetLevel(CLevel* pLevel)
-{
-    m_pLevelRef = pLevel;
-}
-
 bool CDX11Renderer::InitRenderer()
 {
     m_API = ERendererAPI::Direct3D11;
@@ -134,15 +129,7 @@ bool CDX11Renderer::InitRenderer()
     m_pd3dViewport.MaxDepth = 1.0f;
     m_pd3dViewport.MinDepth = 0.0f;
 
-    uint64_t vershaderid = m_pLevelRef->LoadShaderAsset("Bin/Shaders/VertexShader.mfx");
-    MShaderAsset* pShader = m_pLevelRef->GetShaderAsset(vershaderid);
-    m_pVertexShader = CreateVertexShader(pShader->m_pShaderBytecode, pShader->m_nShaderBytecodeSize);
-
-    uint64_t pixshaderid = m_pLevelRef->LoadShaderAsset("Bin/Shaders/PixelShader.mfx");
-    MShaderAsset* pPixelShader = m_pLevelRef->GetShaderAsset(pixshaderid);
-    m_pPixelShader = CreatePixelShader(pPixelShader->m_pShaderBytecode, pPixelShader->m_nShaderBytecodeSize);
-
-    D3D11_INPUT_ELEMENT_DESC inDesc[3] = {
+    /*D3D11_INPUT_ELEMENT_DESC inDesc[3] = {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
@@ -151,14 +138,7 @@ bool CDX11Renderer::InitRenderer()
     hr = m_pd3dDevice->CreateInputLayout(inDesc, 3, pShader->m_pShaderBytecode, pShader->m_nShaderBytecodeSize, &m_pd3dInputLayout);
 
     if (FAILED(hr))
-        return false;
-
-    uint64_t id = m_pLevelRef->LoadModelAsset("Content/teapot.mmdl");
-    MModelAsset* pModelRef = m_pLevelRef->GetModelAsset(id);
-    m_pMainVertexBuffer = CreateVertexBuffer(pModelRef->m_pVertData, pModelRef->m_nNumVerts, EBufferUsage::Static);
-    m_pMainIndexBuffer = CreateIndexBuffer(pModelRef->m_pIndData, pModelRef->m_nNumInds, EBufferUsage::Static);
-    m_pObjectCBuffer = CreateConstantBuffer(sizeof(MObjectConstBuffer));
-    m_pWorldCBuffer = CreateConstantBuffer(sizeof(MWorldConstBuffer));
+        return false;*/
 
     ImGui_ImplDX11_Init(m_pd3dDevice, m_pd3dDeviceContext);
 
@@ -166,72 +146,10 @@ bool CDX11Renderer::InitRenderer()
 }
 
 void CDX11Renderer::RenderFrame()
-{
-    m_pd3dDeferredDeviceContext->OMSetRenderTargets(1, &m_pd3dRenderTargetView, m_pd3dDepthStencilView);
-    m_pd3dDeferredDeviceContext->OMSetBlendState(m_pTransparency, NULL, 0xFFFFFFFF);
-    m_pd3dDeferredDeviceContext->ClearRenderTargetView(m_pd3dRenderTargetView, color);
-    m_pd3dDeferredDeviceContext->ClearDepthStencilView(m_pd3dDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-    m_pd3dDeferredDeviceContext->RSSetViewports(1, &m_pd3dViewport);
-    m_pd3dDeferredDeviceContext->IASetInputLayout(m_pd3dInputLayout);
-    m_pd3dDeferredDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    DirectX::XMMATRIX LookTo = DirectX::XMMatrixLookAtLH(
-            DirectX::XMVectorSet(0.0f, 0.0f, -0.5f, 1.0f),
-            DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
-            DirectX::XMVectorSet(0.0f, 1.0f, 1.0f, 1.0f)
-    );
-
-    DirectX::XMMATRIX ViewProj = DirectX::XMMatrixPerspectiveFovLH(0.4f * 3.14f, (float)m_pWindowRef->GetWidth() / m_pWindowRef->GetHeight(), 1.0f, 1000.0f);
-
-    m_ObjectCBufferData.WorldMatrix = DirectX::XMMatrixRotationRollPitchYaw(objectRot[1], objectRot[2], objectRot[0]) * DirectX::XMMatrixTranslation(objectPos[1], objectPos[2], objectPos[0]);
-    DirectX::XMMATRIX WVP = m_ObjectCBufferData.WorldMatrix * LookTo * ViewProj;
-    m_ObjectCBufferData.WorldViewPorjection = WVP;
-    m_WorldCBufferData.SunPos.x = sunPos[1];
-    m_WorldCBufferData.SunPos.y = sunPos[2];
-    m_WorldCBufferData.SunPos.z = sunPos[0];
-    m_WorldCBufferData.SunPos.w = 1.0f;
-    UpdateConstantBuffer(m_pObjectCBuffer, &m_ObjectCBufferData);
-    UpdateConstantBuffer(m_pWorldCBuffer, &m_WorldCBufferData);
-    BindVertConstantBuffer(0, m_pObjectCBuffer);
-    BindPixelConstantBuffer(0, m_pWorldCBuffer);
-    SubmitMesh(m_pMainVertexBuffer, m_pMainIndexBuffer, m_pVertexShader, m_pPixelShader);
-    FinishCommandQueue();
-    if (m_pd3dCommandList)
-        m_pd3dDeviceContext->ExecuteCommandList(m_pd3dCommandList, TRUE);
-    
-    m_pd3dDeviceContext->OMSetRenderTargets(1, &m_pd3dRenderTargetView, m_pd3dDepthStencilView);
-
-    ImGui_ImplDX11_NewFrame();
-    ImGui_ImplWin32_NewFrame();
-    ImGui::NewFrame();
-
-    //ImGui::ShowDemoWindow();
-
-    ImGui::Begin("Debug");
-    ImGui::ColorEdit4("Clear color", color);
-    float min = 1.0f;
-    float max = 30.0f;
-    ImGui::DragFloat3("Position", objectPos, 0.1f);
-    ImGui::DragFloat3("Rotation", objectRot, 0.1f);
-    ImGui::DragFloat3("Sun Position", sunPos, 1.0f);
-    ImGui::End();
-
-    ImGui::Render();
-    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-    
-    // Update and Render additional Platform Windows
-    if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-    {
-        ImGui::UpdatePlatformWindows();
-        ImGui::RenderPlatformWindowsDefault();
-    }
-
-    m_pd3dSwapChain->Present(0, 0);
-
-    if (m_pd3dCommandList)
-    {
-        m_pd3dCommandList->Release();
-        m_pd3dCommandList = nullptr;
-    }
+{   
+    m_pd3dDeviceContext->OMSetRenderTargets(1, &m_pd3dRenderTargetView, NULL);
+    m_pd3dDeviceContext->ClearRenderTargetView(m_pd3dRenderTargetView, color);
+    m_pd3dSwapChain->Present(1, 0);
 }
 
 void CDX11Renderer::ShutdownRenderer()
@@ -256,13 +174,6 @@ void CDX11Renderer::ShutdownRenderer()
         m_pd3dCommandList->Release();
     if (m_pTransparency)
         m_pTransparency->Release();
-
-    m_pMainIndexBuffer->ReleaseBuffer();
-    m_pMainVertexBuffer->ReleaseBuffer();
-    m_pVertexShader->ReleaseShader();
-    m_pPixelShader->ReleaseShader();
-    m_pObjectCBuffer->ReleaseBuffer();
-    m_pWorldCBuffer->ReleaseBuffer();
 
     ImGui_ImplDX11_Shutdown();
     ImGui::DestroyContext();
@@ -432,6 +343,10 @@ void CDX11Renderer::SubmitMesh(IVertexBuffer* pVertex, IIndexBuffer* pIndex, ISh
 void CDX11Renderer::FinishCommandQueue()
 {
     m_pd3dDeferredDeviceContext->FinishCommandList(TRUE, &m_pd3dCommandList);
+}
+
+void CDX11Renderer::SubmitRenderBuffer(CRenderBuffer pBuffer)
+{
 }
 
 bool CreateDX11Renderer(IRenderer** pRenderer)

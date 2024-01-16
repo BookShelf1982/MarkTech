@@ -1,6 +1,6 @@
 cbuffer cbWorld : register(b0)
 {
-    float3 sunPos;
+    float4 sunPos;
 };
 
 struct vs_out

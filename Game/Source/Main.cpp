@@ -13,6 +13,7 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 		return 1;
 
 	g_pEngine->StartEngineLoop();
+
 	g_pEngine->DestroyEngine();
 
 	delete g_pEngine;

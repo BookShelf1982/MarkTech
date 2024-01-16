@@ -1,7 +1,6 @@
 #pragma once
 #include "Core.h"
 #include "Window.h"
-#include "Level.h"
 #include "Vectors.h"
 
 struct MObjectConstBuffer
@@ -15,12 +14,41 @@ struct MWorldConstBuffer
 	DirectX::XMFLOAT4 SunPos;
 };
 
+struct MLambertProps
+{
+	DirectX::XMFLOAT4 Color;
+};
+
 struct MGenericVertex
 {
 	MGenericVertex(float x, float y, float z, float u, float v, float nx, float ny, float nz) : pos(x, y, z), tcoords(u, v), norm(nx, ny, nz) {}
 	MVector3 pos;
 	MVector3 norm;
 	MVector2 tcoords;
+};
+
+enum class ERenderActionType
+{
+	BindVertexBuffer,
+	BindIndexBuffer,
+	BindConstantBuffer,
+	BindMaterial,
+};
+
+struct MRenderAction
+{
+	ERenderActionType Type;
+	uint64_t nDataId;
+};
+
+class CRenderBuffer
+{
+public:
+	MRenderAction* GetRenderActions() { return m_pRenderActions; }
+	size_t GetBufferSize() { return m_nSize; }
+private:
+	MRenderAction* m_pRenderActions;
+	size_t m_nSize;
 };
 
 class IVertexBuffer
@@ -69,7 +97,7 @@ enum class EBufferUsage
 {
 	Static = 0,
 	Dynamic = 1
-};;
+};
 
 class IRenderer
 {
@@ -78,7 +106,6 @@ public:
 	virtual	void RenderFrame() = 0;
 	virtual	void ShutdownRenderer() = 0;
 	virtual void SetWindow(IWindow* pWindow) = 0;
-	virtual void SetLevel(CLevel* pLevel) = 0;
 	virtual IVertexBuffer* CreateVertexBuffer(void* vertexData, size_t vertexDataSize, EBufferUsage bufferUsage) = 0;
 	virtual IIndexBuffer* CreateIndexBuffer(void* indexData, size_t indexDataSize, EBufferUsage bufferUsage) = 0;
 	virtual void BindVertexBuffer(IVertexBuffer* pVertexBuffer) const = 0;
@@ -93,6 +120,7 @@ public:
 	virtual void BindPixelConstantBuffer(size_t nSlot, IConstantBuffer* pBuffer) = 0;
 	virtual void SubmitMesh(IVertexBuffer* pVertex, IIndexBuffer* pIndex, IShader* pVertexShader, IShader* pPixelShader) = 0;
 	virtual void FinishCommandQueue() = 0;
+	virtual void SubmitRenderBuffer(CRenderBuffer buffer) = 0;
 	inline static ERendererAPI GetCurrentAPI() { return IRenderer::m_API; }
 protected:
 	static ERendererAPI m_API;
