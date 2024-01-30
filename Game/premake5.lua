@@ -10,6 +10,7 @@ project "Game"
 	includedirs
 	{
 		"%{wks.location}/Engine/EngineCore/Source",
+		"%{wks.location}/Engine/EngineCore/ThirdParty/DirectXHelpers",
 		"%{wks.location}/Shared"
 	}
 	

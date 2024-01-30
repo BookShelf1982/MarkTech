@@ -3,6 +3,7 @@
 #include "Pool.h"
 #include "Vessel.h"
 #include "ModelComponent.h"
+#include "TransformComponent.h"
 
 #define MAX_VESSELS 2048
 #define MAX_COMPONENTS 1024
@@ -30,7 +31,15 @@ public:
 	void DestroyComponent(uint64_t compId);
 
 	void DestroyAllComponentsFromVessel(uint64_t vesselId);
+
+	template<class T>
+	size_t GetIndexOfComponentFromVesselId(uint64_t vesselId);
+
+	void GiveSceneBuffer(IRenderer* pRenderer);
 private:
 	CTPool<MVessel> m_Vessels;
 	CTPool<MModelComponent> m_ModelComponents;
+	CTPool<MTransformComponent> m_TransformComponents;
+
+	CSceneBuffer m_SceneBuffer;
 };

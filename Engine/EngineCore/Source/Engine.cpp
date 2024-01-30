@@ -8,7 +8,7 @@ CEngine::CEngine()
 	m_pLevel = new CLevel();
 	m_pInput = new CInput();
 	m_pAssetRegistry = new CAssetRegistry();
-	m_pRenderer = nullptr;
+	m_pRenderer = new C3DRenderer();
 }
 
 CEngine::~CEngine()
@@ -37,15 +37,23 @@ bool CEngine::InitEngine()
 
 	uint64_t v1 = m_pLevel->CreateVessel();
 	MModelComponent comp = m_pLevel->CreateComponent<MModelComponent>();
+	MTransformComponent comp2 = m_pLevel->CreateComponent<MTransformComponent>();
 	m_pLevel->AttachComponentToVessel(v1, comp);
-	m_pLevel->DestroyVessel(v1);
+	m_pLevel->AttachComponentToVessel(v1, comp2);
 
-	if (!CreateDX11Renderer(&m_pRenderer))
-		return false;
+	uint64_t v2 = m_pLevel->CreateVessel();
+	MModelComponent comp20 = m_pLevel->CreateComponent<MModelComponent>();
+	MTransformComponent comp22 = m_pLevel->CreateComponent<MTransformComponent>();
+	m_pLevel->AttachComponentToVessel(v2, comp20);
+	m_pLevel->AttachComponentToVessel(v2, comp22);
+	//m_pLevel->DestroyVessel(v1);
 
-	m_pRenderer->SetWindow(m_pWindow);
+	uint64_t shaderId = m_pAssetRegistry->LoadShaderAsset("Bin/Shaders/VertexShader.mfx");
+	MShaderAsset* pShaderAsset = m_pAssetRegistry->GetShaderAsset(shaderId);
 
-	if (!m_pRenderer->InitRenderer())
+	m_pRenderer->SetRenderAPI(ERendererAPI::Direct3D12);
+
+	if (!m_pRenderer->Init(m_pWindow, m_pAssetRegistry))
 		return false;
 
 	return true;
@@ -57,12 +65,12 @@ void CEngine::DestroyEngine()
 	m_pLevel->DestroyLevel();
 	m_pInput->DestroyInput();
 	m_pAssetRegistry->DestroyAssetRegistry();
-	m_pRenderer->ShutdownRenderer();
+	m_pRenderer->Destroy();
 }
 
 void CEngine::StartEngineLoop()
 {
-	m_RenderThread = std::thread(&CEngine::RenderLoop, this);
+	m_GameThread = std::thread(&CEngine::GameLoop, this);
 	while (!m_bClosing)
 	{
 		MSG msg = {};
@@ -81,24 +89,22 @@ void CEngine::StartEngineLoop()
 				break;
 			}
 		}
-		if (m_bClosing)
-		{
-			break;
-		}
+
+		m_pRenderer->RenderFrame();
+	}
+	m_GameThread.join();
+}
+
+void CEngine::GameLoop()
+{
+	while (!m_bClosing)
+	{
 		if (m_pInput->IsKeyDown(MTKI_ESCAPE))
 		{
 			Close();
 		}
 		m_pLevel->UpdateLevel(0);
-	}
-	m_RenderThread.join();
-}
-
-void CEngine::RenderLoop()
-{
-	while (!m_bClosing)
-	{
-		m_pRenderer->RenderFrame();
+		//m_pLevel->GiveSceneBuffer(m_pRenderer);
 	}
 }
 

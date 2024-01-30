@@ -1,5 +1,4 @@
 #include "WinWindow.h"
-#include "imgui_impl_win32.h"
 
 CWinWindow::CWinWindow()
     :m_hInstance(NULL), m_WndClass(), m_hWnd(NULL)
@@ -50,36 +49,12 @@ void CWinWindow::MakeWindow(String title, int x, int y, int width, int height, E
 
     ShowWindow(m_hWnd, SW_SHOWNORMAL);
     UpdateWindow(m_hWnd);
-
-
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
-    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport / Platform Windows
-    io.ConfigWindowsMoveFromTitleBarOnly = true;
-    ImGui::StyleColorsMarkTechDark();
-
-    ImGuiStyle& style = ImGui::GetStyle();
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-    {
-        style.WindowRounding = 0.0f;
-        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-    }
-
-    ImGui_ImplWin32_Init(m_hWnd);
-    io.FontDefault = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\arial.ttf", 18.0f);
 }
 
 void CWinWindow::KillWindow()
 {
     DestroyWindow(m_hWnd);
     UnregisterClass(m_WndClass.lpszClassName, m_WndClass.hInstance);
-    ImGui_ImplWin32_Shutdown();
-    ImGui::DestroyPlatformWindows();
 }
 
 void CWinWindow::MessageLoop(const MSG* pMsg)
@@ -111,12 +86,8 @@ void CWinWindow::SetHInstance(HINSTANCE hInstance)
     m_hInstance = hInstance;
 }
 
-extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 LRESULT WindowProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
-    if (ImGui_ImplWin32_WndProcHandler(hWnd, Msg, wParam, lParam))
-        return true;
-
     switch (Msg)
     {
     case WM_DESTROY:

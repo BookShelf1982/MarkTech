@@ -10,7 +10,8 @@ project "EngineCore"
 	includedirs
 	{
 		"%{wks.location}/Shared/",
-		"%{wks.location}/Imgui/Source/"
+		"%{wks.location}/Imgui/Source/",
+		"%{prj.location}/ThirdParty/DirectXHelpers/"
 	}
 	
 	defines

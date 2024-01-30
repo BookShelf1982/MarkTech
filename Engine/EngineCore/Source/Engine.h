@@ -3,9 +3,9 @@
 #include "WinWindow.h"
 #include "Level.h"
 #include "Input.h"
-#include "DX11Renderer.h"
+#include "3DRenderer.h"
 #include "AssetRegistry.h"
-#include <future>
+#include <atomic>
 #include <thread>
 
 class CEngine
@@ -18,7 +18,7 @@ public:
 	bool InitEngine();
 	void DestroyEngine();
 	void StartEngineLoop();
-	void RenderLoop();
+	void GameLoop();
 	void Close();
 
 	bool IsClosing() const { return m_bClosing; }
@@ -28,8 +28,8 @@ private:
 	CWinWindow* m_pWindow;
 	CLevel* m_pLevel;
 	CInput* m_pInput;
-	IRenderer* m_pRenderer;
+	C3DRenderer* m_pRenderer;
 	CAssetRegistry* m_pAssetRegistry;
 
-	std::thread m_RenderThread;
+	std::thread m_GameThread;
 };
