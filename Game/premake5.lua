@@ -1,6 +1,7 @@
 project "Game"
     kind "WindowedApp"
     language "C++"
+	cppdialect "C++17"
 	
     files { "Source/**.h", "Source/**.cpp" }
 	
@@ -11,7 +12,7 @@ project "Game"
 	{
 		"%{wks.location}/Engine/EngineCore/Source",
 		"%{wks.location}/Engine/EngineCore/ThirdParty/DirectXHelpers",
-		"%{wks.location}/Shared"
+		"C:/VulkanSDK/1.3.275.0/Include"
 	}
 	
 	defines

@@ -48,10 +48,7 @@ bool CEngine::InitEngine()
 	m_pLevel->AttachComponentToVessel(v2, comp22);
 	//m_pLevel->DestroyVessel(v1);
 
-	uint64_t shaderId = m_pAssetRegistry->LoadShaderAsset("Bin/Shaders/VertexShader.mfx");
-	MShaderAsset* pShaderAsset = m_pAssetRegistry->GetShaderAsset(shaderId);
-
-	m_pRenderer->SetRenderAPI(ERendererAPI::Direct3D12);
+	m_pRenderer->SetRenderAPI(ERendererAPI::Vulkan);
 
 	if (!m_pRenderer->Init(m_pWindow, m_pAssetRegistry))
 		return false;

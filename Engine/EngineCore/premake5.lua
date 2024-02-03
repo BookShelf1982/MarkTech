@@ -1,6 +1,7 @@
 project "EngineCore"
     kind "StaticLib"
     language "C++"
+	cppdialect "C++17"
 	
     files { "Source/**.h", "Source/**.cpp" }
 	
@@ -11,17 +12,25 @@ project "EngineCore"
 	{
 		"%{wks.location}/Shared/",
 		"%{wks.location}/Imgui/Source/",
-		"%{prj.location}/ThirdParty/DirectXHelpers/"
+		"%{wks.location}/D3D12MemoryAllocator/include/",
+		"%{prj.location}/ThirdParty/DirectXHelpers/",
+		"C:/VulkanSDK/1.3.275.0/Include"
+	}
+	
+	libdirs
+	{
+		"C:/VulkanSDK/1.3.275.0/Lib"
 	}
 	
 	defines
     {
-        "MT_PLATFORM_WINDOWS",
+        "MT_PLATFORM_WINDOWS"
     }
 	
 	links
 	{
-		"Imgui"
+		"Imgui",
+		"vulkan-1.lib"
 	}
 	
     filter "configurations:Debug"

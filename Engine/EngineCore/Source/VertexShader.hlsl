@@ -1,8 +1,8 @@
-/*cbuffer cbObject : register(b0)
+struct cbObject
 {
-    row_major float4x4 World;
     row_major float4x4 WVP;
-};*/
+    row_major float4x4 World;
+};
 
 struct vs_in
 {

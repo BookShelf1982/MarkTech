@@ -2,7 +2,13 @@
 #include "Core.h"
 #include "AssetRegistry.h"
 #include "Renderer.h"
-#include "DX12Renderer.h"
+#include "VulkanRenderer.h"
+
+struct MPerObjectCBuffer
+{
+	DirectX::XMMATRIX WVP;
+	DirectX::XMMATRIX World;
+};
 
 class C3DRenderer
 {
