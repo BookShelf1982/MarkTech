@@ -12,8 +12,6 @@ project "EngineCore"
 	{
 		"%{wks.location}/Shared/",
 		"%{wks.location}/Imgui/Source/",
-		"%{wks.location}/D3D12MemoryAllocator/include/",
-		"%{prj.location}/ThirdParty/DirectXHelpers/",
 		"C:/VulkanSDK/1.3.275.0/Include"
 	}
 	

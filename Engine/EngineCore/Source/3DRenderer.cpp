@@ -47,7 +47,7 @@ bool C3DRenderer::Init(IWindow* pWindow, CAssetRegistry* pAssetRegistry)
 		0, 1, 2
 	};
 
-		if (m_pRenderInterface->InitRenderer(m_pWindowRef))
+	if (m_pRenderInterface->InitRenderer(m_pWindowRef))
 	{
 		m_Viewport.TopLeftX = 0.0f;
 		m_Viewport.TopLeftY = 0.0f;
