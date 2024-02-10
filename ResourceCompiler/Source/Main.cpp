@@ -44,22 +44,19 @@ int main(int argc, char* argv[])
 				srgb = true;
 		}
 		LoadTexture(argv[2], argv[3], mips, compression, srgb);
+		return 0;
 	}
 
 	if ((strcmp("-mfx", argv[1]) == 0))
 	{
-		if ((strcmp("-compiler", argv[4]) != 0))
-		{
-			printf("Couldn't find -compiler argument!\n");
-			return 1;
-		}
-		if ((strcmp("-entrypoint", argv[6]) != 0))
+		/*if ((strcmp("-entrypoint", argv[4]) != 0))
 		{
 			printf("Couldn't find -entrypoint argument!\n");
 			return 1;
-		}
+		}*/
 
-		LoadShader(argv[2], argv[3], argv[5], argv[7]);
+		LoadShader(argv[2], argv[3], "main");
+		return 0;
 	}
 
 	if ((strcmp("-mmdl", argv[1]) == 0))
@@ -76,6 +73,7 @@ int main(int argc, char* argv[])
 		}
 
 		LoadModel(argv[2], argv[3]);
+		return 0;
 	}
 
 #ifdef DEBUG

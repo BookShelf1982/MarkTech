@@ -2,9 +2,23 @@
 #include <iostream>
 #include <fstream>
 #include <random>
+#include <string>
+#include <sstream>
 
-int LoadShader(const char* filepath, const char* output, const char* shadertype, const char* entrypoint)
+const char* get_filename_ext(const char* filename)
 {
+	const char* dot = strrchr(filename, '.');
+	if (!dot || dot == filename) return "";
+	return dot + 1;
+}
+
+int LoadShader(const char* filepath, const char* output, const char* entrypoint)
+{
+	shaderc::Compiler shCompiler;
+	shaderc::CompileOptions shCompileOptions;
+	const char* shaderFileExtension = get_filename_ext(filepath);
+	shaderc_shader_kind shaderKind;
+
 	std::fstream InputFile;
 	InputFile.open(filepath, std::ios::in);
 	if (!InputFile.is_open())
@@ -14,43 +28,41 @@ int LoadShader(const char* filepath, const char* output, const char* shadertype,
 		return -1;
 	}
 
-	InputFile.seekg(0, std::ios::end);
-	size_t nSourceLength = InputFile.tellg();
-	InputFile.seekg(0, std::ios::beg);
-	const char* pszSourceFile = new char[nSourceLength];
-	InputFile.read((char*)pszSourceFile, nSourceLength);
+	if (strcmp(shaderFileExtension, "vert") == 0 || strcmp(shaderFileExtension, "vsh") == 0)
+	{
+		shaderKind = shaderc_vertex_shader;
+	}
+	else if (strcmp(shaderFileExtension, "frag") == 0 || strcmp(shaderFileExtension, "fsh") == 0)
+	{
+		shaderKind = shaderc_fragment_shader;
+	}
+	else
+	{
+		std::cout << "Failed to find shader type.\nPlease have shader source code file extension be a .vert and .vsh for vertex shaders\nand .frag and .fsh for fragment shaders\n";
+	}
+
+	std::stringstream fileStringStream;
+	fileStringStream << InputFile.rdbuf();
+	std::string sourceBuffer = fileStringStream.str();
 	InputFile.close();
 
-	HRESULT hr;
-	ID3D10Blob* pShaderByteCode;
-	ID3D10Blob* pError;
-
-	UINT flags = D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG;
-
-	wchar_t* wstr = new wchar_t[strlen(filepath) + 1];
-	mbstowcs(wstr, filepath, strlen(filepath) + 1);
-
-	hr = D3DCompileFromFile(wstr, NULL, D3D_COMPILE_STANDARD_FILE_INCLUDE, entrypoint, shadertype, flags, NULL, &pShaderByteCode, &pError);
-	if (FAILED(hr))
+	// -- compile shader -- //
+	shaderc::SpvCompilationResult compResult = shCompiler.CompileGlslToSpv(sourceBuffer, shaderKind, filepath, entrypoint, shCompileOptions);
+	
+	if (compResult.GetCompilationStatus() != shaderc_compilation_status_success)
 	{
-		if (pError != nullptr)
-		{
-			std::cout << (char*)pError->GetBufferPointer() << "\n";
-			std::cout << "Failed to compile shader.\nPress enter to exit...\n";
-			std::cin.get();
-			pError->Release();
-			if (pShaderByteCode != nullptr)
-				pShaderByteCode->Release();
-
-			return -1;
-		}
+		std::cout << "Failed to compile shader.\n" << compResult.GetErrorMessage() << "\n" << "Press enter to exit...\n";
+		std::cin.get();
+		return -1;
 	}
+	
+	std::vector<uint32_t> shaderBuffer(compResult.cbegin(), compResult.cend());
 
 	std::cout << "Shader compile succeded!\n";
 
 	std::string Path = output;
-	std::fstream model;
-	// If the file is not an .mmdl file return false
+
+	// If the file is not an .mfx file return false
 	if (Path.substr(Path.size() - 4, 4) != ".mfx")
 	{
 		std::cout << "Output file is not an mfx file.\nPress enter to exit...\n";
@@ -73,16 +85,12 @@ int LoadShader(const char* filepath, const char* output, const char* shadertype,
 	uint64_t assetId = dist(rd);
 
 	std::cout << "Asset Id: " << assetId << "\n";
-	size_t bytecodesize = pShaderByteCode->GetBufferSize();
+	size_t bytecodeSize = shaderBuffer.size() * sizeof(uint32_t);
+	std::cout << "Shader size: " << bytecodeSize << "\n";
 	OutputFile.write((char*)&assetId, sizeof(uint64_t));
-	OutputFile.write((char*)&nSourceLength, sizeof(size_t));
-	OutputFile.write((char*)&bytecodesize, sizeof(size_t));
-	OutputFile.write((char*)pszSourceFile, nSourceLength);
-	OutputFile.write((char*)pShaderByteCode->GetBufferPointer(), pShaderByteCode->GetBufferSize());
+	OutputFile.write((char*)&bytecodeSize, sizeof(size_t));
+	OutputFile.write((char*)shaderBuffer.data(), bytecodeSize);
 	OutputFile.close();
-
-	pShaderByteCode->Release();
-	delete[] pszSourceFile;
 
 	std::cout << "Shader exported!\n";
 

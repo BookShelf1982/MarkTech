@@ -32,7 +32,7 @@ bool C3DRenderer::Init(IWindow* pWindow, CAssetRegistry* pAssetRegistry)
 {
 	m_pWindowRef = pWindow;
 	m_pAssetRegistryRef = pAssetRegistry;
-	uint64_t nVShaderId = m_pAssetRegistryRef->LoadShaderAsset("Bin/Shaders/VertexShader.mfx");
+	uint64_t nVShaderId = m_pAssetRegistryRef->LoadShaderAsset("Bin/Shaders/Vert.mfx");
 	uint64_t nPShaderId = m_pAssetRegistryRef->LoadShaderAsset("Bin/Shaders/PixelShader.mfx");
 	MShaderAsset* pVShader = m_pAssetRegistryRef->GetShaderAsset(nVShaderId);
 	MShaderAsset* pPShader = m_pAssetRegistryRef->GetShaderAsset(nPShaderId);
@@ -49,6 +49,10 @@ bool C3DRenderer::Init(IWindow* pWindow, CAssetRegistry* pAssetRegistry)
 
 	if (m_pRenderInterface->InitRenderer(m_pWindowRef))
 	{
+		m_pVertexShader = m_pRenderInterface->CreateShader(pVShader->m_pShaderBytecode, pVShader->m_nShaderBytecodeSize);
+		m_pFragmentShader = m_pRenderInterface->CreateShader(pPShader->m_pShaderBytecode, pPShader->m_nShaderBytecodeSize);
+		m_pPipeline = m_pRenderInterface->CreatePipeline(m_pVertexShader, m_pFragmentShader);
+
 		m_Viewport.TopLeftX = 0.0f;
 		m_Viewport.TopLeftY = 0.0f;
 		m_Viewport.MaxDepth = 1.0f;
@@ -72,10 +76,18 @@ bool C3DRenderer::Init(IWindow* pWindow, CAssetRegistry* pAssetRegistry)
 
 void C3DRenderer::Destroy()
 {
+	m_pVertexShader->ReleaseShader();
+	m_pFragmentShader->ReleaseShader();
+	m_pPipeline->Release();
 	m_pRenderInterface->ShutdownRenderer();
 }
 
 void C3DRenderer::RenderFrame()
 {
-	
+	m_pRenderInterface->BeginCommandRecording();
+	m_pRenderInterface->BindPipelineObject(m_pPipeline);
+	m_pRenderInterface->SetViewportRect(m_Viewport);
+	m_pRenderInterface->SetScissorRect(m_ScissorRect);
+	m_pRenderInterface->DrawVertices(3);
+	m_pRenderInterface->EndCommandRecording();
 }

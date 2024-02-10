@@ -29,6 +29,8 @@ private:
 	IRenderer* m_pRenderInterface;
 	IVertexBuffer* m_pVertexBuffer;
 	IIndexBuffer* m_pIndexBuffer;
-	IPipelineState* m_pPipelineState;
+	IShader* m_pVertexShader;
+	IShader* m_pFragmentShader;
+	IPipelineObject* m_pPipeline;
 };
 

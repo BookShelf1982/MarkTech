@@ -98,11 +98,11 @@ public:
 	virtual void ReleaseShader() = 0;
 };
 
-class IPipelineState
+class IPipelineObject
 {
 public:
-	virtual ~IPipelineState() {}
-	virtual void ReleaseStateObject() = 0;
+	virtual ~IPipelineObject() {}
+	virtual void Release() = 0;
 };
 
 enum class ERendererAPI
@@ -142,11 +142,22 @@ struct MRect
 class IRenderer
 {
 public:
+	virtual ~IRenderer() {}
 	virtual	bool InitRenderer(IWindow* window) = 0;
 	virtual	void ShutdownRenderer() = 0;
 	inline static ERendererAPI GetCurrentAPI() { return IRenderer::m_API; }
+
+	virtual IShader* CreateShader(char* data, size_t dataSize) = 0;
+
+	virtual IPipelineObject* CreatePipeline(IShader* vertexShader, IShader* fragmentShader) = 0;
+
+	// -- Command Buffer Funcs -- //
+	virtual void BeginCommandRecording() = 0;
+	virtual void EndCommandRecording() = 0;
+	virtual void BindPipelineObject(IPipelineObject* pipeline) = 0;
+	virtual void SetViewportRect(MViewport viewport) = 0;
+	virtual void SetScissorRect(MRect rect) = 0;
+	virtual void DrawVertices(uint32_t numVerts) = 0;
 protected:
 	static ERendererAPI m_API;
-	uint32_t m_nVertexStride = sizeof(MGenericVertex);
-	uint32_t m_nVertexOffset = 0;
 };

@@ -1,9 +1,8 @@
 #pragma once
-#include <d3dcompiler.h>
 
-#pragma comment( lib, "d3dcompiler.lib" ) // shader compiler
+#include <shaderc\shaderc.hpp>
 
 extern "C"
 {
-	__declspec(dllexport) int LoadShader(const char* filepath, const char* output, const char* shadertype, const char* entrypoint);
+	__declspec(dllexport) int LoadShader(const char* filepath, const char* output, const char* entrypoint);
 }

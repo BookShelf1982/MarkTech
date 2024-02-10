@@ -14,20 +14,22 @@ project "ResourceCompiler"
 	includedirs
 	{
 		"%{prj.location}/ThirdParty/Assimp/include",
-		"%{wks.location}/DirectXTex"
+		"%{wks.location}/DirectXTex",
+		"C:/VulkanSDK/1.3.275.0/Include"
 	}
 	
 	libdirs
 	{
 		"%{prj.location}/ThirdParty/Assimp/lib/x64",
+		"C:/VulkanSDK/1.3.275.0/Lib"
 	}
 	
 	links
 	{
 		"assimp-vc143-mt.lib",
-		"DirectXTex"
-	}
-	
+		"DirectXTex",
+		"shaderc_combined.lib",
+	}	
 	postbuildcommands
 	{
 		"{MKDIR} %{wks.location}Build/Bin/",

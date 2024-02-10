@@ -98,8 +98,7 @@ uint64_t CAssetRegistry::LoadModelAsset(String path)
 uint64_t CAssetRegistry::LoadShaderAsset(String path)
 {
 	uint64_t id = 0;
-	size_t nVertShaderDataSize = 0;
-	size_t nShaderSourceDataSize = 0;
+	size_t nShaderDataSize = 0;
 
 	std::fstream InputFile;
 	InputFile.open(path.c_str(), std::ios::in | std::ios::binary);
@@ -108,15 +107,13 @@ uint64_t CAssetRegistry::LoadShaderAsset(String path)
 		return false;
 
 	InputFile.read((char*)&id ,sizeof(uint64_t));
-	InputFile.read((char*)&nShaderSourceDataSize, sizeof(size_t));
-	InputFile.read((char*)&nVertShaderDataSize, sizeof(size_t));
-	InputFile.seekg(nShaderSourceDataSize, std::ios::_Seekcur);
-	char* pVertShaderData = new char[nVertShaderDataSize];
-	InputFile.read((char*)pVertShaderData, nVertShaderDataSize);
+	InputFile.read((char*)&nShaderDataSize, sizeof(size_t));
+	char* pVertShaderData = new char[nShaderDataSize];
+	InputFile.read((char*)pVertShaderData, nShaderDataSize);
 	InputFile.close();
 
 	m_pShaders[m_nShadersCurrentSize].m_nId = id;
-	m_pShaders[m_nShadersCurrentSize].m_nShaderBytecodeSize = nVertShaderDataSize;
+	m_pShaders[m_nShadersCurrentSize].m_nShaderBytecodeSize = nShaderDataSize;
 	m_pShaders[m_nShadersCurrentSize].m_pShaderBytecode = pVertShaderData;
 
 	m_nShadersCurrentSize++;
