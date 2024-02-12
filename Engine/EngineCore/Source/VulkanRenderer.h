@@ -77,10 +77,16 @@ public:
 
 	virtual void BeginCommandRecording() override;
 	virtual void EndCommandRecording() override;
+	virtual void SubmitCommandRecording() override;
 	virtual void BindPipelineObject(IPipelineObject* pipeline) override;
 	virtual void SetViewportRect(MViewport viewport) override;
 	virtual void SetScissorRect(MRect rect) override;
 	virtual void DrawVertices(uint32_t numVerts) override;
+
+	virtual void WaitForPreviousFrame() override;
+
+	virtual void AquireNextSwapChainImage() override;
+	virtual void Present() override;
 private:
 	// -- General stuff -- //
 	VkInstance m_vkInstance;
@@ -107,6 +113,12 @@ private:
 	// -- Command buffers -- //
 	VkCommandPool m_vkCommandPool;
 	VkCommandBuffer m_vkCommandBuffer;
+
+	// -- Sync objects -- //
+	VkSemaphore m_vkSwpaChainBufferAvailable;
+	VkSemaphore m_vkFinishedRendering;
+	VkFence m_vkInFlightFence;
+
 
 	// -- Private Helper Funcitons -- //
 	bool CheckDeviceExtensionSupport(VkPhysicalDevice device, const std::vector<const char*>& extensions);

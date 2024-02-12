@@ -159,12 +159,22 @@ bool CVulkanRenderer::InitRenderer(IWindow* window)
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &colorAttachmentRef;
 
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask = 0;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfo.attachmentCount = 1;
     renderPassInfo.pAttachments = &colorAttachment;
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = &dependency;
 
     result = vkCreateRenderPass(m_vkDevice, &renderPassInfo, nullptr, &m_vkRenderPass);
     if (vkFAILED(result))
@@ -195,12 +205,38 @@ bool CVulkanRenderer::InitRenderer(IWindow* window)
     if (vkFAILED(result))
         return false;
 
+    // -- Sync object creation -- //
+    VkSemaphoreCreateInfo semaphoreInfo{};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    result = vkCreateSemaphore(m_vkDevice, &semaphoreInfo, nullptr, &m_vkSwpaChainBufferAvailable);
+    if (vkFAILED(result))
+        return false;
+
+    result = vkCreateSemaphore(m_vkDevice, &semaphoreInfo, nullptr, &m_vkFinishedRendering);
+    if (vkFAILED(result))
+        return false;
+    
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    result = vkCreateFence(m_vkDevice, &fenceInfo, nullptr, &m_vkInFlightFence);
+    if (vkFAILED(result))
+        return false;
+
     return true;
 }
 
 void CVulkanRenderer::ShutdownRenderer()
 {
+    vkDeviceWaitIdle(m_vkDevice); // Wait for logical device to finish before releasing everything
 
+    vkDestroySemaphore(m_vkDevice, m_vkSwpaChainBufferAvailable, nullptr);
+
+    vkDestroySemaphore(m_vkDevice, m_vkFinishedRendering, nullptr);
+
+    vkDestroyFence(m_vkDevice, m_vkInFlightFence, nullptr);
 
     vkDestroyCommandPool(m_vkDevice, m_vkCommandPool, nullptr);
 
@@ -271,6 +307,25 @@ void CVulkanRenderer::EndCommandRecording()
     VkResult result = vkEndCommandBuffer(m_vkCommandBuffer);
 }
 
+void CVulkanRenderer::SubmitCommandRecording()
+{
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+    VkSemaphore waitSemaphores[] = { m_vkSwpaChainBufferAvailable };
+    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = waitSemaphores;
+    submitInfo.pWaitDstStageMask = waitStages;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &m_vkCommandBuffer;
+    VkSemaphore signalSemaphores[] = { m_vkFinishedRendering };
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = signalSemaphores;
+
+    vkQueueSubmit(m_vkGraphicsRenderQueue, 1, &submitInfo, m_vkInFlightFence);
+}
+
 void CVulkanRenderer::BindPipelineObject(IPipelineObject* pipeline)
 {
     CVulkanPipelineObject* pPipeline = dynamic_cast<CVulkanPipelineObject*>(pipeline);
@@ -301,6 +356,36 @@ void CVulkanRenderer::SetScissorRect(MRect rect)
 void CVulkanRenderer::DrawVertices(uint32_t numVerts)
 {
     vkCmdDraw(m_vkCommandBuffer, numVerts, 1, 0, 0);
+}
+
+//* Waits for the previous frame to be rendered
+void CVulkanRenderer::WaitForPreviousFrame()
+{
+    vkWaitForFences(m_vkDevice, 1, &m_vkInFlightFence, VK_TRUE, UINT64_MAX);
+    vkResetFences(m_vkDevice, 1, &m_vkInFlightFence);
+}
+
+//* Aquires next image in the swap chain
+void CVulkanRenderer::AquireNextSwapChainImage()
+{
+    vkAcquireNextImageKHR(m_vkDevice, m_vkSwapchain, UINT64_MAX, m_vkSwpaChainBufferAvailable, VK_NULL_HANDLE, &m_nImageIndex);
+}
+
+void CVulkanRenderer::Present()
+{
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+    VkSemaphore signalSemaphores[] = { m_vkFinishedRendering };
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = signalSemaphores; // Wait for command buffer execution to finish before presenting
+    VkSwapchainKHR swapChains[] = { m_vkSwapchain };
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = &m_vkSwapchain;
+    presentInfo.pImageIndices = &m_nImageIndex;
+    presentInfo.pResults = nullptr;
+    
+    VkResult result = vkQueuePresentKHR(m_vkPresentQueue, &presentInfo);
 }
 
 #ifdef DEBUG

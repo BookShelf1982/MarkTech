@@ -154,10 +154,18 @@ public:
 	// -- Command Buffer Funcs -- //
 	virtual void BeginCommandRecording() = 0;
 	virtual void EndCommandRecording() = 0;
+	virtual void SubmitCommandRecording() = 0;
 	virtual void BindPipelineObject(IPipelineObject* pipeline) = 0;
 	virtual void SetViewportRect(MViewport viewport) = 0;
 	virtual void SetScissorRect(MRect rect) = 0;
 	virtual void DrawVertices(uint32_t numVerts) = 0;
+
+	// -- Sync -- //
+	virtual void WaitForPreviousFrame() = 0;
+
+	// -- Swapchain -- //
+	virtual void AquireNextSwapChainImage() = 0;
+	virtual void Present() = 0;
 protected:
 	static ERendererAPI m_API;
 };

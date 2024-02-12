@@ -84,10 +84,17 @@ void C3DRenderer::Destroy()
 
 void C3DRenderer::RenderFrame()
 {
+	m_pRenderInterface->WaitForPreviousFrame();
+
+	m_pRenderInterface->AquireNextSwapChainImage();
+
 	m_pRenderInterface->BeginCommandRecording();
 	m_pRenderInterface->BindPipelineObject(m_pPipeline);
 	m_pRenderInterface->SetViewportRect(m_Viewport);
 	m_pRenderInterface->SetScissorRect(m_ScissorRect);
 	m_pRenderInterface->DrawVertices(3);
 	m_pRenderInterface->EndCommandRecording();
+	m_pRenderInterface->SubmitCommandRecording();
+
+	m_pRenderInterface->Present();
 }
