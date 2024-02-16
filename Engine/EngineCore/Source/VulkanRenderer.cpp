@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <fstream>
 
+
 CVulkanRenderer::CVulkanRenderer()
 {
 }
@@ -18,14 +19,17 @@ CVulkanRenderer::~CVulkanRenderer()
 
 bool CVulkanRenderer::InitRenderer(IWindow* window)
 {
+    VkResult result = volkInitialize();
+
     // -- Instance creation -- //
     VkApplicationInfo appInfo = {};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.apiVersion = VK_VERSION_1_3;
-    appInfo.applicationVersion = VK_MAKE_API_VERSION(0, 0, 0, 1);
-    appInfo.pApplicationName = "MarkTech Vulkan";
-    appInfo.engineVersion = VK_MAKE_API_VERSION(0, 0, 0, 1);
-    appInfo.pEngineName = "MarkTech";
+    appInfo.apiVersion = VK_API_VERSION_1_2;
+    appInfo.pNext = NULL;
+    appInfo.applicationVersion = 1;
+    appInfo.pApplicationName = "Unkown";
+    appInfo.engineVersion = 1;
+    appInfo.pEngineName = "No Engine";
 
     std::vector<const char*> extensions;
     std::vector<const char*> validationLayers;
@@ -33,25 +37,31 @@ bool CVulkanRenderer::InitRenderer(IWindow* window)
     VkInstanceCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
-    extensions.emplace_back("VK_KHR_surface");
-
-#ifdef MT_PLATFORM_WINDOWS
-    extensions.emplace_back("VK_KHR_win32_surface");
-#endif
+    createInfo.flags = 0;
+    createInfo.pNext = NULL;
 
 #ifdef DEBUG
     extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     validationLayers.emplace_back("VK_LAYER_KHRONOS_validation");
+
     createInfo.enabledLayerCount = (uint32_t)validationLayers.size();
-    createInfo.enabledExtensionCount = (uint32_t)extensions.size();
     createInfo.ppEnabledLayerNames = validationLayers.data();
+#endif
+
+#ifdef MT_PLATFORM_WINDOWS
+    extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
+    extensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+
+    createInfo.enabledExtensionCount = (uint32_t)extensions.size();
     createInfo.ppEnabledExtensionNames = extensions.data();
 #endif
 
-    VkResult result = vkCreateInstance(&createInfo, nullptr, &m_vkInstance);
+    result = vkCreateInstance(&createInfo, nullptr, &m_vkInstance);
 
     if (vkFAILED(result))
         return false;
+
+    volkLoadInstance(m_vkInstance);
 
     // -- Debug layer -- //
 #ifdef DEBUG
@@ -59,16 +69,15 @@ bool CVulkanRenderer::InitRenderer(IWindow* window)
 #endif
 
     // -- Window creation -- //
-#ifdef MT_PLATFORM_WINDOWS
     VkWin32SurfaceCreateInfoKHR windowInfo = {};
     windowInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
     windowInfo.hwnd = reinterpret_cast<CWinWindow*>(window)->GetHWND();
     windowInfo.hinstance = GetModuleHandleW(NULL);
 
-    result = vkCreateWin32SurfaceKHR(m_vkInstance, &windowInfo, nullptr, &m_vkWindowSurface);
+    PFN_vkCreateWin32SurfaceKHR pfnvkCreateWin32SurfaceKHR = (PFN_vkCreateWin32SurfaceKHR)vkGetInstanceProcAddr(m_vkInstance, "vkCreateWin32SurfaceKHR");
+    result = pfnvkCreateWin32SurfaceKHR(m_vkInstance, &windowInfo, nullptr, &m_vkWindowSurface);
     if (vkFAILED(result))
         return false;
-#endif
 
     // -- Physical device selection -- //
     uint32_t deviceCount = 0;
@@ -132,6 +141,45 @@ bool CVulkanRenderer::InitRenderer(IWindow* window)
 
     vkGetDeviceQueue(m_vkDevice, indices.graphicsFamily.value(), 0, &m_vkGraphicsRenderQueue);
     vkGetDeviceQueue(m_vkDevice, indices.presentFamily.value(), 0, &m_vkPresentQueue);
+
+    // -- Vulkan Memory Allocator -- //
+    VmaVulkanFunctions vulkanFunctions{};
+    vulkanFunctions.vkAllocateMemory = vkAllocateMemory;
+    vulkanFunctions.vkBindBufferMemory = vkBindBufferMemory;
+    vulkanFunctions.vkBindBufferMemory2KHR = vkBindBufferMemory2KHR;
+    vulkanFunctions.vkBindImageMemory = vkBindImageMemory;
+    vulkanFunctions.vkBindImageMemory2KHR = vkBindImageMemory2KHR;
+    vulkanFunctions.vkCmdCopyBuffer = vkCmdCopyBuffer;
+    vulkanFunctions.vkCreateBuffer = vkCreateBuffer;
+    vulkanFunctions.vkCreateImage = vkCreateImage;
+    vulkanFunctions.vkDestroyBuffer = vkDestroyBuffer;
+    vulkanFunctions.vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges;
+    vulkanFunctions.vkFreeMemory = vkFreeMemory;
+    vulkanFunctions.vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements;
+    vulkanFunctions.vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2KHR;
+    vulkanFunctions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
+    vulkanFunctions.vkGetImageMemoryRequirements = vkGetImageMemoryRequirements;
+    vulkanFunctions.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2KHR;
+    vulkanFunctions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
+    vulkanFunctions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
+    vulkanFunctions.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
+    vulkanFunctions.vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2KHR;
+    vulkanFunctions.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
+    vulkanFunctions.vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges;
+    vulkanFunctions.vkMapMemory = vkMapMemory;
+    vulkanFunctions.vkUnmapMemory = vkUnmapMemory;
+
+    VmaAllocatorCreateInfo allocatorInfo{};
+    allocatorInfo.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
+    allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_2;
+    allocatorInfo.device = m_vkDevice;
+    allocatorInfo.instance = m_vkInstance;
+    allocatorInfo.physicalDevice = m_vkPhysicalDevice;
+    allocatorInfo.pVulkanFunctions = &vulkanFunctions;
+
+    result = vmaCreateAllocator(&allocatorInfo, &m_vmaAllocator);
+    if (vkFAILED(result))
+        return false;
 
     // -- Swapchain creation -- //
     CreateSwapChain(m_vkDevice, m_vkSwapchain, indices, window);
@@ -255,6 +303,8 @@ void CVulkanRenderer::ShutdownRenderer()
     vkDestroySurfaceKHR(m_vkInstance, m_vkWindowSurface, nullptr);
 
     vkDestroyRenderPass(m_vkDevice, m_vkRenderPass, nullptr);
+
+    vmaDestroyAllocator(m_vmaAllocator);
 
     vkDestroyDevice(m_vkDevice, nullptr);
 
@@ -668,6 +718,7 @@ bool CVulkanRenderer::CreateFrameBuffers()
         if (vkFAILED(result))
             return false;
     }
+    return true;
 }
 
 std::vector<char> CVulkanRenderer::ReadFromFile(const char* filename)
@@ -690,7 +741,7 @@ std::vector<char> CVulkanRenderer::ReadFromFile(const char* filename)
 VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
 {
     char buffer[2048];
-    sprintf(buffer, "%s\n", pCallbackData->pMessage);
+    sprintf_s(buffer, "%s\n", pCallbackData->pMessage);
     OutputDebugStringA(buffer);
 
     return VK_FALSE;
@@ -754,12 +805,34 @@ CVulkanPipelineObject::CVulkanPipelineObject(VkDevice device, VkShaderModule ver
     dynamicState.dynamicStateCount = static_cast<uint32_t>(2);
     dynamicState.pDynamicStates = dynamicStates;
 
+    VkVertexInputBindingDescription bindingDesc{};
+    bindingDesc.binding = 0;
+    bindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    bindingDesc.stride = sizeof(MGenericVertex);
+
+    VkVertexInputAttributeDescription vertexAttributeDesc[3];
+    vertexAttributeDesc[0].binding = 0;
+    vertexAttributeDesc[0].location = 0;
+    vertexAttributeDesc[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+    vertexAttributeDesc[0].offset = offsetof(MGenericVertex, pos);
+
+    vertexAttributeDesc[1].binding = 0;
+    vertexAttributeDesc[1].location = 1;
+    vertexAttributeDesc[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+    vertexAttributeDesc[1].offset = offsetof(MGenericVertex, norm);
+
+    vertexAttributeDesc[2].binding = 0;
+    vertexAttributeDesc[2].location = 2;
+    vertexAttributeDesc[2].format = VK_FORMAT_R32G32_SFLOAT;
+    vertexAttributeDesc[2].offset = offsetof(MGenericVertex, tcoords);
+
+
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = 0;
-    vertexInputInfo.pVertexBindingDescriptions = nullptr; // Optional
-    vertexInputInfo.vertexAttributeDescriptionCount = 0;
-    vertexInputInfo.pVertexAttributeDescriptions = nullptr; // Optional
+    vertexInputInfo.vertexBindingDescriptionCount = 1;
+    vertexInputInfo.pVertexBindingDescriptions = &bindingDesc;
+    vertexInputInfo.vertexAttributeDescriptionCount = 3;
+    vertexInputInfo.pVertexAttributeDescriptions = vertexAttributeDesc;
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -864,6 +937,33 @@ CVulkanPipelineObject::~CVulkanPipelineObject()
 }
 
 void CVulkanPipelineObject::Release()
+{
+    delete this;
+}
+
+CVulkanVertexBuffer::CVulkanVertexBuffer(VmaAllocator allocator, void* data, size_t dataSize)
+    :m_vkBuffer(VK_NULL_HANDLE), m_vmaAllocation(VK_NULL_HANDLE), m_vmaAllocatorRef(VK_NULL_HANDLE)
+{
+    m_vmaAllocatorRef = allocator;
+
+    VkBufferCreateInfo bufferInfo{};
+    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size = dataSize;
+    bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    VmaAllocationCreateInfo allocInfo = {};
+    allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+
+    VkResult result = vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &m_vkBuffer, &m_vmaAllocation, nullptr);
+}
+
+CVulkanVertexBuffer::~CVulkanVertexBuffer()
+{
+    vmaDestroyBuffer(m_vmaAllocatorRef, m_vkBuffer, m_vmaAllocation);
+}
+
+void CVulkanVertexBuffer::ReleaseBuffer()
 {
     delete this;
 }

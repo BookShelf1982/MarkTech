@@ -76,6 +76,7 @@ bool C3DRenderer::Init(IWindow* pWindow, CAssetRegistry* pAssetRegistry)
 
 void C3DRenderer::Destroy()
 {
+	m_pRenderInterface->WaitForPreviousFrame();
 	m_pVertexShader->ReleaseShader();
 	m_pFragmentShader->ReleaseShader();
 	m_pPipeline->Release();

@@ -3,7 +3,7 @@ project "EngineCore"
     language "C++"
 	cppdialect "C++17"
 	
-    files { "Source/**.h", "Source/**.cpp" }
+    files { "Source/**.h", "Source/**.cpp", "Source/**.c" }
 	
     targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
     objdir ("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")
@@ -12,12 +12,12 @@ project "EngineCore"
 	{
 		"%{wks.location}/Shared/",
 		"%{wks.location}/Imgui/Source/",
-		"C:/VulkanSDK/1.3.275.0/Include"
+		"C:/VulkanSDK/1.3.275.0/Include/"
 	}
 	
 	libdirs
 	{
-		"C:/VulkanSDK/1.3.275.0/Lib"
+		"C:/VulkanSDK/1.3.275.0/Lib/"
 	}
 	
 	defines
@@ -28,7 +28,7 @@ project "EngineCore"
 	links
 	{
 		"Imgui",
-		"vulkan-1.lib"
+		"volk.lib"
 	}
 	
     filter "configurations:Debug"

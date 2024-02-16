@@ -65,7 +65,6 @@ class IVertexBuffer
 public:
 	virtual ~IVertexBuffer() {}
 	virtual void ReleaseBuffer() = 0;
-	virtual inline uint64_t GetIdFromAssetId() const = 0;
 };
 
 class IIndexBuffer
@@ -73,8 +72,6 @@ class IIndexBuffer
 public:
 	virtual ~IIndexBuffer() {}
 	virtual void ReleaseBuffer() = 0;
-	virtual inline size_t GetInds() const = 0;
-	virtual inline uint64_t GetIdFromAssetId() const = 0;
 };
 
 class IConstantBuffer

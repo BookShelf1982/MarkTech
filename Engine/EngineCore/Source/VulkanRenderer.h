@@ -4,9 +4,10 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 #include "WinWindow.h"
 #endif
-#include <vulkan\vulkan.h>
 #include <optional>
 #include <vector>
+#include <Volk\volk.h>
+#include "VmaUsage.h"
 
 #define vkSUCCEDED(result) result == VK_SUCCESS
 #define vkFAILED(result) result != VK_SUCCESS
@@ -35,6 +36,18 @@ struct MSwapChainDetails
 	VkSurfaceCapabilitiesKHR surfaceCapabilities;
 	std::vector<VkSurfaceFormatKHR> formats;
 	std::vector<VkPresentModeKHR> presentModes;
+};
+
+class CVulkanVertexBuffer : public IVertexBuffer
+{
+public:
+	CVulkanVertexBuffer(VmaAllocator allocator, void* data, size_t dataSize);
+	~CVulkanVertexBuffer();
+	virtual void ReleaseBuffer() override;
+private:
+	VkBuffer m_vkBuffer;
+	VmaAllocation m_vmaAllocation;
+	VmaAllocator m_vmaAllocatorRef;
 };
 
 class CVulkanShader : public IShader
@@ -94,6 +107,7 @@ private:
 	VkDevice m_vkDevice;
 	VkQueue m_vkGraphicsRenderQueue;
 	VkQueue m_vkPresentQueue;
+	VmaAllocator m_vmaAllocator; // Vulkan Memory Allocator
 
 	// -- Swap chain stuff -- //
 	uint32_t m_nImageIndex;
@@ -133,6 +147,12 @@ private:
 	void CreateImageViews();
 	bool CreateFrameBuffers();
 	static std::vector<char> ReadFromFile(const char* filename);
+
+
+
+#ifdef MT_PLATFORM_WINDOWS
+	HMODULE VulkanLibrary;
+#endif
 
 #ifdef DEBUG
 	VkDebugUtilsMessengerEXT m_vkDebugMessenger;
