@@ -41,11 +41,13 @@ struct MSwapChainDetails
 class CVulkanVertexBuffer : public IVertexBuffer
 {
 public:
-	CVulkanVertexBuffer(VmaAllocator allocator, void* data, size_t dataSize);
+	CVulkanVertexBuffer(VkDevice device, VmaAllocator allocator, VkCommandPool commandPool, VkQueue, void* data, size_t dataSize);
 	~CVulkanVertexBuffer();
+	VkBuffer GetBuffer() { return m_vkBuffer; }
 	virtual void ReleaseBuffer() override;
 private:
 	VkBuffer m_vkBuffer;
+	VkDevice m_vkDeviceRef;
 	VmaAllocation m_vmaAllocation;
 	VmaAllocator m_vmaAllocatorRef;
 };
@@ -86,12 +88,15 @@ public:
 
 	virtual IShader* CreateShader(char* data, size_t dataSize) override;
 
+	virtual IVertexBuffer* CreateVertexBuffer(char* data, size_t dataSize) override;
+
 	virtual IPipelineObject* CreatePipeline(IShader* vertexShader, IShader* fragmentShader) override;
 
 	virtual void BeginCommandRecording() override;
 	virtual void EndCommandRecording() override;
 	virtual void SubmitCommandRecording() override;
 	virtual void BindPipelineObject(IPipelineObject* pipeline) override;
+	virtual void BindVertexBuffer(IVertexBuffer* buffer) override;
 	virtual void SetViewportRect(MViewport viewport) override;
 	virtual void SetScissorRect(MRect rect) override;
 	virtual void DrawVertices(uint32_t numVerts) override;
@@ -126,6 +131,7 @@ private:
 
 	// -- Command buffers -- //
 	VkCommandPool m_vkCommandPool;
+	VkCommandPool m_vkTransferCommandPool;
 	VkCommandBuffer m_vkCommandBuffer;
 
 	// -- Sync objects -- //

@@ -38,9 +38,9 @@ bool C3DRenderer::Init(IWindow* pWindow, CAssetRegistry* pAssetRegistry)
 	MShaderAsset* pPShader = m_pAssetRegistryRef->GetShaderAsset(nPShaderId);
 
 	MGenericVertex vData[3] = {
-		{ 0.0f, 0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-		{ 0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f },
-		{ -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}
+		{ 0.0f, -0.5f, 0.5f, 1.0f, 0.5f, 0.0f, 0.0f, 0.0f},
+		{ 0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f },
+		{ -0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f}
 	};
 
 	uint32_t iData[3] = {
@@ -52,6 +52,7 @@ bool C3DRenderer::Init(IWindow* pWindow, CAssetRegistry* pAssetRegistry)
 		m_pVertexShader = m_pRenderInterface->CreateShader(pVShader->m_pShaderBytecode, pVShader->m_nShaderBytecodeSize);
 		m_pFragmentShader = m_pRenderInterface->CreateShader(pPShader->m_pShaderBytecode, pPShader->m_nShaderBytecodeSize);
 		m_pPipeline = m_pRenderInterface->CreatePipeline(m_pVertexShader, m_pFragmentShader);
+		m_pVertexBuffer = m_pRenderInterface->CreateVertexBuffer((char*)vData, 3 * sizeof(MGenericVertex));
 
 		m_Viewport.TopLeftX = 0.0f;
 		m_Viewport.TopLeftY = 0.0f;
@@ -77,6 +78,7 @@ bool C3DRenderer::Init(IWindow* pWindow, CAssetRegistry* pAssetRegistry)
 void C3DRenderer::Destroy()
 {
 	m_pRenderInterface->WaitForPreviousFrame();
+	m_pVertexBuffer->ReleaseBuffer();
 	m_pVertexShader->ReleaseShader();
 	m_pFragmentShader->ReleaseShader();
 	m_pPipeline->Release();
@@ -93,6 +95,7 @@ void C3DRenderer::RenderFrame()
 	m_pRenderInterface->BindPipelineObject(m_pPipeline);
 	m_pRenderInterface->SetViewportRect(m_Viewport);
 	m_pRenderInterface->SetScissorRect(m_ScissorRect);
+	m_pRenderInterface->BindVertexBuffer(m_pVertexBuffer);
 	m_pRenderInterface->DrawVertices(3);
 	m_pRenderInterface->EndCommandRecording();
 	m_pRenderInterface->SubmitCommandRecording();

@@ -88,7 +88,8 @@ bool CVulkanRenderer::InitRenderer(IWindow* window)
 
     std::vector<VkPhysicalDevice> devices(deviceCount);
     std::vector<const char*> requiredExtensions = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME
     };
     vkEnumeratePhysicalDevices(m_vkInstance, &deviceCount, devices.data());
 
@@ -150,8 +151,9 @@ bool CVulkanRenderer::InitRenderer(IWindow* window)
     vulkanFunctions.vkBindImageMemory = vkBindImageMemory;
     vulkanFunctions.vkBindImageMemory2KHR = vkBindImageMemory2KHR;
     vulkanFunctions.vkCmdCopyBuffer = vkCmdCopyBuffer;
-    vulkanFunctions.vkCreateBuffer = vkCreateBuffer;
     vulkanFunctions.vkCreateImage = vkCreateImage;
+    vulkanFunctions.vkDestroyImage = vkDestroyImage;
+    vulkanFunctions.vkCreateBuffer = vkCreateBuffer;
     vulkanFunctions.vkDestroyBuffer = vkDestroyBuffer;
     vulkanFunctions.vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges;
     vulkanFunctions.vkFreeMemory = vkFreeMemory;
@@ -168,9 +170,10 @@ bool CVulkanRenderer::InitRenderer(IWindow* window)
     vulkanFunctions.vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges;
     vulkanFunctions.vkMapMemory = vkMapMemory;
     vulkanFunctions.vkUnmapMemory = vkUnmapMemory;
+    vulkanFunctions.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2KHR;
 
     VmaAllocatorCreateInfo allocatorInfo{};
-    allocatorInfo.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
+    allocatorInfo.flags = 0;
     allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_2;
     allocatorInfo.device = m_vkDevice;
     allocatorInfo.instance = m_vkInstance;
@@ -234,6 +237,15 @@ bool CVulkanRenderer::InitRenderer(IWindow* window)
     // -- Command Buffer creation -- //
     MQueueFamilyIndices queueFamilyIndices = FindQueueFamilies(m_vkPhysicalDevice);
 
+    VkCommandPoolCreateInfo transferPoolInfo{};
+    transferPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    transferPoolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+    transferPoolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+
+    result = vkCreateCommandPool(m_vkDevice, &transferPoolInfo, nullptr, &m_vkTransferCommandPool);
+    if (vkFAILED(result))
+        return false;
+
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -288,6 +300,8 @@ void CVulkanRenderer::ShutdownRenderer()
 
     vkDestroyCommandPool(m_vkDevice, m_vkCommandPool, nullptr);
 
+    vkDestroyCommandPool(m_vkDevice, m_vkTransferCommandPool, nullptr);
+
     for (size_t i = 0; i < m_nNumSwapchainFrameBuffers; i++)
     {
         vkDestroyFramebuffer(m_vkDevice, m_pvkSwapchainFrameBuffers[i], nullptr);
@@ -319,6 +333,12 @@ IShader* CVulkanRenderer::CreateShader(char* data, size_t dataSize)
 {
     CVulkanShader* pShader = new CVulkanShader(m_vkDevice, data, dataSize);
     return pShader;
+}
+
+IVertexBuffer* CVulkanRenderer::CreateVertexBuffer(char* data, size_t dataSize)
+{
+    CVulkanVertexBuffer* pBuffer = new CVulkanVertexBuffer(m_vkDevice, m_vmaAllocator, m_vkTransferCommandPool, m_vkGraphicsRenderQueue, data, dataSize);
+    return pBuffer;
 }
 
 IPipelineObject* CVulkanRenderer::CreatePipeline(IShader* vertexShader, IShader* fragmentShader)
@@ -380,6 +400,14 @@ void CVulkanRenderer::BindPipelineObject(IPipelineObject* pipeline)
 {
     CVulkanPipelineObject* pPipeline = dynamic_cast<CVulkanPipelineObject*>(pipeline);
     vkCmdBindPipeline(m_vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipeline->GetPipeline());
+}
+
+void CVulkanRenderer::BindVertexBuffer(IVertexBuffer* buffer)
+{
+    CVulkanVertexBuffer* pBuffer = dynamic_cast<CVulkanVertexBuffer*>(buffer);
+    VkBuffer buffers[] = { pBuffer->GetBuffer() };
+    VkDeviceSize offsets[] = { 0 };
+    vkCmdBindVertexBuffers(m_vkCommandBuffer, 0, 1, buffers, offsets);
 }
 
 void CVulkanRenderer::SetViewportRect(MViewport viewport)
@@ -941,10 +969,22 @@ void CVulkanPipelineObject::Release()
     delete this;
 }
 
-CVulkanVertexBuffer::CVulkanVertexBuffer(VmaAllocator allocator, void* data, size_t dataSize)
-    :m_vkBuffer(VK_NULL_HANDLE), m_vmaAllocation(VK_NULL_HANDLE), m_vmaAllocatorRef(VK_NULL_HANDLE)
+CVulkanVertexBuffer::CVulkanVertexBuffer(VkDevice device, VmaAllocator allocator, VkCommandPool commandPool, VkQueue queue, void* data, size_t dataSize)
+    :m_vkBuffer(VK_NULL_HANDLE), m_vmaAllocation(VK_NULL_HANDLE), m_vmaAllocatorRef(VK_NULL_HANDLE), m_vkDeviceRef(VK_NULL_HANDLE)
 {
     m_vmaAllocatorRef = allocator;
+    m_vkDeviceRef = device;
+
+    // -- Buffer Creation -- //
+    VkBufferCreateInfo stagingBufferInfo{};
+    stagingBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    stagingBufferInfo.size = dataSize;
+    stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    stagingBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    VmaAllocationCreateInfo stagingAllocInfo{};
+    stagingAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+    stagingAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;;
 
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -954,8 +994,60 @@ CVulkanVertexBuffer::CVulkanVertexBuffer(VmaAllocator allocator, void* data, siz
 
     VmaAllocationCreateInfo allocInfo = {};
     allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+    allocInfo.pool = VK_NULL_HANDLE;
 
-    VkResult result = vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &m_vkBuffer, &m_vmaAllocation, nullptr);
+    VkBuffer stagingBuffer;
+    VmaAllocation stagingAllocation;
+
+    VkBuffer buffer;
+    VmaAllocation bufferAllocation;
+
+    vmaCreateBuffer(allocator, &stagingBufferInfo, &stagingAllocInfo, &stagingBuffer, &stagingAllocation, nullptr);
+    vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &buffer, &bufferAllocation, nullptr);
+
+    // -- Buffer mapping -- //
+    void* mappedData;
+    vmaMapMemory(m_vmaAllocatorRef, stagingAllocation, &mappedData);
+    memcpy(mappedData, data, dataSize);
+    vmaUnmapMemory(m_vmaAllocatorRef, stagingAllocation);
+    vmaFlushAllocation(m_vmaAllocatorRef, stagingAllocation, 0, dataSize);
+
+    // -- Buffer Transfer -- //
+    VkCommandBufferAllocateInfo cmdInfo{};
+    cmdInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    cmdInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    cmdInfo.commandPool = commandPool;
+    cmdInfo.commandBufferCount = 1;
+
+    VkCommandBuffer commandBuffer;
+    vkAllocateCommandBuffers(m_vkDeviceRef, &cmdInfo, &commandBuffer);
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+    VkBufferCopy copyRegion{};
+    copyRegion.size = dataSize;
+    vkCmdCopyBuffer(commandBuffer, stagingBuffer, buffer, 1, &copyRegion);
+
+    vkEndCommandBuffer(commandBuffer);
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+
+    vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(queue);
+
+    vkFreeCommandBuffers(m_vkDeviceRef, commandPool, 1, &commandBuffer);
+
+    vmaDestroyBuffer(m_vmaAllocatorRef, stagingBuffer, stagingAllocation);
+
+    m_vkBuffer = buffer;
+    m_vmaAllocation = bufferAllocation;
 }
 
 CVulkanVertexBuffer::~CVulkanVertexBuffer()

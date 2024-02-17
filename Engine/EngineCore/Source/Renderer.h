@@ -146,6 +146,8 @@ public:
 
 	virtual IShader* CreateShader(char* data, size_t dataSize) = 0;
 
+	virtual IVertexBuffer* CreateVertexBuffer(char* data, size_t dataSize) = 0;
+
 	virtual IPipelineObject* CreatePipeline(IShader* vertexShader, IShader* fragmentShader) = 0;
 
 	// -- Command Buffer Funcs -- //
@@ -153,6 +155,7 @@ public:
 	virtual void EndCommandRecording() = 0;
 	virtual void SubmitCommandRecording() = 0;
 	virtual void BindPipelineObject(IPipelineObject* pipeline) = 0;
+	virtual void BindVertexBuffer(IVertexBuffer* buffer) = 0;
 	virtual void SetViewportRect(MViewport viewport) = 0;
 	virtual void SetScissorRect(MRect rect) = 0;
 	virtual void DrawVertices(uint32_t numVerts) = 0;
