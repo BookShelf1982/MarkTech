@@ -20,13 +20,16 @@ int LoadModel(const char* filepath, const char* output)
 	size_t nNumFaces = pMesh->mNumFaces;
 	size_t nNumIndices = pMesh->mNumFaces * 3;
 
-	MVertex* pVertArray = new MVertex[nNumVerts];
-	uint32_t* pIndArray = new uint32_t[nNumIndices];
+	printf("Verts: %zu\nFaces: %zu\nInds: %zu\n", nNumVerts, nNumFaces, nNumIndices);
+
+	MVertex* pVertArray = new MVertex[pMesh->mNumVertices];
+	uint32_t* pIndArray = new uint32_t[pMesh->mNumFaces * 3];
 
 	for (size_t i = 0; i < nNumVerts; i++)
 	{
 		pVertArray[i].pos = MVector3(pMesh->mVertices[i].x, pMesh->mVertices[i].y, pMesh->mVertices[i].z);
 		pVertArray[i].norm = MVector3(pMesh->mNormals[i].x, pMesh->mNormals[i].y, pMesh->mNormals[i].z);
+		pVertArray[i].tex = MVector2(pMesh->mTextureCoords[0][i].x, pMesh->mTextureCoords[0][i].y);
 	}
 
 	uint32_t indexCounter = 0;
@@ -74,8 +77,8 @@ int LoadModel(const char* filepath, const char* output)
 		printf("Failed to write to file.");
 		return 1;
 	}
-	outFile.write((char*)pVertArray, sizeof(MVertex) * nNumVerts);
 	outFile.write((char*)pIndArray, sizeof(uint32_t) * nNumIndices);
+	outFile.write((char*)pVertArray, sizeof(MVertex) * nNumVerts);
 	outFile.close();
 
 	printf("Asset exported!\n");

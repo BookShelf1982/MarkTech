@@ -11,6 +11,7 @@
 
 #define vkSUCCEDED(result) result == VK_SUCCESS
 #define vkFAILED(result) result != VK_SUCCESS
+#define MAX_FRAMES_IN_FLIGHT 2
 
 void CreateVulkanRenderer(IRenderer** ppRenderer);
 
@@ -38,11 +39,11 @@ struct MSwapChainDetails
 	std::vector<VkPresentModeKHR> presentModes;
 };
 
-class CVulkanVertexBuffer : public IVertexBuffer
+class CVulkanBuffer : public IBuffer
 {
 public:
-	CVulkanVertexBuffer(VkDevice device, VmaAllocator allocator, VkCommandPool commandPool, VkQueue, void* data, size_t dataSize);
-	~CVulkanVertexBuffer();
+	CVulkanBuffer(VkDevice device, VmaAllocator allocator, VkCommandPool commandPool, VkQueue queue, void* data, size_t dataSize);
+	~CVulkanBuffer();
 	VkBuffer GetBuffer() { return m_vkBuffer; }
 	virtual void ReleaseBuffer() override;
 private:
@@ -88,7 +89,7 @@ public:
 
 	virtual IShader* CreateShader(char* data, size_t dataSize) override;
 
-	virtual IVertexBuffer* CreateVertexBuffer(char* data, size_t dataSize) override;
+	virtual IBuffer* CreateBuffer(char* data, size_t dataSize) override;
 
 	virtual IPipelineObject* CreatePipeline(IShader* vertexShader, IShader* fragmentShader) override;
 
@@ -96,12 +97,15 @@ public:
 	virtual void EndCommandRecording() override;
 	virtual void SubmitCommandRecording() override;
 	virtual void BindPipelineObject(IPipelineObject* pipeline) override;
-	virtual void BindVertexBuffer(IVertexBuffer* buffer) override;
+	virtual void BindVertexBuffer(IBuffer* buffer, size_t offset) override;
+	virtual void BindIndexBuffer(IBuffer* buffer, size_t offset) override;
 	virtual void SetViewportRect(MViewport viewport) override;
 	virtual void SetScissorRect(MRect rect) override;
 	virtual void DrawVertices(uint32_t numVerts) override;
+	virtual void DrawIndices(uint32_t numInds) override;
 
 	virtual void WaitForPreviousFrame() override;
+	virtual void WaitForDeviceToIdle() override;
 
 	virtual void AquireNextSwapChainImage() override;
 	virtual void Present() override;
@@ -116,6 +120,7 @@ private:
 
 	// -- Swap chain stuff -- //
 	uint32_t m_nImageIndex;
+	uint32_t m_nCurrentFrame;
 	VkSurfaceKHR m_vkWindowSurface;
 	VkSwapchainKHR m_vkSwapchain;
 	VkImage* m_pvkSwapchainImages;
@@ -132,12 +137,12 @@ private:
 	// -- Command buffers -- //
 	VkCommandPool m_vkCommandPool;
 	VkCommandPool m_vkTransferCommandPool;
-	VkCommandBuffer m_vkCommandBuffer;
+	std::vector<VkCommandBuffer> m_vkCommandBuffer;
 
 	// -- Sync objects -- //
-	VkSemaphore m_vkSwpaChainBufferAvailable;
-	VkSemaphore m_vkFinishedRendering;
-	VkFence m_vkInFlightFence;
+	std::vector<VkSemaphore> m_vkSwapChainBufferAvailable;
+	std::vector<VkSemaphore> m_vkFinishedRendering;
+	std::vector<VkFence> m_vkInFlightFence;
 
 
 	// -- Private Helper Funcitons -- //

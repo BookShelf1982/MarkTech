@@ -2,8 +2,8 @@
 #include "Core.h"
 #include "Vectors.h"
 
-#define MAX_LOADED_MODELS 4096
-#define MAX_LOADED_SHADERS 4096
+#define MAX_LOADED_MODELS 1024
+#define MAX_LOADED_SHADERS 2048
 
 struct DummyVert
 {
@@ -20,9 +20,8 @@ struct MModelAsset
 	void Release();
 
 	uint64_t m_nId;
-	char* m_pVertData;
+	char* m_pGeoData;
 	size_t m_nNumVerts;
-	char* m_pIndData;
 	size_t m_nNumInds;
 };
 

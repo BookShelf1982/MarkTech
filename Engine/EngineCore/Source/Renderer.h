@@ -74,6 +74,13 @@ public:
 	virtual void ReleaseBuffer() = 0;
 };
 
+class IBuffer
+{
+public:
+	virtual ~IBuffer() {}
+	virtual void ReleaseBuffer() = 0;
+};
+
 class IConstantBuffer
 {
 public:
@@ -146,7 +153,7 @@ public:
 
 	virtual IShader* CreateShader(char* data, size_t dataSize) = 0;
 
-	virtual IVertexBuffer* CreateVertexBuffer(char* data, size_t dataSize) = 0;
+	virtual IBuffer* CreateBuffer(char* data, size_t dataSize) = 0;
 
 	virtual IPipelineObject* CreatePipeline(IShader* vertexShader, IShader* fragmentShader) = 0;
 
@@ -155,13 +162,16 @@ public:
 	virtual void EndCommandRecording() = 0;
 	virtual void SubmitCommandRecording() = 0;
 	virtual void BindPipelineObject(IPipelineObject* pipeline) = 0;
-	virtual void BindVertexBuffer(IVertexBuffer* buffer) = 0;
+	virtual void BindVertexBuffer(IBuffer* buffer, size_t offset) = 0;
+	virtual void BindIndexBuffer(IBuffer* buffer, size_t offset) = 0;
 	virtual void SetViewportRect(MViewport viewport) = 0;
 	virtual void SetScissorRect(MRect rect) = 0;
 	virtual void DrawVertices(uint32_t numVerts) = 0;
+	virtual void DrawIndices(uint32_t numInds) = 0;
 
 	// -- Sync -- //
 	virtual void WaitForPreviousFrame() = 0;
+	virtual void WaitForDeviceToIdle() = 0;
 
 	// -- Swapchain -- //
 	virtual void AquireNextSwapChainImage() = 0;

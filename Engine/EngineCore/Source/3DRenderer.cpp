@@ -34,25 +34,19 @@ bool C3DRenderer::Init(IWindow* pWindow, CAssetRegistry* pAssetRegistry)
 	m_pAssetRegistryRef = pAssetRegistry;
 	uint64_t nVShaderId = m_pAssetRegistryRef->LoadShaderAsset("Bin/Shaders/Vert.mfx");
 	uint64_t nPShaderId = m_pAssetRegistryRef->LoadShaderAsset("Bin/Shaders/PixelShader.mfx");
+	uint64_t nModelId = m_pAssetRegistryRef->LoadModelAsset("bunny.mmdl");
 	MShaderAsset* pVShader = m_pAssetRegistryRef->GetShaderAsset(nVShaderId);
 	MShaderAsset* pPShader = m_pAssetRegistryRef->GetShaderAsset(nPShaderId);
-
-	MGenericVertex vData[3] = {
-		{ 0.0f, -0.5f, 0.5f, 1.0f, 0.5f, 0.0f, 0.0f, 0.0f},
-		{ 0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f },
-		{ -0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f}
-	};
-
-	uint32_t iData[3] = {
-		0, 1, 2
-	};
+	MModelAsset* pModelAsset = m_pAssetRegistryRef->GetModelAsset(nModelId);
 
 	if (m_pRenderInterface->InitRenderer(m_pWindowRef))
 	{
 		m_pVertexShader = m_pRenderInterface->CreateShader(pVShader->m_pShaderBytecode, pVShader->m_nShaderBytecodeSize);
 		m_pFragmentShader = m_pRenderInterface->CreateShader(pPShader->m_pShaderBytecode, pPShader->m_nShaderBytecodeSize);
 		m_pPipeline = m_pRenderInterface->CreatePipeline(m_pVertexShader, m_pFragmentShader);
-		m_pVertexBuffer = m_pRenderInterface->CreateVertexBuffer((char*)vData, 3 * sizeof(MGenericVertex));
+		m_pVertexBuffer = m_pRenderInterface->CreateBuffer((char*)pModelAsset->m_pGeoData, 
+			pModelAsset->m_nNumVerts * sizeof(MGenericVertex) + pModelAsset->m_nNumInds * sizeof(uint32_t));
+		numInds = pModelAsset->m_nNumInds;
 
 		m_Viewport.TopLeftX = 0.0f;
 		m_Viewport.TopLeftY = 0.0f;
@@ -77,7 +71,7 @@ bool C3DRenderer::Init(IWindow* pWindow, CAssetRegistry* pAssetRegistry)
 
 void C3DRenderer::Destroy()
 {
-	m_pRenderInterface->WaitForPreviousFrame();
+	m_pRenderInterface->WaitForDeviceToIdle();
 	m_pVertexBuffer->ReleaseBuffer();
 	m_pVertexShader->ReleaseShader();
 	m_pFragmentShader->ReleaseShader();
@@ -95,8 +89,9 @@ void C3DRenderer::RenderFrame()
 	m_pRenderInterface->BindPipelineObject(m_pPipeline);
 	m_pRenderInterface->SetViewportRect(m_Viewport);
 	m_pRenderInterface->SetScissorRect(m_ScissorRect);
-	m_pRenderInterface->BindVertexBuffer(m_pVertexBuffer);
-	m_pRenderInterface->DrawVertices(3);
+	m_pRenderInterface->BindVertexBuffer(m_pVertexBuffer, numInds * sizeof(uint32_t));
+	m_pRenderInterface->BindIndexBuffer(m_pVertexBuffer, 0);
+	m_pRenderInterface->DrawIndices(numInds);
 	m_pRenderInterface->EndCommandRecording();
 	m_pRenderInterface->SubmitCommandRecording();
 

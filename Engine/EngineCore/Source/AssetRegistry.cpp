@@ -3,7 +3,7 @@
 #include <iostream>
 
 MModelAsset::MModelAsset()
-	:m_nId(0), m_pVertData(nullptr), m_nNumVerts(0), m_pIndData(nullptr), m_nNumInds(0)
+	:m_nId(0), m_pGeoData(nullptr), m_nNumVerts(0), m_nNumInds(0)
 {
 }
 
@@ -13,10 +13,8 @@ MModelAsset::~MModelAsset()
 
 void MModelAsset::Release()
 {
-	if (m_pVertData)
-		delete[] m_pVertData;
-	if (m_pIndData)
-		delete[] m_pIndData;
+	if (m_pGeoData)
+		delete[] m_pGeoData;
 }
 
 CAssetRegistry::CAssetRegistry()
@@ -79,17 +77,14 @@ uint64_t CAssetRegistry::LoadModelAsset(String path)
 	if (!file.read((char*)&nNumInds, sizeof(size_t)))
 		return 0;
 
-	char* pVertData = new char[nNumVerts * sizeof(DummyVert)];
-	char* pIndData = new char[nNumInds * sizeof(uint32_t)];
-	file.read((char*)pVertData, sizeof(DummyVert) * nNumVerts);
-	file.read((char*)pIndData, sizeof(uint32_t) * nNumInds);
+	char* pGeoData = new char[nNumVerts * sizeof(DummyVert) + nNumInds * sizeof(uint32_t)];
+	file.read((char*)pGeoData, sizeof(DummyVert) * nNumVerts + sizeof(uint32_t) * nNumInds);
 	file.close();
 
 	m_pModels[m_nModelsCurrentSize].m_nId = id;
 	m_pModels[m_nModelsCurrentSize].m_nNumVerts = nNumVerts;
 	m_pModels[m_nModelsCurrentSize].m_nNumInds = nNumInds;
-	m_pModels[m_nModelsCurrentSize].m_pVertData = pVertData;
-	m_pModels[m_nModelsCurrentSize].m_pIndData = pIndData;
+	m_pModels[m_nModelsCurrentSize].m_pGeoData = pGeoData;
 
 	m_nModelsCurrentSize++;
 	return id;

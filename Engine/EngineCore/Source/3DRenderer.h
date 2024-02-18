@@ -27,10 +27,10 @@ private:
 	MViewport m_Viewport;
 	MRect m_ScissorRect;
 	IRenderer* m_pRenderInterface;
-	IVertexBuffer* m_pVertexBuffer;
-	IIndexBuffer* m_pIndexBuffer;
+	IBuffer* m_pVertexBuffer;
 	IShader* m_pVertexShader;
 	IShader* m_pFragmentShader;
 	IPipelineObject* m_pPipeline;
+	size_t numInds;
 };
 

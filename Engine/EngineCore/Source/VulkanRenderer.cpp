@@ -185,11 +185,12 @@ bool CVulkanRenderer::InitRenderer(IWindow* window)
         return false;
 
     // -- Swapchain creation -- //
+    m_nCurrentFrame = 0;
     CreateSwapChain(m_vkDevice, m_vkSwapchain, indices, window);
 
     // --  Image view creation -- //
     CreateImageViews();
-
+    
     // -- Main render pass creation -- //
     VkAttachmentDescription colorAttachment{};
     colorAttachment.format = m_vkSwapchainImageFormat;
@@ -235,6 +236,8 @@ bool CVulkanRenderer::InitRenderer(IWindow* window)
     CreateFrameBuffers();
 
     // -- Command Buffer creation -- //
+    m_vkCommandBuffer.resize(MAX_FRAMES_IN_FLIGHT);
+
     MQueueFamilyIndices queueFamilyIndices = FindQueueFamilies(m_vkPhysicalDevice);
 
     VkCommandPoolCreateInfo transferPoolInfo{};
@@ -258,32 +261,34 @@ bool CVulkanRenderer::InitRenderer(IWindow* window)
     VkCommandBufferAllocateInfo allocateInfo{};
     allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocateInfo.commandBufferCount = 1;
+    allocateInfo.commandBufferCount = m_vkCommandBuffer.size();
     allocateInfo.commandPool = m_vkCommandPool;
 
-    result = vkAllocateCommandBuffers(m_vkDevice, &allocateInfo, &m_vkCommandBuffer);
+    result = vkAllocateCommandBuffers(m_vkDevice, &allocateInfo, m_vkCommandBuffer.data());
     if (vkFAILED(result))
         return false;
 
     // -- Sync object creation -- //
+    m_vkSwapChainBufferAvailable.resize(MAX_FRAMES_IN_FLIGHT);
+    m_vkFinishedRendering.resize(MAX_FRAMES_IN_FLIGHT);
+    m_vkInFlightFence.resize(MAX_FRAMES_IN_FLIGHT);
+
     VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-    result = vkCreateSemaphore(m_vkDevice, &semaphoreInfo, nullptr, &m_vkSwpaChainBufferAvailable);
-    if (vkFAILED(result))
-        return false;
-
-    result = vkCreateSemaphore(m_vkDevice, &semaphoreInfo, nullptr, &m_vkFinishedRendering);
-    if (vkFAILED(result))
-        return false;
-    
     VkFenceCreateInfo fenceInfo{};
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    result = vkCreateFence(m_vkDevice, &fenceInfo, nullptr, &m_vkInFlightFence);
-    if (vkFAILED(result))
-        return false;
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        VkResult result1 = vkCreateSemaphore(m_vkDevice, &semaphoreInfo, nullptr, &m_vkSwapChainBufferAvailable[i]);
+        VkResult result2 = vkCreateSemaphore(m_vkDevice, &semaphoreInfo, nullptr, &m_vkFinishedRendering[i]);
+        VkResult result3 = vkCreateFence(m_vkDevice, &fenceInfo, nullptr, &m_vkInFlightFence[i]);
+
+        if (vkFAILED(result))
+            return false;
+    }
 
     return true;
 }
@@ -292,11 +297,12 @@ void CVulkanRenderer::ShutdownRenderer()
 {
     vkDeviceWaitIdle(m_vkDevice); // Wait for logical device to finish before releasing everything
 
-    vkDestroySemaphore(m_vkDevice, m_vkSwpaChainBufferAvailable, nullptr);
-
-    vkDestroySemaphore(m_vkDevice, m_vkFinishedRendering, nullptr);
-
-    vkDestroyFence(m_vkDevice, m_vkInFlightFence, nullptr);
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        vkDestroySemaphore(m_vkDevice, m_vkSwapChainBufferAvailable[i], nullptr);
+        vkDestroySemaphore(m_vkDevice, m_vkFinishedRendering[i], nullptr);
+        vkDestroyFence(m_vkDevice, m_vkInFlightFence[i], nullptr);
+    }
 
     vkDestroyCommandPool(m_vkDevice, m_vkCommandPool, nullptr);
 
@@ -335,9 +341,9 @@ IShader* CVulkanRenderer::CreateShader(char* data, size_t dataSize)
     return pShader;
 }
 
-IVertexBuffer* CVulkanRenderer::CreateVertexBuffer(char* data, size_t dataSize)
+IBuffer* CVulkanRenderer::CreateBuffer(char* data, size_t dataSize)
 {
-    CVulkanVertexBuffer* pBuffer = new CVulkanVertexBuffer(m_vkDevice, m_vmaAllocator, m_vkTransferCommandPool, m_vkGraphicsRenderQueue, data, dataSize);
+    CVulkanBuffer* pBuffer = new CVulkanBuffer(m_vkDevice, m_vmaAllocator, m_vkTransferCommandPool, m_vkGraphicsRenderQueue, data, dataSize);
     return pBuffer;
 }
 
@@ -355,7 +361,7 @@ void CVulkanRenderer::BeginCommandRecording()
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-    vkBeginCommandBuffer(m_vkCommandBuffer, &beginInfo);
+    vkBeginCommandBuffer(m_vkCommandBuffer[m_nCurrentFrame], &beginInfo);
 
     const VkClearValue color = {{{ 0.0f, 0.0f, 0.0f, 1.0f }}};
 
@@ -368,13 +374,13 @@ void CVulkanRenderer::BeginCommandRecording()
     renderPassInfo.clearValueCount = 1;
     renderPassInfo.pClearValues = &color;
 
-    vkCmdBeginRenderPass(m_vkCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRenderPass(m_vkCommandBuffer[m_nCurrentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
 void CVulkanRenderer::EndCommandRecording()
 {
-    vkCmdEndRenderPass(m_vkCommandBuffer);
-    VkResult result = vkEndCommandBuffer(m_vkCommandBuffer);
+    vkCmdEndRenderPass(m_vkCommandBuffer[m_nCurrentFrame]);
+    VkResult result = vkEndCommandBuffer(m_vkCommandBuffer[m_nCurrentFrame]);
 }
 
 void CVulkanRenderer::SubmitCommandRecording()
@@ -382,32 +388,38 @@ void CVulkanRenderer::SubmitCommandRecording()
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-    VkSemaphore waitSemaphores[] = { m_vkSwpaChainBufferAvailable };
+    VkSemaphore waitSemaphores[] = { m_vkSwapChainBufferAvailable[m_nCurrentFrame]};
     VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &m_vkCommandBuffer;
-    VkSemaphore signalSemaphores[] = { m_vkFinishedRendering };
+    submitInfo.pCommandBuffers = &m_vkCommandBuffer[m_nCurrentFrame];
+    VkSemaphore signalSemaphores[] = { m_vkFinishedRendering[m_nCurrentFrame]};
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    vkQueueSubmit(m_vkGraphicsRenderQueue, 1, &submitInfo, m_vkInFlightFence);
+    vkQueueSubmit(m_vkGraphicsRenderQueue, 1, &submitInfo, m_vkInFlightFence[m_nCurrentFrame]);
 }
 
 void CVulkanRenderer::BindPipelineObject(IPipelineObject* pipeline)
 {
     CVulkanPipelineObject* pPipeline = dynamic_cast<CVulkanPipelineObject*>(pipeline);
-    vkCmdBindPipeline(m_vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipeline->GetPipeline());
+    vkCmdBindPipeline(m_vkCommandBuffer[m_nCurrentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, pPipeline->GetPipeline());
 }
 
-void CVulkanRenderer::BindVertexBuffer(IVertexBuffer* buffer)
+void CVulkanRenderer::BindVertexBuffer(IBuffer* buffer, size_t offset)
 {
-    CVulkanVertexBuffer* pBuffer = dynamic_cast<CVulkanVertexBuffer*>(buffer);
+    CVulkanBuffer* pBuffer = dynamic_cast<CVulkanBuffer*>(buffer);
     VkBuffer buffers[] = { pBuffer->GetBuffer() };
-    VkDeviceSize offsets[] = { 0 };
-    vkCmdBindVertexBuffers(m_vkCommandBuffer, 0, 1, buffers, offsets);
+    VkDeviceSize offsets[] = { offset };
+    vkCmdBindVertexBuffers(m_vkCommandBuffer[m_nCurrentFrame], 0, 1, buffers, offsets);
+}
+
+void CVulkanRenderer::BindIndexBuffer(IBuffer* buffer, size_t offset)
+{
+    CVulkanBuffer* pBuffer = dynamic_cast<CVulkanBuffer*>(buffer);
+    vkCmdBindIndexBuffer(m_vkCommandBuffer[m_nCurrentFrame], pBuffer->GetBuffer(), offset, VK_INDEX_TYPE_UINT32);
 }
 
 void CVulkanRenderer::SetViewportRect(MViewport viewport)
@@ -420,7 +432,7 @@ void CVulkanRenderer::SetViewportRect(MViewport viewport)
     vkViewport.x = viewport.TopLeftX;
     vkViewport.y = viewport.TopLeftY;
 
-    vkCmdSetViewport(m_vkCommandBuffer, 0, 1, &vkViewport);
+    vkCmdSetViewport(m_vkCommandBuffer[m_nCurrentFrame], 0, 1, &vkViewport);
 }
 
 void CVulkanRenderer::SetScissorRect(MRect rect)
@@ -428,25 +440,35 @@ void CVulkanRenderer::SetScissorRect(MRect rect)
     VkRect2D vkRect;
     vkRect.offset = { 0, 0 };
     vkRect.extent = m_vkSwapchainExtent;
-    vkCmdSetScissor(m_vkCommandBuffer, 0, 1, &vkRect);
+    vkCmdSetScissor(m_vkCommandBuffer[m_nCurrentFrame], 0, 1, &vkRect);
 }
 
 void CVulkanRenderer::DrawVertices(uint32_t numVerts)
 {
-    vkCmdDraw(m_vkCommandBuffer, numVerts, 1, 0, 0);
+    vkCmdDraw(m_vkCommandBuffer[m_nCurrentFrame], numVerts, 1, 0, 0);
+}
+
+void CVulkanRenderer::DrawIndices(uint32_t numInds)
+{
+    vkCmdDrawIndexed(m_vkCommandBuffer[m_nCurrentFrame], numInds, 1, 0, 0, 0);
 }
 
 //* Waits for the previous frame to be rendered
 void CVulkanRenderer::WaitForPreviousFrame()
 {
-    vkWaitForFences(m_vkDevice, 1, &m_vkInFlightFence, VK_TRUE, UINT64_MAX);
-    vkResetFences(m_vkDevice, 1, &m_vkInFlightFence);
+    vkWaitForFences(m_vkDevice, 1, &m_vkInFlightFence[m_nCurrentFrame], VK_TRUE, UINT64_MAX);
+    vkResetFences(m_vkDevice, 1, &m_vkInFlightFence[m_nCurrentFrame]);
+}
+
+void CVulkanRenderer::WaitForDeviceToIdle()
+{
+    vkDeviceWaitIdle(m_vkDevice);
 }
 
 //* Aquires next image in the swap chain
 void CVulkanRenderer::AquireNextSwapChainImage()
 {
-    vkAcquireNextImageKHR(m_vkDevice, m_vkSwapchain, UINT64_MAX, m_vkSwpaChainBufferAvailable, VK_NULL_HANDLE, &m_nImageIndex);
+    vkAcquireNextImageKHR(m_vkDevice, m_vkSwapchain, UINT64_MAX, m_vkSwapChainBufferAvailable[m_nCurrentFrame], VK_NULL_HANDLE, &m_nImageIndex);
 }
 
 void CVulkanRenderer::Present()
@@ -454,7 +476,7 @@ void CVulkanRenderer::Present()
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
-    VkSemaphore signalSemaphores[] = { m_vkFinishedRendering };
+    VkSemaphore signalSemaphores[] = { m_vkFinishedRendering[m_nCurrentFrame]};
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = signalSemaphores; // Wait for command buffer execution to finish before presenting
     VkSwapchainKHR swapChains[] = { m_vkSwapchain };
@@ -464,6 +486,7 @@ void CVulkanRenderer::Present()
     presentInfo.pResults = nullptr;
     
     VkResult result = vkQueuePresentKHR(m_vkPresentQueue, &presentInfo);
+    m_nCurrentFrame = (m_nCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
 #ifdef DEBUG
@@ -969,7 +992,7 @@ void CVulkanPipelineObject::Release()
     delete this;
 }
 
-CVulkanVertexBuffer::CVulkanVertexBuffer(VkDevice device, VmaAllocator allocator, VkCommandPool commandPool, VkQueue queue, void* data, size_t dataSize)
+CVulkanBuffer::CVulkanBuffer(VkDevice device, VmaAllocator allocator, VkCommandPool commandPool, VkQueue queue, void* data, size_t dataSize)
     :m_vkBuffer(VK_NULL_HANDLE), m_vmaAllocation(VK_NULL_HANDLE), m_vmaAllocatorRef(VK_NULL_HANDLE), m_vkDeviceRef(VK_NULL_HANDLE)
 {
     m_vmaAllocatorRef = allocator;
@@ -989,7 +1012,7 @@ CVulkanVertexBuffer::CVulkanVertexBuffer(VkDevice device, VmaAllocator allocator
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size = dataSize;
-    bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     VmaAllocationCreateInfo allocInfo = {};
@@ -1050,12 +1073,12 @@ CVulkanVertexBuffer::CVulkanVertexBuffer(VkDevice device, VmaAllocator allocator
     m_vmaAllocation = bufferAllocation;
 }
 
-CVulkanVertexBuffer::~CVulkanVertexBuffer()
+CVulkanBuffer::~CVulkanBuffer()
 {
     vmaDestroyBuffer(m_vmaAllocatorRef, m_vkBuffer, m_vmaAllocation);
 }
 
-void CVulkanVertexBuffer::ReleaseBuffer()
+void CVulkanBuffer::ReleaseBuffer()
 {
     delete this;
 }
