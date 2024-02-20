@@ -11,7 +11,6 @@ project "Game"
 	includedirs
 	{
 		"%{wks.location}/Engine/EngineCore/Source",
-		"%{wks.location}/Engine/EngineCore/ThirdParty/DirectXHelpers",
 		"C:/VulkanSDK/1.3.275.0/Include"
 	}
 	
@@ -22,6 +21,7 @@ project "Game"
 	
 	postbuildcommands
 	{
+		"mkdir %{wks.location}Build\\Bin",
 		"{COPYFILE} %{wks.location}/bin/" .. outputdir .. "/%{prj.name}/Game.exe %{wks.location}/Build/"
 	}
 	

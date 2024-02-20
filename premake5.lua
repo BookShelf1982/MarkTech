@@ -5,9 +5,7 @@ workspace "MarkTech"
 	
 	outputdir = ("%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}")
 
-	include "Editor/"
 	include "Game/"
 	include "Imgui/"
 	include "ResourceCompiler/"
-	include "DirectXTex/"
 	include "Engine/EngineCore/"

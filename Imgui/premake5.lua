@@ -7,11 +7,6 @@ project "Imgui"
 	targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
     objdir ("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")
 	
-    defines
-    {
-        "MT_PLATFORM_WINDOWS"
-    }
-	
     filter "configurations:Debug"
         defines { "DEBUG" }
         symbols "On"

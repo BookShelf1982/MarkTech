@@ -33,5 +33,6 @@ private:
 	IShader* m_pFragmentShader;
 	IPipelineObject* m_pPipeline;
 	size_t numInds;
+	float upRot;
 };
 

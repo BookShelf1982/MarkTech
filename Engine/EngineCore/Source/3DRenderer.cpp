@@ -63,6 +63,7 @@ bool C3DRenderer::Init(IWindow* pWindow, CAssetRegistry* pAssetRegistry)
 		m_ScissorRect.top = 0;
 		m_ScissorRect.right = m_pWindowRef->GetWidth();
 		m_ScissorRect.bottom = m_pWindowRef->GetHeight();
+		upRot = 0.0f;
 		return true;
 	}
 	else
@@ -88,11 +89,13 @@ void C3DRenderer::RenderFrame()
 
 	m_pRenderInterface->AquireNextSwapChainImage();
 
+	upRot += 0.001f;
+
 	MTransformUBuffer ubo{};
-	ubo.World = glm::identity<glm::mat4>();
-	glm::mat4 view = glm::lookAt(glm::vec3(10.0f, 10.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	ubo.World = glm::rotate(glm::mat4(1.0f), upRot * glm::radians(15.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::mat4 view = glm::lookAt(glm::vec3(10.0f, 0.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	glm::mat4 proj = glm::perspective(glm::radians(45.0f), m_pWindowRef->GetWidth() / (float)m_pWindowRef->GetHeight(), 0.1f, 1000.0f);
-	glm::mat4 finalMat = proj * view;
+	glm::mat4 finalMat = proj * view * ubo.World;
 	finalMat[1][1] *= -1;
 	ubo.WVP = finalMat;
 

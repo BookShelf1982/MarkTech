@@ -28,7 +28,7 @@ void CEngine::PreInitEngine(HINSTANCE hInstance)
 bool CEngine::InitEngine()
 {
 	m_pWindow->SetHInstance(m_hInstance);
-	m_pWindow->MakeWindow("Marktech", 0, 0, 640, 480, EWindowed, m_pInput);
+	m_pWindow->MakeWindow("Marktech", 0, 0, 1920, 1080, EWindowed, m_pInput);
 
 	if (!m_pInput->InitInput())
 		return false;
