@@ -40,6 +40,4 @@ private:
 	CTPool<MVessel> m_Vessels;
 	CTPool<MModelComponent> m_ModelComponents;
 	CTPool<MTransformComponent> m_TransformComponents;
-
-	CSceneBuffer m_SceneBuffer;
 };

@@ -29,7 +29,14 @@ int LoadModel(const char* filepath, const char* output)
 	{
 		pVertArray[i].pos = MVector3(pMesh->mVertices[i].x, pMesh->mVertices[i].y, pMesh->mVertices[i].z);
 		pVertArray[i].norm = MVector3(pMesh->mNormals[i].x, pMesh->mNormals[i].y, pMesh->mNormals[i].z);
-		pVertArray[i].tex = MVector2(pMesh->mTextureCoords[0][i].x, pMesh->mTextureCoords[0][i].y);
+		if (pMesh->HasTextureCoords(0))
+		{
+			pVertArray[i].tex = MVector2(pMesh->mTextureCoords[0][i].x, pMesh->mTextureCoords[0][i].y);
+		}
+		else
+		{
+			pVertArray[i].tex = MVector2(0, 0);
+		}
 	}
 
 	uint32_t indexCounter = 0;

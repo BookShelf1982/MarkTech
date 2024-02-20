@@ -43,20 +43,6 @@ bool CLevel::InitLevel()
 
 void CLevel::UpdateLevel(float flDeltaTime)
 {
-	//m_SceneBuffer.Initialize(m_ModelComponents.GetActivatedSize());
-
-	for (size_t i = 0; i < m_ModelComponents.GetActivatedSize(); i++)
-	{
-		MSceneElement element;
-		MModelComponent comp = m_ModelComponents.GetElement(i);
-		size_t compIndex = GetIndexOfComponentFromVesselId<MTransformComponent>(comp.nOwnerId);
-		MTransformComponent transformComp = m_TransformComponents.GetElement(compIndex);
-
-		element.assetId = comp.nAssetId;
-		element.type = ESceneElementType::Model;
-		element.transform = DirectX::XMMatrixTranslation(transformComp.Transform.Position.y, transformComp.Transform.Position.z, transformComp.Transform.Position.x);
-		//m_SceneBuffer.PushSceneElement(element);
-	}
 }
 
 void CLevel::DestroyLevel()

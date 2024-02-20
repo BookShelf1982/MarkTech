@@ -4,10 +4,10 @@
 #include "Renderer.h"
 #include "VulkanRenderer.h"
 
-struct MPerObjectCBuffer
+struct MTransformUBuffer
 {
-	DirectX::XMMATRIX WVP;
-	DirectX::XMMATRIX World;
+	glm::mat4 WVP;
+	glm::mat4 World;
 };
 
 class C3DRenderer
@@ -28,6 +28,7 @@ private:
 	MRect m_ScissorRect;
 	IRenderer* m_pRenderInterface;
 	IBuffer* m_pVertexBuffer;
+	IConstantBuffer* m_pConstantBuffer;
 	IShader* m_pVertexShader;
 	IShader* m_pFragmentShader;
 	IPipelineObject* m_pPipeline;

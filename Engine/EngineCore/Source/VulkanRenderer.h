@@ -1,11 +1,18 @@
 #pragma once
 #include "Renderer.h"
+
 #ifdef MT_PLATFORM_WINDOWS
 #define VK_USE_PLATFORM_WIN32_KHR
 #include "WinWindow.h"
 #endif
+
+#ifdef DEBUG
+#define USE_VALIDATION_LAYERS
+#endif
+
 #include <optional>
 #include <vector>
+
 #include <Volk\volk.h>
 #include "VmaUsage.h"
 
@@ -65,13 +72,41 @@ private:
 	VkDevice m_vkDeviceRef;
 };
 
+class CVulkanConstantBuffer : public IConstantBuffer
+{
+public:
+	CVulkanConstantBuffer(VkDevice device, VmaAllocator allocator, VkDescriptorPool pool, EUsageType usage, size_t bufferSize);
+	~CVulkanConstantBuffer();
+	void UpdateBuffer(void* data, size_t size, size_t index);
+	virtual void ReleaseBuffer() override;
+	VkDescriptorSetLayout GetLayout() { return m_vkUniformLayout; }
+	VkDescriptorSet* GetDescriptorSetPtr(size_t index) { return &m_vkDescriptorSets[index]; }
+private:
+	VkDevice m_vkDeviceRef;
+	VmaAllocator m_vmaAllocatorRef;
+	VkDescriptorSetLayout m_vkUniformLayout;
+
+	std::vector<VkDescriptorSet> m_vkDescriptorSets;
+	std::vector<VkBuffer> m_vkUniformBuffers;
+	std::vector<VmaAllocation> m_vmaUniformAllocations;
+	std::vector<void*> m_pUniformBuffersMapped;
+};
+
 class CVulkanPipelineObject : public IPipelineObject
 {
 public:
-	CVulkanPipelineObject(VkDevice device, VkShaderModule vertShader, VkShaderModule fragShader, VkRenderPass renderPass);
+	CVulkanPipelineObject(
+		VkDevice device, 
+		VkShaderModule vertShader, 
+		VkShaderModule fragShader, 
+		VkRenderPass renderPass, 
+		VkDescriptorSetLayout* setLayouts, 
+		size_t setLayoutCounts);
+
 	~CVulkanPipelineObject();
 	virtual void Release() override;
 	VkPipeline GetPipeline() { return m_vkPipeline; }
+	VkPipelineLayout GetLayout() { return m_vkPipelineLayout; }
 private:
 	VkPipeline m_vkPipeline;
 	VkPipelineLayout m_vkPipelineLayout;
@@ -91,7 +126,10 @@ public:
 
 	virtual IBuffer* CreateBuffer(char* data, size_t dataSize) override;
 
-	virtual IPipelineObject* CreatePipeline(IShader* vertexShader, IShader* fragmentShader) override;
+	virtual IConstantBuffer* CreateConstantBuffer(size_t dataSize, EUsageType usage) override;
+	virtual void UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data, size_t size) override;
+
+	virtual IPipelineObject* CreatePipeline(IShader* vertexShader, IShader* fragmentShader, IConstantBuffer** constantBuffers, size_t constantBufferCount) override;
 
 	virtual void BeginCommandRecording() override;
 	virtual void EndCommandRecording() override;
@@ -99,6 +137,7 @@ public:
 	virtual void BindPipelineObject(IPipelineObject* pipeline) override;
 	virtual void BindVertexBuffer(IBuffer* buffer, size_t offset) override;
 	virtual void BindIndexBuffer(IBuffer* buffer, size_t offset) override;
+	virtual void BindConstantBuffer(IConstantBuffer* buffer) override;
 	virtual void SetViewportRect(MViewport viewport) override;
 	virtual void SetScissorRect(MRect rect) override;
 	virtual void DrawVertices(uint32_t numVerts) override;
@@ -117,6 +156,7 @@ private:
 	VkQueue m_vkGraphicsRenderQueue;
 	VkQueue m_vkPresentQueue;
 	VmaAllocator m_vmaAllocator; // Vulkan Memory Allocator
+	CVulkanPipelineObject* m_pCurrentBoundPipeline; // The current bound pipeline object
 
 	// -- Swap chain stuff -- //
 	uint32_t m_nImageIndex;
@@ -144,6 +184,9 @@ private:
 	std::vector<VkSemaphore> m_vkFinishedRendering;
 	std::vector<VkFence> m_vkInFlightFence;
 
+	// -- Descriptor sets -- //
+	VkDescriptorPool m_vkDescriptorPool;
+
 
 	// -- Private Helper Funcitons -- //
 	bool CheckDeviceExtensionSupport(VkPhysicalDevice device, const std::vector<const char*>& extensions);
@@ -165,7 +208,7 @@ private:
 	HMODULE VulkanLibrary;
 #endif
 
-#ifdef DEBUG
+#ifdef USE_VALIDATION_LAYERS
 	VkDebugUtilsMessengerEXT m_vkDebugMessenger;
 
 	void CreateDebugMessenger(VkInstance instance, VkDebugUtilsMessengerEXT* pDebugMessenger);

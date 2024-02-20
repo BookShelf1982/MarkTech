@@ -3,7 +3,6 @@
 #include <set>
 #include <string>
 #include <algorithm>
-#include <fstream>
 
 
 CVulkanRenderer::CVulkanRenderer()
@@ -40,13 +39,13 @@ bool CVulkanRenderer::InitRenderer(IWindow* window)
     createInfo.flags = 0;
     createInfo.pNext = NULL;
 
-#ifdef DEBUG
+#ifdef USE_VALIDATION_LAYERS
     extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     validationLayers.emplace_back("VK_LAYER_KHRONOS_validation");
+#endif
 
     createInfo.enabledLayerCount = (uint32_t)validationLayers.size();
     createInfo.ppEnabledLayerNames = validationLayers.data();
-#endif
 
 #ifdef MT_PLATFORM_WINDOWS
     extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
@@ -64,7 +63,7 @@ bool CVulkanRenderer::InitRenderer(IWindow* window)
     volkLoadInstance(m_vkInstance);
 
     // -- Debug layer -- //
-#ifdef DEBUG
+#ifdef USE_VALIDATION_LAYERS
     CreateDebugMessenger(m_vkInstance, &m_vkDebugMessenger);
 #endif
 
@@ -88,8 +87,8 @@ bool CVulkanRenderer::InitRenderer(IWindow* window)
 
     std::vector<VkPhysicalDevice> devices(deviceCount);
     std::vector<const char*> requiredExtensions = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-        VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME
+        VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
     vkEnumeratePhysicalDevices(m_vkInstance, &deviceCount, devices.data());
 
@@ -128,12 +127,11 @@ bool CVulkanRenderer::InitRenderer(IWindow* window)
     deviceInfo.enabledExtensionCount = (uint32_t)requiredExtensions.size();
     deviceInfo.ppEnabledExtensionNames = requiredExtensions.data();
 
-#ifdef DEBUG
+#ifdef USE_VALIDATION_LAYERS
     deviceInfo.enabledLayerCount = (uint32_t)validationLayers.size();
     deviceInfo.ppEnabledLayerNames = validationLayers.data();
 #else
     deviceInfo.enabledLayerCount = 0;
-    deviceInfo.enabledExtensionCount = 0;
 #endif
 
     result = vkCreateDevice(m_vkPhysicalDevice, &deviceInfo, nullptr, &m_vkDevice);
@@ -261,7 +259,7 @@ bool CVulkanRenderer::InitRenderer(IWindow* window)
     VkCommandBufferAllocateInfo allocateInfo{};
     allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocateInfo.commandBufferCount = m_vkCommandBuffer.size();
+    allocateInfo.commandBufferCount = (uint32_t)m_vkCommandBuffer.size();
     allocateInfo.commandPool = m_vkCommandPool;
 
     result = vkAllocateCommandBuffers(m_vkDevice, &allocateInfo, m_vkCommandBuffer.data());
@@ -290,12 +288,30 @@ bool CVulkanRenderer::InitRenderer(IWindow* window)
             return false;
     }
 
+
+    // -- Descriptor pool creation -- //
+    VkDescriptorPoolSize poolSize{};
+    poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSize.descriptorCount = MAX_FRAMES_IN_FLIGHT;
+
+    VkDescriptorPoolCreateInfo descriptorPoolInfo{};
+    descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    descriptorPoolInfo.poolSizeCount = 1;
+    descriptorPoolInfo.pPoolSizes = &poolSize;
+    descriptorPoolInfo.maxSets = MAX_FRAMES_IN_FLIGHT;
+
+    result = vkCreateDescriptorPool(m_vkDevice, &descriptorPoolInfo, nullptr, &m_vkDescriptorPool);
+    if (vkFAILED(result))
+        return false;
+
     return true;
 }
 
 void CVulkanRenderer::ShutdownRenderer()
 {
-    vkDeviceWaitIdle(m_vkDevice); // Wait for logical device to finish before releasing everything
+    //vkDeviceWaitIdle(m_vkDevice); // Wait for logical device to finish before releasing everything
+
+    vkDestroyDescriptorPool(m_vkDevice, m_vkDescriptorPool, nullptr);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
@@ -328,7 +344,7 @@ void CVulkanRenderer::ShutdownRenderer()
 
     vkDestroyDevice(m_vkDevice, nullptr);
 
-#ifdef DEBUG
+#ifdef USE_VALIDATION_LAYERS
     DestroyDebugMessenger(m_vkInstance, m_vkDebugMessenger);
 #endif
 
@@ -347,12 +363,38 @@ IBuffer* CVulkanRenderer::CreateBuffer(char* data, size_t dataSize)
     return pBuffer;
 }
 
-IPipelineObject* CVulkanRenderer::CreatePipeline(IShader* vertexShader, IShader* fragmentShader)
+IConstantBuffer* CVulkanRenderer::CreateConstantBuffer(size_t dataSize, EUsageType usage)
+{
+    CVulkanConstantBuffer* pConstBuffer = new CVulkanConstantBuffer(m_vkDevice, m_vmaAllocator, m_vkDescriptorPool, usage, dataSize);
+    return pConstBuffer;
+}
+
+void CVulkanRenderer::UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data, size_t size)
+{
+    CVulkanConstantBuffer* pConstBuffer = dynamic_cast<CVulkanConstantBuffer*>(constantBuffer);
+    pConstBuffer->UpdateBuffer(data, size, m_nCurrentFrame);
+}
+
+IPipelineObject* CVulkanRenderer::CreatePipeline(IShader* vertexShader, IShader* fragmentShader, IConstantBuffer** constantBuffers, size_t constantBufferCount)
 {
     CVulkanShader* pvkVertShader = dynamic_cast<CVulkanShader*>(vertexShader);
     CVulkanShader* pvkFragShader = dynamic_cast<CVulkanShader*>(fragmentShader);
 
-    CVulkanPipelineObject* pPipeline = new CVulkanPipelineObject(m_vkDevice, pvkVertShader->GetShader(), pvkFragShader->GetShader(), m_vkRenderPass);
+    std::vector<VkDescriptorSetLayout> setLayouts(constantBufferCount);
+    for (size_t i = 0; i < setLayouts.size(); i++)
+    {
+        CVulkanConstantBuffer* pCBuffer = dynamic_cast<CVulkanConstantBuffer*>(constantBuffers[i]);
+        setLayouts[i] = pCBuffer->GetLayout();
+    }
+
+    CVulkanPipelineObject* pPipeline = new CVulkanPipelineObject(
+        m_vkDevice, 
+        pvkVertShader->GetShader(), 
+        pvkFragShader->GetShader(), 
+        m_vkRenderPass, 
+        setLayouts.data(), 
+        setLayouts.size());
+
     return pPipeline;
 }
 
@@ -405,6 +447,7 @@ void CVulkanRenderer::SubmitCommandRecording()
 void CVulkanRenderer::BindPipelineObject(IPipelineObject* pipeline)
 {
     CVulkanPipelineObject* pPipeline = dynamic_cast<CVulkanPipelineObject*>(pipeline);
+    m_pCurrentBoundPipeline = pPipeline;
     vkCmdBindPipeline(m_vkCommandBuffer[m_nCurrentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, pPipeline->GetPipeline());
 }
 
@@ -420,6 +463,21 @@ void CVulkanRenderer::BindIndexBuffer(IBuffer* buffer, size_t offset)
 {
     CVulkanBuffer* pBuffer = dynamic_cast<CVulkanBuffer*>(buffer);
     vkCmdBindIndexBuffer(m_vkCommandBuffer[m_nCurrentFrame], pBuffer->GetBuffer(), offset, VK_INDEX_TYPE_UINT32);
+}
+
+void CVulkanRenderer::BindConstantBuffer(IConstantBuffer* buffer)
+{
+    CVulkanConstantBuffer* pCBuffer = dynamic_cast<CVulkanConstantBuffer*>(buffer);
+    vkCmdBindDescriptorSets(
+        m_vkCommandBuffer[m_nCurrentFrame],
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        m_pCurrentBoundPipeline->GetLayout(),
+        0,
+        1,
+        pCBuffer->GetDescriptorSetPtr((size_t)m_nCurrentFrame),
+        0,
+        nullptr
+    );
 }
 
 void CVulkanRenderer::SetViewportRect(MViewport viewport)
@@ -489,7 +547,7 @@ void CVulkanRenderer::Present()
     m_nCurrentFrame = (m_nCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-#ifdef DEBUG
+#ifdef USE_VALIDATION_LAYERS
 
 void CVulkanRenderer::CreateDebugMessenger(VkInstance instance, VkDebugUtilsMessengerEXT* pDebugMessenger)
 {
@@ -645,15 +703,15 @@ bool CVulkanRenderer::CreateSwapChain(VkDevice device, VkSwapchainKHR& swpachain
 
     uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
-    if (indices.graphicsFamily != indices.presentFamily) {
+    if (indices.graphicsFamily != indices.presentFamily) 
+    {
         swapChainInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         swapChainInfo.queueFamilyIndexCount = 2;
         swapChainInfo.pQueueFamilyIndices = queueFamilyIndices;
     }
-    else {
+    else 
+    {
         swapChainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        swapChainInfo.queueFamilyIndexCount = 0; // Optional
-        swapChainInfo.pQueueFamilyIndices = nullptr; // Optional
     }
 
     swapChainInfo.preTransform = details.surfaceCapabilities.currentTransform;
@@ -772,23 +830,6 @@ bool CVulkanRenderer::CreateFrameBuffers()
     return true;
 }
 
-std::vector<char> CVulkanRenderer::ReadFromFile(const char* filename)
-{
-    std::fstream file;
-    file.open(filename, std::ios::ate | std::ios::in | std::ios::binary);
-
-    if (!file.is_open())
-        return std::vector<char>();
-
-    size_t bufferSize = file.tellg();
-    std::vector<char> shaderBuffer(bufferSize);
-    file.seekg(0);
-    file.read(shaderBuffer.data(), bufferSize);
-    file.close();
-
-    return shaderBuffer;
-}
-
 VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
 {
     char buffer[2048];
@@ -828,7 +869,13 @@ void CVulkanShader::ReleaseShader()
     delete this;
 }
 
-CVulkanPipelineObject::CVulkanPipelineObject(VkDevice device, VkShaderModule vertShader, VkShaderModule fragShader, VkRenderPass renderPass)
+CVulkanPipelineObject::CVulkanPipelineObject(
+    VkDevice device, 
+    VkShaderModule vertShader, 
+    VkShaderModule fragShader, 
+    VkRenderPass renderPass, 
+    VkDescriptorSetLayout* setLayouts, 
+    size_t setLayoutCounts)
 {
     m_vkDeviceRef = device;
 
@@ -902,7 +949,7 @@ CVulkanPipelineObject::CVulkanPipelineObject(VkDevice device, VkShaderModule ver
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
     rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterizer.depthBiasEnable = VK_FALSE;
     rasterizer.depthBiasConstantFactor = 0.0f; // Optional
     rasterizer.depthBiasClamp = 0.0f; // Optional
@@ -947,10 +994,8 @@ CVulkanPipelineObject::CVulkanPipelineObject(VkDevice device, VkShaderModule ver
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 0; // Optional
-    pipelineLayoutInfo.pSetLayouts = nullptr; // Optional
-    pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
-    pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
+    pipelineLayoutInfo.setLayoutCount = (uint32_t)setLayoutCounts;
+    pipelineLayoutInfo.pSetLayouts = setLayouts;
 
     VkResult result = vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &m_vkPipelineLayout);
 
@@ -1079,6 +1124,111 @@ CVulkanBuffer::~CVulkanBuffer()
 }
 
 void CVulkanBuffer::ReleaseBuffer()
+{
+    delete this;
+}
+
+CVulkanConstantBuffer::CVulkanConstantBuffer(VkDevice device, VmaAllocator allocator, VkDescriptorPool pool, EUsageType usage, size_t bufferSize)
+    :m_vkDeviceRef(VK_NULL_HANDLE), m_vmaAllocatorRef(VK_NULL_HANDLE), m_vkUniformLayout(VK_NULL_HANDLE)
+{
+    m_vkDeviceRef = device;
+    m_vmaAllocatorRef = allocator;
+    // -- Layout creation -- //
+    VkDescriptorSetLayoutBinding layoutBinding{};
+    layoutBinding.binding = 0;
+    layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    layoutBinding.descriptorCount = 1;
+
+    switch (usage)
+    {
+    case EUsageType::VertexShader:
+        layoutBinding.stageFlags |= VK_SHADER_STAGE_VERTEX_BIT;
+            break;
+    case EUsageType::PixelShader:
+        layoutBinding.stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
+        break;
+    }
+
+    VkDescriptorSetLayoutCreateInfo layoutInfo{};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = 1;
+    layoutInfo.pBindings = &layoutBinding;
+
+    VkResult result = vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &m_vkUniformLayout);
+
+    if(vkFAILED(result))
+        m_vkUniformLayout = VK_NULL_HANDLE;
+    // -- uniform buffer creation -- //
+    m_vkUniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    m_vmaUniformAllocations.resize(MAX_FRAMES_IN_FLIGHT);
+    m_pUniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+    
+    VkBufferCreateInfo bufferInfo{};
+    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size = bufferSize;
+    bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    
+    VmaAllocationCreateInfo allocInfo{};
+    allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+    allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &m_vkUniformBuffers[i], &m_vmaUniformAllocations[i], nullptr);
+        vmaMapMemory(m_vmaAllocatorRef, m_vmaUniformAllocations[i], &m_pUniformBuffersMapped[i]);
+    }
+
+    // -- Descriptor Set creation -- //
+    m_vkDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+
+    std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_vkUniformLayout);
+
+    VkDescriptorSetAllocateInfo descriptotAllocInfo{};
+    descriptotAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    descriptotAllocInfo.descriptorPool = pool;
+    descriptotAllocInfo.descriptorSetCount = MAX_FRAMES_IN_FLIGHT;
+    descriptotAllocInfo.pSetLayouts = layouts.data();
+    
+    vkAllocateDescriptorSets(device, &descriptotAllocInfo, m_vkDescriptorSets.data());
+
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
+    {
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = m_vkUniformBuffers[i];
+        bufferInfo.offset = 0;
+        bufferInfo.range = bufferSize;
+
+        VkWriteDescriptorSet descriptorWrite{};
+        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet = m_vkDescriptorSets[i];
+        descriptorWrite.dstBinding = 0;
+        descriptorWrite.dstArrayElement = 0;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrite.descriptorCount = 1;
+        descriptorWrite.pBufferInfo = &bufferInfo;
+
+        vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
+    }
+}
+
+CVulkanConstantBuffer::~CVulkanConstantBuffer()
+{
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        vmaUnmapMemory(m_vmaAllocatorRef, m_vmaUniformAllocations[i]);
+        vmaDestroyBuffer(m_vmaAllocatorRef, m_vkUniformBuffers[i], m_vmaUniformAllocations[i]);
+    }
+
+    vkDestroyDescriptorSetLayout(m_vkDeviceRef, m_vkUniformLayout, nullptr);
+}
+
+void CVulkanConstantBuffer::UpdateBuffer(void* data, size_t size, size_t index)
+{
+    memcpy(m_pUniformBuffersMapped[index], data, size);
+}
+
+void CVulkanConstantBuffer::ReleaseBuffer()
 {
     delete this;
 }

@@ -5,73 +5,12 @@
 
 #define FRAME_BUFFER_COUNT 2
 
-enum class ESceneElementType
-{
-	Model
-};
-
-struct MSceneElement
-{
-	ESceneElementType type;
-	uint64_t assetId;
-	DirectX::XMMATRIX transform;
-};
-
-class CSceneBuffer
-{
-public:
-	CSceneBuffer();
-	~CSceneBuffer();
-
-	void Initialize(size_t initalSize);
-	void Release();
-	MSceneElement* GetSceneElements() const { return m_pSceneElements; }
-	size_t GetNumSceneElements() const { return m_nNumSceneElements; }
-	size_t GetNumPushedSceneElements() const { return m_nNumSceneElements; }
-	void PushSceneElement(MSceneElement element);
-	void Clear();
-private:
-	MSceneElement* m_pSceneElements;
-	size_t m_nNumSceneElements;
-	size_t m_nNumPushedSceneElements;
-};
-
-struct MObjectConstBuffer
-{
-	DirectX::XMMATRIX WorldMatrix;
-	DirectX::XMMATRIX WorldViewPorjection;
-};
-
-struct MWorldConstBuffer
-{
-	DirectX::XMFLOAT4 SunPos;
-};
-
-struct MLambertProps
-{
-	DirectX::XMFLOAT4 Color;
-};
-
 struct MGenericVertex
 {
 	MGenericVertex(float x, float y, float z, float u, float v, float nx, float ny, float nz) : pos(x, y, z), tcoords(u, v), norm(nx, ny, nz) {}
 	MVector3 pos;
 	MVector3 norm;
 	MVector2 tcoords;
-};
-
-class IVertexBuffer
-{
-public:
-	virtual ~IVertexBuffer() {}
-	virtual void ReleaseBuffer() = 0;
-};
-
-class IIndexBuffer
-{
-public:
-	virtual ~IIndexBuffer() {}
-	virtual void ReleaseBuffer() = 0;
 };
 
 class IBuffer
@@ -93,6 +32,12 @@ enum class EShaderType
 	Unkown = 0,
 	Vertex = 1,
 	Pixel = 2
+};
+
+enum class EUsageType
+{
+	VertexShader = 0,
+	PixelShader = 1
 };
 
 class IShader
@@ -155,7 +100,10 @@ public:
 
 	virtual IBuffer* CreateBuffer(char* data, size_t dataSize) = 0;
 
-	virtual IPipelineObject* CreatePipeline(IShader* vertexShader, IShader* fragmentShader) = 0;
+	virtual IConstantBuffer* CreateConstantBuffer(size_t dataSize, EUsageType usage) = 0;
+	virtual void UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data, size_t size) = 0;
+
+	virtual IPipelineObject* CreatePipeline(IShader* vertexShader, IShader* fragmentShader, IConstantBuffer** constantBuffers, size_t constantBufferCount) = 0;
 
 	// -- Command Buffer Funcs -- //
 	virtual void BeginCommandRecording() = 0;
@@ -164,6 +112,7 @@ public:
 	virtual void BindPipelineObject(IPipelineObject* pipeline) = 0;
 	virtual void BindVertexBuffer(IBuffer* buffer, size_t offset) = 0;
 	virtual void BindIndexBuffer(IBuffer* buffer, size_t offset) = 0;
+	virtual void BindConstantBuffer(IConstantBuffer* buffer) = 0;
 	virtual void SetViewportRect(MViewport viewport) = 0;
 	virtual void SetScissorRect(MRect rect) = 0;
 	virtual void DrawVertices(uint32_t numVerts) = 0;
