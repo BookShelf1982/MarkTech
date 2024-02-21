@@ -174,6 +174,12 @@ private:
 
 	VkRenderPass m_vkRenderPass;
 
+	// -- depth stencil stuff -- //
+	VkImage m_vkDepthStencilImage;
+	VkImageView m_vkDepthStencilImageView;
+	VmaAllocation m_vmaDepthStencilAllocation;
+	VkFormat m_vkDepthStencilFormat;
+
 	// -- Command buffers -- //
 	VkCommandPool m_vkCommandPool;
 	VkCommandPool m_vkTransferCommandPool;
@@ -194,14 +200,16 @@ private:
 	MSwapChainDetails GetSwapChainDetails(VkPhysicalDevice device);
 	MQueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
 	VkSurfaceFormatKHR ChooseSwapChainFormat(const std::vector<VkSurfaceFormatKHR>& formats);
-	VkPresentModeKHR ChooseSwapChainPresentMode(const std::vector<VkPresentModeKHR> modes);
+	VkPresentModeKHR ChooseSwapChainPresentMode(const std::vector<VkPresentModeKHR>& modes);
 	bool CreateSwapChain(VkDevice device, VkSwapchainKHR& swpachain, MQueueFamilyIndices indices, IWindow* pWindow);
 	VkExtent2D ChooseSwapChainExtent2D(const VkSurfaceCapabilitiesKHR& capabilities, IWindow* pWindow);
 	VkShaderModule CreateShader(const std::vector<char>& buffer);
+	VkFormat FindSupportedFormat(const std::vector<VkFormat>& canidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+	VkFormat FindDepthFormat();
+	void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+	bool HasStencilComponent(VkFormat format);
 	void CreateImageViews();
 	bool CreateFrameBuffers();
-	static std::vector<char> ReadFromFile(const char* filename);
-
 
 
 #ifdef MT_PLATFORM_WINDOWS
