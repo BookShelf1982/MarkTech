@@ -1,7 +1,6 @@
 #pragma once
 #include "Core.h"
 #include "AssetRegistry.h"
-#include "Renderer.h"
 #include "VulkanRenderer.h"
 
 struct MTransformUBuffer
@@ -28,11 +27,17 @@ private:
 	MRect m_ScissorRect;
 	IRenderer* m_pRenderInterface;
 	IBuffer* m_pVertexBuffer;
+	IImage* m_pTexture;
+	IImageView* m_pTextureView;
+	IImageSampler* m_pTextureSampler;
 	IConstantBuffer* m_pConstantBuffer;
+	IDescriptorSet* m_pDescriptorSet;
 	IShader* m_pVertexShader;
 	IShader* m_pFragmentShader;
 	IPipelineObject* m_pPipeline;
 	size_t numInds;
 	float upRot;
+	glm::mat4 view;
+	glm::mat4 proj;
 };
 

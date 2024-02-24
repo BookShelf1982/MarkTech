@@ -67,7 +67,7 @@ void CEngine::DestroyEngine()
 
 void CEngine::StartEngineLoop()
 {
-	m_GameThread = std::thread(&CEngine::GameLoop, this);
+	//m_GameThread = std::thread(&CEngine::GameLoop, this);
 	while (!m_bClosing)
 	{
 		MSG msg = {};
@@ -89,7 +89,7 @@ void CEngine::StartEngineLoop()
 
 		m_pRenderer->RenderFrame();
 	}
-	m_GameThread.join();
+	//m_GameThread.join();
 }
 
 void CEngine::GameLoop()
@@ -100,8 +100,6 @@ void CEngine::GameLoop()
 		{
 			Close();
 		}
-		m_pLevel->UpdateLevel(0);
-		//m_pLevel->GiveSceneBuffer(m_pRenderer);
 	}
 }
 

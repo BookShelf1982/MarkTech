@@ -60,6 +60,44 @@ private:
 	VmaAllocator m_vmaAllocatorRef;
 };
 
+class CVulkanImage : public IImage
+{
+public:
+	CVulkanImage(VmaAllocator allocator, VkImage image, VmaAllocation allocation);
+	~CVulkanImage();
+	virtual void ReleaseImage() override;
+	VkImage GetImage() { return m_vkImage; }
+private:
+	VmaAllocator m_vmaAllocatorRef;
+	VkImage m_vkImage;
+	VmaAllocation m_vmaAllocation;
+};
+
+class CVulkanImageView : public IImageView
+{
+public:
+	CVulkanImageView(VkDevice device, VkImage image);
+	~CVulkanImageView();
+	virtual void ReleaseImageView() override;
+	VkImageView GetImageView() { return m_vkImageView; }
+private:
+	VkDevice m_vkDeviceRef;
+	VkImageView m_vkImageView;
+};
+
+
+class CVulkanImageSampler : public IImageSampler
+{
+public:
+	CVulkanImageSampler(VkDevice device, VkImageView view);
+	~CVulkanImageSampler();
+	virtual void ReleaseSampler() override;
+	VkSampler GetSampler() { return m_vkSampler; }
+private:
+	VkDevice m_vkDeviceRef;
+	VkSampler m_vkSampler;
+};
+
 class CVulkanShader : public IShader
 {
 public:
@@ -75,21 +113,40 @@ private:
 class CVulkanConstantBuffer : public IConstantBuffer
 {
 public:
-	CVulkanConstantBuffer(VkDevice device, VmaAllocator allocator, VkDescriptorPool pool, EUsageType usage, size_t bufferSize);
+	CVulkanConstantBuffer(VkDevice device, VmaAllocator allocator, size_t bufferSize);
 	~CVulkanConstantBuffer();
 	void UpdateBuffer(void* data, size_t size, size_t index);
 	virtual void ReleaseBuffer() override;
-	VkDescriptorSetLayout GetLayout() { return m_vkUniformLayout; }
-	VkDescriptorSet* GetDescriptorSetPtr(size_t index) { return &m_vkDescriptorSets[index]; }
+	VkBuffer GetBuffer(size_t index) { return m_vkUniformBuffers[index]; }
 private:
 	VkDevice m_vkDeviceRef;
 	VmaAllocator m_vmaAllocatorRef;
-	VkDescriptorSetLayout m_vkUniformLayout;
 
-	std::vector<VkDescriptorSet> m_vkDescriptorSets;
 	std::vector<VkBuffer> m_vkUniformBuffers;
 	std::vector<VmaAllocation> m_vmaUniformAllocations;
 	std::vector<void*> m_pUniformBuffersMapped;
+};
+
+struct MVKDescriptorWriteSet
+{
+	VkWriteDescriptorSet descriptorWrite;
+	VkDescriptorBufferInfo bufferInfo;
+	VkDescriptorImageInfo imageInfo;
+};
+
+class CVulkanDescriptorSet : public IDescriptorSet
+{
+public:
+	CVulkanDescriptorSet(VkDevice device, VkDescriptorPool pool, MVKDescriptorWriteSet* setDescs, size_t setDescsCount, MDescriptorSetLayoutDesc layoutDesc);
+	~CVulkanDescriptorSet();
+	virtual void ReleaseDescriptorSet() override;
+	VkDescriptorSetLayout GetLayout() { return m_vkDescriptorLayout; }
+	VkDescriptorSet GetDescriptorSet(size_t index) { return m_vkDescriptorSets[index]; }
+private:
+	VkDevice m_vkDeviceRef;
+
+	std::vector<VkDescriptorSet> m_vkDescriptorSets;
+	VkDescriptorSetLayout m_vkDescriptorLayout;
 };
 
 class CVulkanPipelineObject : public IPipelineObject
@@ -113,6 +170,8 @@ private:
 	VkDevice m_vkDeviceRef;
 };
 
+
+
 class CVulkanRenderer : public IRenderer
 {
 public:
@@ -126,10 +185,23 @@ public:
 
 	virtual IBuffer* CreateBuffer(char* data, size_t dataSize) override;
 
+	virtual IImage* CreateImage(char* data, size_t dataSize, size_t width, size_t height) override;
+
+	virtual IImageView* CreateImageView(IImage* image) override;
+
+	virtual IImageSampler* CreateImageSmpler(IImageView* view) override;
+
 	virtual IConstantBuffer* CreateConstantBuffer(size_t dataSize, EUsageType usage) override;
 	virtual void UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data, size_t size) override;
 
-	virtual IPipelineObject* CreatePipeline(IShader* vertexShader, IShader* fragmentShader, IConstantBuffer** constantBuffers, size_t constantBufferCount) override;
+	virtual IDescriptorSet* CreateDescriptorSet(MDescriptorDesc* setDescs, size_t setDescsCount, MDescriptorSetLayoutDesc layoutDesc) override;
+
+	virtual IPipelineObject* CreatePipeline(
+		IShader* vertexShader, 
+		IShader* fragmentShader, 
+		IDescriptorSet** descriptorSets,
+		size_t descriptorSetsCount
+	) override;
 
 	virtual void BeginCommandRecording() override;
 	virtual void EndCommandRecording() override;
@@ -137,7 +209,7 @@ public:
 	virtual void BindPipelineObject(IPipelineObject* pipeline) override;
 	virtual void BindVertexBuffer(IBuffer* buffer, size_t offset) override;
 	virtual void BindIndexBuffer(IBuffer* buffer, size_t offset) override;
-	virtual void BindConstantBuffer(IConstantBuffer* buffer) override;
+	virtual void BindDescriptorSets(IDescriptorSet** descriptorSets, size_t descriptorSetsCount) override;
 	virtual void SetViewportRect(MViewport viewport) override;
 	virtual void SetScissorRect(MRect rect) override;
 	virtual void DrawVertices(uint32_t numVerts) override;
@@ -193,7 +265,6 @@ private:
 	// -- Descriptor sets -- //
 	VkDescriptorPool m_vkDescriptorPool;
 
-
 	// -- Private Helper Funcitons -- //
 	bool CheckDeviceExtensionSupport(VkPhysicalDevice device, const std::vector<const char*>& extensions);
 	bool IsDeviceSuitable(VkPhysicalDevice device, const std::vector<const char*>& extensions);
@@ -207,14 +278,11 @@ private:
 	VkFormat FindSupportedFormat(const std::vector<VkFormat>& canidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 	VkFormat FindDepthFormat();
 	void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+	void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 	bool HasStencilComponent(VkFormat format);
+	MVKDescriptorWriteSet ConvertMDescriptorDescToVkDescriptorWrite(MDescriptorDesc desc, size_t constBufferIndex);
 	void CreateImageViews();
 	bool CreateFrameBuffers();
-
-
-#ifdef MT_PLATFORM_WINDOWS
-	HMODULE VulkanLibrary;
-#endif
 
 #ifdef USE_VALIDATION_LAYERS
 	VkDebugUtilsMessengerEXT m_vkDebugMessenger;

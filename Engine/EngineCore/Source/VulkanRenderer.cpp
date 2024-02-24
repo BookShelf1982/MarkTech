@@ -105,6 +105,7 @@ bool CVulkanRenderer::InitRenderer(IWindow* window)
     // -- Logical Device Creation -- //
     MQueueFamilyIndices indices = FindQueueFamilies(m_vkPhysicalDevice);
     VkPhysicalDeviceFeatures deviceFeatures = {};
+    deviceFeatures.samplerAnisotropy = VK_TRUE;
 
     std::vector<VkDeviceQueueCreateInfo> deviceQueueInfos;
     std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily.value(), indices.presentFamily.value() };
@@ -353,15 +354,17 @@ bool CVulkanRenderer::InitRenderer(IWindow* window)
     }
 
     // -- Descriptor pool creation -- //
-    VkDescriptorPoolSize poolSize{};
-    poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSize.descriptorCount = MAX_FRAMES_IN_FLIGHT;
+    std::array<VkDescriptorPoolSize, 2> poolSize{};
+    poolSize[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSize[0].descriptorCount = MAX_FRAMES_IN_FLIGHT * 4;
+    poolSize[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    poolSize[1].descriptorCount = MAX_FRAMES_IN_FLIGHT * 4;
 
     VkDescriptorPoolCreateInfo descriptorPoolInfo{};
     descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    descriptorPoolInfo.poolSizeCount = 1;
-    descriptorPoolInfo.pPoolSizes = &poolSize;
-    descriptorPoolInfo.maxSets = MAX_FRAMES_IN_FLIGHT;
+    descriptorPoolInfo.poolSizeCount = (uint32_t)poolSize.size();
+    descriptorPoolInfo.pPoolSizes = poolSize.data();
+    descriptorPoolInfo.maxSets = MAX_FRAMES_IN_FLIGHT * 4;
 
     result = vkCreateDescriptorPool(m_vkDevice, &descriptorPoolInfo, nullptr, &m_vkDescriptorPool);
     if (vkFAILED(result))
@@ -430,9 +433,79 @@ IBuffer* CVulkanRenderer::CreateBuffer(char* data, size_t dataSize)
     return pBuffer;
 }
 
+IImage* CVulkanRenderer::CreateImage(char* data, size_t dataSize, size_t width, size_t height)
+{
+    VmaAllocation stagingAllocation;
+    VkBuffer stagingImage;
+
+    VmaAllocation allocation;
+    VkImage image;
+
+    VkBufferCreateInfo stagingBufferInfo{};
+    stagingBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    stagingBufferInfo.size = dataSize;
+    stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    stagingBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    VmaAllocationCreateInfo stagingAllocInfo{};
+    stagingAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+    stagingAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+
+    vmaCreateBuffer(m_vmaAllocator, &stagingBufferInfo, &stagingAllocInfo, &stagingImage, &stagingAllocation, nullptr);
+
+    void* pData;
+    vmaMapMemory(m_vmaAllocator, stagingAllocation, &pData);
+    memcpy(pData, data, dataSize);
+    vmaUnmapMemory(m_vmaAllocator, stagingAllocation);
+
+    VkImageCreateInfo imageInfo{};
+    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imageInfo.imageType = VK_IMAGE_TYPE_2D;
+    imageInfo.extent.width = static_cast<uint32_t>(width);
+    imageInfo.extent.height = static_cast<uint32_t>(height);
+    imageInfo.extent.depth = 1;
+    imageInfo.mipLevels = 1;
+    imageInfo.arrayLayers = 1;
+    imageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
+    imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+
+    VmaAllocationCreateInfo allocInfo{};
+    allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+
+    vmaCreateImage(m_vmaAllocator, &imageInfo, &allocInfo, &image, &allocation, nullptr);
+
+    TransitionImageLayout(image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    CopyBufferToImage(stagingImage, image, (uint32_t)width, (uint32_t)height);
+    TransitionImageLayout(image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+    vmaDestroyBuffer(m_vmaAllocator, stagingImage, stagingAllocation);
+
+    CVulkanImage* pImage = new CVulkanImage(m_vmaAllocator, image, allocation);
+
+    return pImage;
+}
+
+IImageView* CVulkanRenderer::CreateImageView(IImage* image)
+{
+    CVulkanImage* pImage = dynamic_cast<CVulkanImage*>(image);
+    CVulkanImageView* pView = new CVulkanImageView(m_vkDevice, pImage->GetImage());
+    return pView;
+}
+
+IImageSampler* CVulkanRenderer::CreateImageSmpler(IImageView* view)
+{
+    CVulkanImageView* pView = dynamic_cast<CVulkanImageView*>(view);
+    CVulkanImageSampler* pSampler = new CVulkanImageSampler(m_vkDevice, pView->GetImageView());
+    return pSampler;
+}
+
 IConstantBuffer* CVulkanRenderer::CreateConstantBuffer(size_t dataSize, EUsageType usage)
 {
-    CVulkanConstantBuffer* pConstBuffer = new CVulkanConstantBuffer(m_vkDevice, m_vmaAllocator, m_vkDescriptorPool, usage, dataSize);
+    CVulkanConstantBuffer* pConstBuffer = new CVulkanConstantBuffer(m_vkDevice, m_vmaAllocator, dataSize);
     return pConstBuffer;
 }
 
@@ -442,16 +515,37 @@ void CVulkanRenderer::UpdateConstantBuffer(IConstantBuffer* constantBuffer, void
     pConstBuffer->UpdateBuffer(data, size, m_nCurrentFrame);
 }
 
-IPipelineObject* CVulkanRenderer::CreatePipeline(IShader* vertexShader, IShader* fragmentShader, IConstantBuffer** constantBuffers, size_t constantBufferCount)
+IDescriptorSet* CVulkanRenderer::CreateDescriptorSet(MDescriptorDesc* setDescs, size_t setDescsCount, MDescriptorSetLayoutDesc layoutDesc)
+{
+    std::vector<MVKDescriptorWriteSet> writeDesc;
+
+    for (size_t i = 0; i < setDescsCount; i++)
+    {
+        for (size_t j = 0; j < MAX_FRAMES_IN_FLIGHT; j++)
+        {
+            MVKDescriptorWriteSet set = ConvertMDescriptorDescToVkDescriptorWrite(setDescs[i], j);;
+            writeDesc.push_back(set);
+        }
+    }
+
+    CVulkanDescriptorSet* pSet = new CVulkanDescriptorSet(m_vkDevice, m_vkDescriptorPool, writeDesc.data(), writeDesc.size(), layoutDesc);
+    return pSet;
+}
+
+IPipelineObject* CVulkanRenderer::CreatePipeline(
+    IShader* vertexShader, 
+    IShader* fragmentShader, 
+    IDescriptorSet** descriptorSets,
+    size_t descriptorSetsCount)
 {
     CVulkanShader* pvkVertShader = dynamic_cast<CVulkanShader*>(vertexShader);
     CVulkanShader* pvkFragShader = dynamic_cast<CVulkanShader*>(fragmentShader);
 
-    std::vector<VkDescriptorSetLayout> setLayouts(constantBufferCount);
-    for (size_t i = 0; i < setLayouts.size(); i++)
+    std::vector<VkDescriptorSetLayout> setLayouts;
+    for (size_t i = 0; i < descriptorSetsCount; i++)
     {
-        CVulkanConstantBuffer* pCBuffer = dynamic_cast<CVulkanConstantBuffer*>(constantBuffers[i]);
-        setLayouts[i] = pCBuffer->GetLayout();
+        CVulkanDescriptorSet* pDescriptorSet = dynamic_cast<CVulkanDescriptorSet*>(descriptorSets[i]);
+        setLayouts.push_back(pDescriptorSet->GetLayout());
     }
 
     CVulkanPipelineObject* pPipeline = new CVulkanPipelineObject(
@@ -534,19 +628,24 @@ void CVulkanRenderer::BindIndexBuffer(IBuffer* buffer, size_t offset)
     vkCmdBindIndexBuffer(m_vkCommandBuffer[m_nCurrentFrame], pBuffer->GetBuffer(), offset, VK_INDEX_TYPE_UINT32);
 }
 
-void CVulkanRenderer::BindConstantBuffer(IConstantBuffer* buffer)
+void CVulkanRenderer::BindDescriptorSets(IDescriptorSet** descriptorSets, size_t descriptorSetsCount)
 {
-    CVulkanConstantBuffer* pCBuffer = dynamic_cast<CVulkanConstantBuffer*>(buffer);
+    std::vector<VkDescriptorSet> sets;
+    for (size_t i = 0; i < descriptorSetsCount; i++)
+    {
+        CVulkanDescriptorSet* pSet = dynamic_cast<CVulkanDescriptorSet*>(descriptorSets[i]);
+        sets.push_back(pSet->GetDescriptorSet(m_nCurrentFrame));
+    }
+
     vkCmdBindDescriptorSets(
         m_vkCommandBuffer[m_nCurrentFrame],
         VK_PIPELINE_BIND_POINT_GRAPHICS,
         m_pCurrentBoundPipeline->GetLayout(),
         0,
-        1,
-        pCBuffer->GetDescriptorSetPtr((size_t)m_nCurrentFrame),
+        (uint32_t)sets.size(),
+        sets.data(),
         0,
-        nullptr
-    );
+        nullptr);
 }
 
 void CVulkanRenderer::SetViewportRect(MViewport viewport)
@@ -973,9 +1072,110 @@ void CVulkanRenderer::TransitionImageLayout(VkImage image, VkFormat format, VkIm
     vkFreeCommandBuffers(m_vkDevice, m_vkCommandPool, 1, &commandBuffer);
 }
 
+void CVulkanRenderer::CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
+{
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandPool = m_vkCommandPool;
+    allocInfo.commandBufferCount = 1;
+
+    VkCommandBuffer commandBuffer;
+    vkAllocateCommandBuffers(m_vkDevice, &allocInfo, &commandBuffer); // Create a one time use command buffer
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+    VkBufferImageCopy region{};
+    region.bufferOffset = 0;
+    region.bufferRowLength = 0;
+    region.bufferImageHeight = 0;
+
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.mipLevel = 0;
+    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.layerCount = 1;
+
+    region.imageOffset = { 0, 0, 0 };
+    region.imageExtent = {
+        width,
+        height,
+        1
+    };
+
+    vkCmdCopyBufferToImage(
+        commandBuffer,
+        buffer,
+        image,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        1,
+        &region
+    );
+
+    vkEndCommandBuffer(commandBuffer);
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+
+    vkQueueSubmit(m_vkGraphicsRenderQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(m_vkGraphicsRenderQueue);
+
+    vkFreeCommandBuffers(m_vkDevice, m_vkCommandPool, 1, &commandBuffer);
+}
+
 bool CVulkanRenderer::HasStencilComponent(VkFormat format)
 {
     return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
+}
+
+MVKDescriptorWriteSet CVulkanRenderer::ConvertMDescriptorDescToVkDescriptorWrite(MDescriptorDesc desc, size_t constBufferIndex)
+{
+    MVKDescriptorWriteSet writeSet{};
+    writeSet.descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writeSet.descriptorWrite.dstSet = VK_NULL_HANDLE;
+    writeSet.descriptorWrite.dstBinding = desc.binding;
+    writeSet.descriptorWrite.dstArrayElement = 0;
+    writeSet.descriptorWrite.descriptorCount = 1;
+
+    switch (desc.type)
+    {
+    case UNIFORM_BUFFER:
+        writeSet.descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        break;
+    case IMAGE_SAMPLER:
+        writeSet.descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        break;
+    }
+
+    // Translate MDescriptorBufferDesc to VkDescriptorBufferInfo if MDescriptorBufferDesc exists
+    if (desc.pBufferInfo)
+    {
+        writeSet.bufferInfo.offset = (VkDeviceSize)desc.pBufferInfo->offset;
+        writeSet.bufferInfo.range = (VkDeviceSize)desc.pBufferInfo->range;
+        CVulkanConstantBuffer* pConstBuffer = dynamic_cast<CVulkanConstantBuffer*>(desc.pBufferInfo->pBuffer);
+        writeSet.bufferInfo.buffer = pConstBuffer->GetBuffer(constBufferIndex);
+        
+        writeSet.descriptorWrite.pBufferInfo = &writeSet.bufferInfo;
+    }
+
+    // Tanslate MDescriptorImageDesc to VkDEscriptorImageInfo if MDescriptorImageDesc exists
+    if (desc.pImageInfo)
+    {
+        writeSet.imageInfo.imageLayout = (VkImageLayout)desc.pImageInfo->imageLayout;
+        CVulkanImageView* pView = dynamic_cast<CVulkanImageView*>(desc.pImageInfo->pImageView);
+        CVulkanImageSampler* pSampler = dynamic_cast<CVulkanImageSampler*>(desc.pImageInfo->pImageSampler);
+        writeSet.imageInfo.imageView = pView->GetImageView();
+        writeSet.imageInfo.sampler = pSampler->GetSampler();
+
+        writeSet.descriptorWrite.pImageInfo = &writeSet.imageInfo;
+    }
+
+    return writeSet;
 }
 
 void CVulkanRenderer::CreateImageViews()
@@ -1340,36 +1540,12 @@ void CVulkanBuffer::ReleaseBuffer()
     delete this;
 }
 
-CVulkanConstantBuffer::CVulkanConstantBuffer(VkDevice device, VmaAllocator allocator, VkDescriptorPool pool, EUsageType usage, size_t bufferSize)
-    :m_vkDeviceRef(VK_NULL_HANDLE), m_vmaAllocatorRef(VK_NULL_HANDLE), m_vkUniformLayout(VK_NULL_HANDLE)
+CVulkanConstantBuffer::CVulkanConstantBuffer(VkDevice device, VmaAllocator allocator, size_t bufferSize)
+    :m_vkDeviceRef(VK_NULL_HANDLE), m_vmaAllocatorRef(VK_NULL_HANDLE)
 {
     m_vkDeviceRef = device;
     m_vmaAllocatorRef = allocator;
-    // -- Layout creation -- //
-    VkDescriptorSetLayoutBinding layoutBinding{};
-    layoutBinding.binding = 0;
-    layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    layoutBinding.descriptorCount = 1;
-
-    switch (usage)
-    {
-    case EUsageType::VertexShader:
-        layoutBinding.stageFlags |= VK_SHADER_STAGE_VERTEX_BIT;
-            break;
-    case EUsageType::PixelShader:
-        layoutBinding.stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
-        break;
-    }
-
-    VkDescriptorSetLayoutCreateInfo layoutInfo{};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = 1;
-    layoutInfo.pBindings = &layoutBinding;
-
-    VkResult result = vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &m_vkUniformLayout);
-
-    if(vkFAILED(result))
-        m_vkUniformLayout = VK_NULL_HANDLE;
+    
     // -- uniform buffer creation -- //
     m_vkUniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
     m_vmaUniformAllocations.resize(MAX_FRAMES_IN_FLIGHT);
@@ -1390,38 +1566,6 @@ CVulkanConstantBuffer::CVulkanConstantBuffer(VkDevice device, VmaAllocator alloc
         vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &m_vkUniformBuffers[i], &m_vmaUniformAllocations[i], nullptr);
         vmaMapMemory(m_vmaAllocatorRef, m_vmaUniformAllocations[i], &m_pUniformBuffersMapped[i]);
     }
-
-    // -- Descriptor Set creation -- //
-    m_vkDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-
-    std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_vkUniformLayout);
-
-    VkDescriptorSetAllocateInfo descriptotAllocInfo{};
-    descriptotAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    descriptotAllocInfo.descriptorPool = pool;
-    descriptotAllocInfo.descriptorSetCount = MAX_FRAMES_IN_FLIGHT;
-    descriptotAllocInfo.pSetLayouts = layouts.data();
-    
-    vkAllocateDescriptorSets(device, &descriptotAllocInfo, m_vkDescriptorSets.data());
-
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
-    {
-        VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = m_vkUniformBuffers[i];
-        bufferInfo.offset = 0;
-        bufferInfo.range = bufferSize;
-
-        VkWriteDescriptorSet descriptorWrite{};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = m_vkDescriptorSets[i];
-        descriptorWrite.dstBinding = 0;
-        descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pBufferInfo = &bufferInfo;
-
-        vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
-    }
 }
 
 CVulkanConstantBuffer::~CVulkanConstantBuffer()
@@ -1431,8 +1575,6 @@ CVulkanConstantBuffer::~CVulkanConstantBuffer()
         vmaUnmapMemory(m_vmaAllocatorRef, m_vmaUniformAllocations[i]);
         vmaDestroyBuffer(m_vmaAllocatorRef, m_vkUniformBuffers[i], m_vmaUniformAllocations[i]);
     }
-
-    vkDestroyDescriptorSetLayout(m_vkDeviceRef, m_vkUniformLayout, nullptr);
 }
 
 void CVulkanConstantBuffer::UpdateBuffer(void* data, size_t size, size_t index)
@@ -1441,6 +1583,143 @@ void CVulkanConstantBuffer::UpdateBuffer(void* data, size_t size, size_t index)
 }
 
 void CVulkanConstantBuffer::ReleaseBuffer()
+{
+    delete this;
+}
+
+CVulkanImage::CVulkanImage(VmaAllocator allocator, VkImage image, VmaAllocation allocation)
+    :m_vkImage(image), m_vmaAllocation(allocation), m_vmaAllocatorRef(allocator)
+{
+}
+
+CVulkanImage::~CVulkanImage()
+{
+    vmaDestroyImage(m_vmaAllocatorRef, m_vkImage, m_vmaAllocation);
+}
+
+void CVulkanImage::ReleaseImage()
+{
+    delete this;
+}
+
+CVulkanImageView::CVulkanImageView(VkDevice device, VkImage image)
+{
+    m_vkDeviceRef = device;
+
+    VkImageViewCreateInfo viewInfo{};
+    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    viewInfo.image = image;
+    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    viewInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
+    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    viewInfo.subresourceRange.baseMipLevel = 0;
+    viewInfo.subresourceRange.levelCount = 1;
+    viewInfo.subresourceRange.baseArrayLayer = 0;
+    viewInfo.subresourceRange.layerCount = 1;
+
+    vkCreateImageView(device, &viewInfo, nullptr, &m_vkImageView);
+}
+
+CVulkanImageView::~CVulkanImageView()
+{
+    vkDestroyImageView(m_vkDeviceRef, m_vkImageView, nullptr);
+}
+
+void CVulkanImageView::ReleaseImageView()
+{
+    delete this;
+}
+
+CVulkanImageSampler::CVulkanImageSampler(VkDevice device, VkImageView view)
+    :m_vkDeviceRef(device), m_vkSampler(VK_NULL_HANDLE)
+{
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.anisotropyEnable = VK_TRUE;
+    samplerInfo.maxAnisotropy = 8;
+    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.compareEnable = VK_FALSE;
+    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerInfo.mipLodBias = 0.0f;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = 0.0f;
+
+    vkCreateSampler(device, &samplerInfo, nullptr, &m_vkSampler);
+}
+
+CVulkanImageSampler::~CVulkanImageSampler()
+{
+    vkDestroySampler(m_vkDeviceRef, m_vkSampler, nullptr);
+}
+
+void CVulkanImageSampler::ReleaseSampler()
+{
+    delete this;
+}
+
+CVulkanDescriptorSet::CVulkanDescriptorSet(VkDevice device, VkDescriptorPool pool, MVKDescriptorWriteSet* setDescs, size_t setDescsCount, MDescriptorSetLayoutDesc layoutDesc)
+    :m_vkDeviceRef(device), m_vkDescriptorLayout(VK_NULL_HANDLE), m_vkDescriptorSets()
+{
+    // -- Translate MDescriptorSetLayoutBindingDesc to VkDescriptorSetLayoutBinding -- //
+    std::vector<VkDescriptorSetLayoutBinding> bindings;
+
+    for (uint32_t i = 0; i < layoutDesc.bindingCount; i++)
+    {
+        VkDescriptorSetLayoutBinding vkBinding{};
+        vkBinding.binding = layoutDesc.pBindings[i].binding;
+        vkBinding.descriptorCount = layoutDesc.pBindings[i].descriptorCount;
+        vkBinding.stageFlags = (VkShaderStageFlags)layoutDesc.pBindings[i].stageFlags;
+        vkBinding.descriptorType = (VkDescriptorType)layoutDesc.pBindings[i].type;
+        bindings.push_back(vkBinding);
+    }
+    
+    // -- Translate MDescriptorSetLayoutDesc to VkDescriptorSetLayoutCreateInfo -- //
+    VkDescriptorSetLayoutCreateInfo layoutCreateInfo{};
+    layoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutCreateInfo.bindingCount = layoutDesc.bindingCount;
+    layoutCreateInfo.pBindings = bindings.data();
+
+    vkCreateDescriptorSetLayout(device, &layoutCreateInfo, nullptr, &m_vkDescriptorLayout);
+
+    // -- Allocating descriptors -- //
+    std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_vkDescriptorLayout);
+
+    VkDescriptorSetAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = pool;
+    allocInfo.descriptorSetCount = MAX_FRAMES_IN_FLIGHT;
+    allocInfo.pSetLayouts = layouts.data();
+
+    m_vkDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+
+    vkAllocateDescriptorSets(device, &allocInfo, m_vkDescriptorSets.data());
+
+    // -- Writing in decriptors -- //
+    for (size_t i = 0; i < setDescsCount;)
+    {
+        for (size_t j = 0; j < MAX_FRAMES_IN_FLIGHT; j++, i++)
+        {
+            setDescs[i].descriptorWrite.dstSet = m_vkDescriptorSets[j];
+            setDescs[i].descriptorWrite.pBufferInfo = &setDescs[i].bufferInfo;
+            setDescs[i].descriptorWrite.pImageInfo = &setDescs[i].imageInfo;
+            vkUpdateDescriptorSets(device, 1, &setDescs[i].descriptorWrite, 0, nullptr);
+        }
+    }
+}
+
+CVulkanDescriptorSet::~CVulkanDescriptorSet()
+{
+    vkDestroyDescriptorSetLayout(m_vkDeviceRef, m_vkDescriptorLayout, nullptr);
+}
+
+void CVulkanDescriptorSet::ReleaseDescriptorSet()
 {
     delete this;
 }
