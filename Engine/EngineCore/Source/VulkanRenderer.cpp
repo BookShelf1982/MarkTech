@@ -208,6 +208,7 @@ bool CVulkanRenderer::InitRenderer(IWindow* window)
 
     VkAttachmentDescription depthAttachment{};
     depthAttachment.format = FindDepthFormat();
+    depthAttachment.format = FindDepthFormat();
     depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -964,7 +965,7 @@ VkFormat CVulkanRenderer::FindSupportedFormat(const std::vector<VkFormat>& canid
 VkFormat CVulkanRenderer::FindDepthFormat()
 {
     return FindSupportedFormat(
-        { VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
+        { VK_FORMAT_D32_SFLOAT },
         VK_IMAGE_TILING_OPTIMAL,
         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
     ;
@@ -1375,6 +1376,9 @@ CVulkanPipelineObject::CVulkanPipelineObject(
     depthStencil.depthWriteEnable = VK_TRUE;
     depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
     depthStencil.depthBoundsTestEnable = VK_FALSE;
+    depthStencil.stencilTestEnable = VK_FALSE;
+    depthStencil.minDepthBounds = 0.0f;
+    depthStencil.maxDepthBounds = 1.0f;
 
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
     colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;

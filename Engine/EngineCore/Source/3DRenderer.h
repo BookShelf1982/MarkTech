@@ -3,10 +3,17 @@
 #include "AssetRegistry.h"
 #include "VulkanRenderer.h"
 
-struct MTransformUBuffer
+struct MPerObjectBuffer
 {
-	glm::mat4 WVP;
-	glm::mat4 World;
+	glm::mat4 world;
+	glm::vec3 color;
+};
+
+struct MPerFrameBuffer
+{
+	glm::mat4 view;
+	glm::mat4 proj;
+	glm::vec3 viewPos;
 };
 
 class C3DRenderer
@@ -27,11 +34,15 @@ private:
 	MRect m_ScissorRect;
 	IRenderer* m_pRenderInterface;
 	IBuffer* m_pVertexBuffer;
-	IImage* m_pTexture;
-	IImageView* m_pTextureView;
-	IImageSampler* m_pTextureSampler;
+
+	IImage* m_pImage;
+	IImageView* m_pImageView;
+	IImageSampler* m_pSampler;
+
 	IConstantBuffer* m_pConstantBuffer;
+	IConstantBuffer* m_pConstantBuffer2;
 	IDescriptorSet* m_pDescriptorSet;
+	IDescriptorSet* m_pMaterialDescriptorSet;
 	IShader* m_pVertexShader;
 	IShader* m_pFragmentShader;
 	IPipelineObject* m_pPipeline;
