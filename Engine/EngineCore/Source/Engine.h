@@ -8,6 +8,11 @@
 #include <atomic>
 #include <thread>
 
+struct MDATA
+{
+	int num = 64;
+};
+
 class CEngine
 {
 public:
@@ -30,6 +35,8 @@ private:
 	CInput* m_pInput;
 	C3DRenderer* m_pRenderer;
 	CAssetRegistry* m_pAssetRegistry;
+
+	CMemoryPool m_MemoryPool;
 
 	std::thread m_GameThread;
 };

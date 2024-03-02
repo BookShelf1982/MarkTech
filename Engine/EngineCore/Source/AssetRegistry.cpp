@@ -13,8 +13,6 @@ MModelAsset::~MModelAsset()
 
 void MModelAsset::Release()
 {
-	if (m_pGeoData)
-		delete[] m_pGeoData;
 }
 
 CAssetRegistry::CAssetRegistry()
@@ -30,6 +28,11 @@ CAssetRegistry::~CAssetRegistry()
 	delete[] m_pShaders;
 }
 
+void CAssetRegistry::InitAssetRegistry(CMemoryPool* memoryPool)
+{
+	m_pMemoryPoolRef = memoryPool;
+}
+
 MShaderAsset::MShaderAsset()
 	:m_nId(0), m_nShaderBytecodeSize(0), m_pShaderBytecode(nullptr)
 {
@@ -41,8 +44,6 @@ MShaderAsset::~MShaderAsset()
 
 void MShaderAsset::Release()
 {
-	if(m_pShaderBytecode)
-		delete[] m_pShaderBytecode;
 }
 
 void CAssetRegistry::DestroyAssetRegistry()
@@ -77,14 +78,14 @@ uint64_t CAssetRegistry::LoadModelAsset(String path)
 	if (!file.read((char*)&nNumInds, sizeof(size_t)))
 		return 0;
 
-	char* pGeoData = new char[nNumVerts * sizeof(DummyVert) + nNumInds * sizeof(uint32_t)];
-	file.read((char*)pGeoData, sizeof(DummyVert) * nNumVerts + sizeof(uint32_t) * nNumInds);
+	char* pDat = m_pMemoryPoolRef->AllocateArray<char>(nNumVerts * sizeof(DummyVert) + nNumInds * sizeof(uint32_t));
+	file.read((char*)pDat, sizeof(DummyVert) * nNumVerts + sizeof(uint32_t) * nNumInds);
 	file.close();
 
 	m_pModels[m_nModelsCurrentSize].m_nId = id;
 	m_pModels[m_nModelsCurrentSize].m_nNumVerts = nNumVerts;
 	m_pModels[m_nModelsCurrentSize].m_nNumInds = nNumInds;
-	m_pModels[m_nModelsCurrentSize].m_pGeoData = pGeoData;
+	m_pModels[m_nModelsCurrentSize].m_pGeoData = pDat;
 
 	m_nModelsCurrentSize++;
 	return id;
@@ -103,13 +104,13 @@ uint64_t CAssetRegistry::LoadShaderAsset(String path)
 
 	InputFile.read((char*)&id ,sizeof(uint64_t));
 	InputFile.read((char*)&nShaderDataSize, sizeof(size_t));
-	char* pVertShaderData = new char[nShaderDataSize];
-	InputFile.read((char*)pVertShaderData, nShaderDataSize);
+	char* pData = m_pMemoryPoolRef->AllocateArray<char>(nShaderDataSize);
+	InputFile.read((char*)pData, nShaderDataSize);
 	InputFile.close();
 
 	m_pShaders[m_nShadersCurrentSize].m_nId = id;
 	m_pShaders[m_nShadersCurrentSize].m_nShaderBytecodeSize = nShaderDataSize;
-	m_pShaders[m_nShadersCurrentSize].m_pShaderBytecode = pVertShaderData;
+	m_pShaders[m_nShadersCurrentSize].m_pShaderBytecode = pData;
 
 	m_nShadersCurrentSize++;
 	return id;

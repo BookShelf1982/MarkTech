@@ -25,7 +25,6 @@ struct MModelAsset
 	size_t m_nNumInds;
 };
 
-
 struct MShaderAsset
 {
 	MShaderAsset();
@@ -49,6 +48,7 @@ public:
 	uint64_t LoadShaderAsset(String path);
 	MShaderAsset* GetShaderAsset(uint64_t assetId);
 
+	void InitAssetRegistry(CMemoryPool* memoryPool);
 	void DestroyAssetRegistry();
 
 private:
@@ -56,4 +56,6 @@ private:
 	MShaderAsset* m_pShaders;
 	size_t m_nShadersCurrentSize;
 	size_t m_nModelsCurrentSize;
+
+	CMemoryPool* m_pMemoryPoolRef;
 };

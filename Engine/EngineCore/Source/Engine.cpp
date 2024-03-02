@@ -4,20 +4,22 @@ CEngine::CEngine()
 	:m_bClosing(false)
 {
 	m_hInstance = NULL;
-	m_pWindow = new CWinWindow();
-	m_pLevel = new CLevel();
-	m_pInput = new CInput();
-	m_pAssetRegistry = new CAssetRegistry();
-	m_pRenderer = new C3DRenderer();
+	m_MemoryPool.Init(1024 * 4096);
+	m_pWindow = m_MemoryPool.Allocate<CWinWindow>();
+	m_pLevel = m_MemoryPool.Allocate<CLevel>();
+	m_pInput = m_MemoryPool.Allocate<CInput>();
+	m_pAssetRegistry = m_MemoryPool.Allocate<CAssetRegistry>();
+	m_pRenderer = m_MemoryPool.Allocate<C3DRenderer>();
 }
 
 CEngine::~CEngine()
 {
-	delete m_pWindow;
-	delete m_pLevel;
-	delete m_pInput;
-	delete m_pRenderer;
-	delete m_pAssetRegistry;
+	m_MemoryPool.Free(m_pWindow);
+	m_MemoryPool.Free(m_pLevel);
+	m_MemoryPool.Free(m_pInput);
+	m_MemoryPool.Free(m_pRenderer);
+	m_MemoryPool.Free(m_pAssetRegistry);
+	m_MemoryPool.Release();
 }
 
 void CEngine::PreInitEngine(HINSTANCE hInstance)
@@ -27,6 +29,8 @@ void CEngine::PreInitEngine(HINSTANCE hInstance)
 
 bool CEngine::InitEngine()
 {
+	m_pAssetRegistry->InitAssetRegistry(&m_MemoryPool);
+
 	m_pWindow->SetHInstance(m_hInstance);
 	m_pWindow->MakeWindow("Marktech", 0, 0, 1920, 1080, EWindowed, m_pInput);
 

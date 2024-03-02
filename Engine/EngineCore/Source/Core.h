@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include "StringType.h"
+#include "MemoryPool.h"
 #include <assert.h>
 #include <crtdbg.h>
 

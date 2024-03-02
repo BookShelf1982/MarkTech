@@ -12,9 +12,6 @@ CVulkanRenderer::CVulkanRenderer()
 
 CVulkanRenderer::~CVulkanRenderer()
 {
-    delete[] m_pvkSwapchainFrameBuffers;
-    delete[] m_pvkSwapchainImageViews;
-    delete[] m_pvkSwapchainImages;
 }
 
 bool CVulkanRenderer::InitRenderer(IWindow* window)
@@ -420,6 +417,10 @@ void CVulkanRenderer::ShutdownRenderer()
 #endif
 
     vkDestroyInstance(m_vkInstance, nullptr);
+
+    delete[] m_pvkSwapchainFrameBuffers;
+    delete[] m_pvkSwapchainImageViews;
+    delete[] m_pvkSwapchainImages;
 }
 
 IShader* CVulkanRenderer::CreateShader(char* data, size_t dataSize)

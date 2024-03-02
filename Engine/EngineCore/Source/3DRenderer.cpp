@@ -10,7 +10,6 @@ C3DRenderer::C3DRenderer()
 
 C3DRenderer::~C3DRenderer()
 {
-	delete m_pRenderInterface;
 }
 
 void C3DRenderer::SetRenderAPI(ERendererAPI api)
@@ -180,6 +179,7 @@ void C3DRenderer::Destroy()
 	m_pConstantBuffer->ReleaseBuffer();
 	m_pPipeline->Release();
 	m_pRenderInterface->ShutdownRenderer();
+	delete m_pRenderInterface;
 }
 
 void C3DRenderer::RenderFrame()
