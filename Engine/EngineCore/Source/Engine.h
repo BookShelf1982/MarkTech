@@ -36,7 +36,5 @@ private:
 	C3DRenderer* m_pRenderer;
 	CAssetRegistry* m_pAssetRegistry;
 
-	CMemoryPool m_MemoryPool;
-
 	std::thread m_GameThread;
 };

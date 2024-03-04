@@ -48,7 +48,6 @@ public:
 	uint64_t LoadShaderAsset(String path);
 	MShaderAsset* GetShaderAsset(uint64_t assetId);
 
-	void InitAssetRegistry(CMemoryPool* memoryPool);
 	void DestroyAssetRegistry();
 
 private:
@@ -57,5 +56,5 @@ private:
 	size_t m_nShadersCurrentSize;
 	size_t m_nModelsCurrentSize;
 
-	CMemoryPool* m_pMemoryPoolRef;
+	CMemoryPool m_AssetMemoryPool;
 };

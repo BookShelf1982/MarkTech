@@ -1,6 +1,8 @@
 #pragma once
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
+#include <math.h>
 
 struct MMemoryChunk
 {
@@ -8,6 +10,7 @@ struct MMemoryChunk
 	size_t nDataSize;
 	size_t nUsedSize;
 	bool bIsAllocationChunk;
+	uint32_t nDebugIndex;
 
 	MMemoryChunk* pNext;
 };
@@ -22,25 +25,30 @@ public:
 
 	~CMemoryPool();
 
+	void* GetMemory(const size_t& memorySize);
+	void FreeMemory(void* ptr, const size_t& memorySize);
+	bool IsValidPointer(void* ptr);
+
 private:
 
 	bool AllocateMemory(const size_t& memorySize);
 	void FreeAllAllocatedMemory();
 
-	size_t CalculateNeededCunks(const size_t& memorySize);
+	uint32_t CalculateNeededCunks(const size_t& memorySize);
 	size_t CalculateBestMemoryBlockSize(const size_t& requestedMemorySize);
 
 	MMemoryChunk* FindSuitableChunkToHoldMemory(const size_t& memorySize);
-	MMemoryChunk* FindChunkHoldingPointerTo(void* memorySize);
+	MMemoryChunk* FindChunkHoldingPointerTo(void* memoryBlock);
 	MMemoryChunk* SkipChunks(MMemoryChunk* startChunk, size_t chunksToSkip);
 	MMemoryChunk* SetChunkDefaults(MMemoryChunk* chunk);
 
-	void FreeChunks(MMemoryChunk* chunks);
+	void FreeChunks(MMemoryChunk* chunk);
 	void DeallocateAllChunks();
 
-	bool LinkChunksToData(MMemoryChunk* chunk, uint32_t chunkCount, unsigned char* newMemoryBlock);
+	bool LinkChunksToData(MMemoryChunk* chunks, uint32_t chunkCount, unsigned char* newMemoryBlock);
 	void SetMemoryChunkValues(MMemoryChunk* chunk, const size_t& memBlockSize);
 	bool RecalcChunkMemorySize(MMemoryChunk* chunk, uint32_t chunkCount);
+	size_t MaxValue(const size_t& a, const size_t& b) const;
 
 	MMemoryChunk* m_pFirstChunk;
 	MMemoryChunk* m_pLastChunk;

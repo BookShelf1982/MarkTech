@@ -34,9 +34,9 @@ bool C3DRenderer::Init(IWindow* pWindow, CAssetRegistry* pAssetRegistry)
 {
 	m_pWindowRef = pWindow;
 	m_pAssetRegistryRef = pAssetRegistry;
+	uint64_t nModelId = m_pAssetRegistryRef->LoadModelAsset("uv_sphere.mmdl");
 	uint64_t nVShaderId = m_pAssetRegistryRef->LoadShaderAsset("Bin/Shaders/Vert.mfx");
 	uint64_t nPShaderId = m_pAssetRegistryRef->LoadShaderAsset("Bin/Shaders/PixelShader.mfx");
-	uint64_t nModelId = m_pAssetRegistryRef->LoadModelAsset("uv_sphere.mmdl");
 	MShaderAsset* pVShader = m_pAssetRegistryRef->GetShaderAsset(nVShaderId);
 	MShaderAsset* pPShader = m_pAssetRegistryRef->GetShaderAsset(nPShaderId);
 	MModelAsset* pModelAsset = m_pAssetRegistryRef->GetModelAsset(nModelId);

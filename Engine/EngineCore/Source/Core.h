@@ -1,9 +1,13 @@
 #pragma once
+#ifdef DEBUG
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+#endif
+
 #include <stdint.h>
 #include "StringType.h"
 #include "MemoryPool.h"
-#include <assert.h>
-#include <crtdbg.h>
 
 typedef unsigned char byte;
 
