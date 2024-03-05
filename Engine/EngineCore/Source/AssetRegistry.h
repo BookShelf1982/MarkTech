@@ -12,6 +12,11 @@ struct DummyVert
 	MVector2 tcoords;
 };
 
+struct MAssetHandle
+{
+	uint64_t nAssetId;
+};
+
 struct MModelAsset
 {
 	MModelAsset();

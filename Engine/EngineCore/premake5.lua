@@ -10,9 +10,8 @@ project "EngineCore"
 	
 	includedirs
 	{
-		"%{wks.location}/Shared/",
 		"%{prj.location}/ThirdParty/stb_image/",
-		"%{wks.location}/Imgui/Source/",
+		"%{prj.location}/ThirdParty/Imgui/Source/",
 		"C:/VulkanSDK/1.3.275.0/Include/"
 	}
 	

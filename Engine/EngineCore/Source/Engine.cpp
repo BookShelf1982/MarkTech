@@ -50,7 +50,7 @@ bool CEngine::InitEngine()
 
 	m_pRenderer->SetRenderAPI(ERendererAPI::Vulkan);
 
-	if (!m_pRenderer->Init(m_pWindow, m_pAssetRegistry))
+	if (!m_pRenderer->Init(m_pWindow))
 		return false;
 
 	return true;

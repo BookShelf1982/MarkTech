@@ -15,19 +15,6 @@ void MModelAsset::Release()
 {
 }
 
-CAssetRegistry::CAssetRegistry()
-	:m_nModelsCurrentSize(0), m_nShadersCurrentSize(0), m_AssetMemoryPool(2048*1000, 1024, 0, true)
-{
-	m_pModels = new MModelAsset[MAX_LOADED_MODELS];
-	m_pShaders = new MShaderAsset[MAX_LOADED_SHADERS];
-}
-
-CAssetRegistry::~CAssetRegistry()
-{
-	delete[] m_pModels;
-	delete[] m_pShaders;
-}
-
 MShaderAsset::MShaderAsset()
 	:m_nId(0), m_nShaderBytecodeSize(0), m_pShaderBytecode(nullptr)
 {
@@ -39,6 +26,19 @@ MShaderAsset::~MShaderAsset()
 
 void MShaderAsset::Release()
 {
+}
+
+CAssetRegistry::CAssetRegistry()
+	:m_nModelsCurrentSize(0), m_nShadersCurrentSize(0), m_AssetMemoryPool(2048*1000, 1024, 0, true)
+{
+	m_pModels = new MModelAsset[MAX_LOADED_MODELS];
+	m_pShaders = new MShaderAsset[MAX_LOADED_SHADERS];
+}
+
+CAssetRegistry::~CAssetRegistry()
+{
+	delete[] m_pModels;
+	delete[] m_pShaders;
 }
 
 void CAssetRegistry::DestroyAssetRegistry()

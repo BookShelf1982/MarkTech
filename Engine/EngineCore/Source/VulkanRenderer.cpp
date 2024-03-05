@@ -373,7 +373,7 @@ bool CVulkanRenderer::InitRenderer(IWindow* window)
 
 void CVulkanRenderer::ShutdownRenderer()
 {
-    //vkDeviceWaitIdle(m_vkDevice); // Wait for logical device to finish before releasing everything
+    vkDeviceWaitIdle(m_vkDevice); // Wait for logical device to finish before releasing everything
 
     vkDestroyDescriptorPool(m_vkDevice, m_vkDescriptorPool, nullptr);
 
