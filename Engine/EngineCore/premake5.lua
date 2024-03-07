@@ -12,12 +12,14 @@ project "EngineCore"
 	{
 		"%{prj.location}/ThirdParty/stb_image/",
 		"%{prj.location}/ThirdParty/Imgui/Source/",
+		"%{prj.location}/ThirdParty/GLFW/include/",
 		"C:/VulkanSDK/1.3.275.0/Include/"
 	}
 	
 	libdirs
 	{
-		"C:/VulkanSDK/1.3.275.0/Lib/"
+		"C:/VulkanSDK/1.3.275.0/Lib/",
+		"%{prj.location}/ThirdParty/GLFW/lib/"
 	}
 	
 	defines
@@ -28,6 +30,7 @@ project "EngineCore"
 	links
 	{
 		"Imgui",
+		"glfw3.lib",
 		"volk.lib"
 	}
 	

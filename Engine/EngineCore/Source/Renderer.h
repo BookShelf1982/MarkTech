@@ -1,6 +1,6 @@
 #pragma once
 #include "Core.h"
-#include "Window.h"
+#include <GLFW\glfw3.h>
 #include "Vectors.h"
 
 #define FRAME_BUFFER_COUNT 2
@@ -156,7 +156,7 @@ class IRenderer
 {
 public:
 	virtual ~IRenderer() {}
-	virtual	bool InitRenderer(IWindow* window) = 0;
+	virtual	bool InitRenderer(GLFWwindow* window) = 0;
 	virtual	void ShutdownRenderer() = 0;
 	inline static ERendererAPI GetCurrentAPI() { return IRenderer::m_API; }
 

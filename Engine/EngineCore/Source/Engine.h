@@ -1,6 +1,5 @@
 #pragma once
 #include "Core.h"
-#include "WinWindow.h"
 #include "Level.h"
 #include "Input.h"
 #include "3DRenderer.h"
@@ -8,29 +7,28 @@
 #include <atomic>
 #include <thread>
 
-struct MDATA
-{
-	int num = 64;
-};
-
 class CEngine
 {
 public:
 	CEngine();
 	~CEngine();
 
-	void PreInitEngine(HINSTANCE hInstance);
 	bool InitEngine();
 	void DestroyEngine();
 	void StartEngineLoop();
 	void GameLoop();
-	void Close();
+	static void Close();
 
 	bool IsClosing() const { return m_bClosing; }
+
+	static void SetEnginePtr(CEngine* engine);
 private:
+	CMemoryPool m_EngineMemoryPool;
+
+	static CEngine* m_pEngine;
+
 	std::atomic<bool> m_bClosing;
-	HINSTANCE m_hInstance;
-	CWinWindow* m_pWindow;
+	GLFWwindow* m_pWindow;
 	CLevel* m_pLevel;
 	CInput* m_pInput;
 	C3DRenderer* m_pRenderer;
@@ -38,3 +36,5 @@ private:
 
 	std::thread m_GameThread;
 };
+
+void OnWindowClose(GLFWwindow* window);

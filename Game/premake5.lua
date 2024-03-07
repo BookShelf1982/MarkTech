@@ -10,7 +10,8 @@ project "Game"
 	
 	includedirs
 	{
-		"%{wks.location}/Engine/EngineCore/Source",
+		"%{wks.location}/Engine/EngineCore/Source/",
+		"%{wks.location}/Engine/EngineCore/ThirdParty/GLFW/include;/",
 		"C:/VulkanSDK/1.3.275.0/Include"
 	}
 	

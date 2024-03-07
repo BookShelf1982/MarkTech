@@ -1,34 +1,35 @@
 #include "Engine.h"
 
+CEngine* CEngine::m_pEngine = nullptr;
+
 CEngine::CEngine()
-	:m_bClosing(false)
+	:m_EngineMemoryPool(2048, 4, 0, true)
 {
-	m_hInstance = NULL;
-	m_pWindow = new CWinWindow();
-	m_pLevel = new CLevel();
-	m_pInput = new CInput();
-	m_pAssetRegistry = new CAssetRegistry();
-	m_pRenderer = new C3DRenderer();
+	m_pWindow = nullptr;
+	m_pLevel = (CLevel*)m_EngineMemoryPool.GetMemory(sizeof(CLevel));
+	m_pInput = (CInput*)m_EngineMemoryPool.GetMemory(sizeof(CInput));
+	m_pAssetRegistry = (CAssetRegistry*)m_EngineMemoryPool.GetMemory(sizeof(CAssetRegistry));
+	m_pRenderer = (C3DRenderer*)m_EngineMemoryPool.GetMemory(sizeof(C3DRenderer));
 }
 
 CEngine::~CEngine()
 {
-	delete m_pWindow;
-	delete m_pLevel;
-	delete m_pInput;
-	delete m_pRenderer;
-	delete m_pAssetRegistry;
-}
-
-void CEngine::PreInitEngine(HINSTANCE hInstance)
-{
-	m_hInstance = hInstance;
+	m_EngineMemoryPool.FreeMemory(m_pLevel, sizeof(CLevel));
+	m_EngineMemoryPool.FreeMemory(m_pInput, sizeof(CInput));
+	m_EngineMemoryPool.FreeMemory(m_pRenderer, sizeof(C3DRenderer));
+	m_EngineMemoryPool.FreeMemory(m_pAssetRegistry, sizeof(CAssetRegistry));
 }
 
 bool CEngine::InitEngine()
 {
-	m_pWindow->SetHInstance(m_hInstance);
-	m_pWindow->MakeWindow("Marktech", 0, 0, 1920, 1080, EWindowed, m_pInput);
+	glfwInit();
+
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+
+	m_pWindow = glfwCreateWindow(1280, 720, "MarkTech", nullptr, nullptr);
+
+	glfwSetWindowCloseCallback(m_pWindow, &OnWindowClose);
 
 	if (!m_pInput->InitInput())
 		return false;
@@ -58,7 +59,8 @@ bool CEngine::InitEngine()
 
 void CEngine::DestroyEngine()
 {
-	m_pWindow->KillWindow();
+	glfwDestroyWindow(m_pWindow);
+	glfwTerminate();
 	m_pLevel->DestroyLevel();
 	m_pInput->DestroyInput();
 	m_pAssetRegistry->DestroyAssetRegistry();
@@ -70,22 +72,7 @@ void CEngine::StartEngineLoop()
 	//m_GameThread = std::thread(&CEngine::GameLoop, this);
 	while (!m_bClosing)
 	{
-		MSG msg = {};
-		while (PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE))
-		{
-			m_pWindow->MessageLoop(&msg);
-			switch (msg.message)
-			{
-			case WM_QUIT:
-			{
-				Close();
-			}break;
-			}
-			if (m_bClosing)
-			{
-				break;
-			}
-		}
+		glfwPollEvents();
 
 		m_pRenderer->RenderFrame();
 	}
@@ -105,5 +92,15 @@ void CEngine::GameLoop()
 
 void CEngine::Close()
 {
-	m_bClosing = true;
+	CEngine::m_pEngine->m_bClosing = true;
+}
+
+void CEngine::SetEnginePtr(CEngine* engine)
+{
+	m_pEngine = engine;
+}
+
+void OnWindowClose(GLFWwindow* window)
+{
+	CEngine::Close();
 }

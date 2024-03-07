@@ -8,7 +8,7 @@
 int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow )
 {
 	CEngine* g_pEngine = new CEngine();
-	g_pEngine->PreInitEngine(hInstance);
+	CEngine::SetEnginePtr(g_pEngine);
 	if (!g_pEngine->InitEngine())
 		return 1;
 

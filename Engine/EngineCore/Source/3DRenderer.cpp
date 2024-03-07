@@ -30,10 +30,8 @@ void C3DRenderer::SetRenderAPI(ERendererAPI api)
 	}
 }
 
-bool C3DRenderer::Init(IWindow* pWindow)
+bool C3DRenderer::Init(GLFWwindow* pWindow)
 {
-	m_pWindowRef = pWindow;
-
 	if (!m_pRenderInterface->InitRenderer(pWindow))
 		return false;
 

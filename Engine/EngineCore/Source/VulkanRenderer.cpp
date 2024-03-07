@@ -5,7 +5,6 @@
 #include <string>
 #include <algorithm>
 
-
 CVulkanRenderer::CVulkanRenderer()
 {
 }
@@ -14,7 +13,7 @@ CVulkanRenderer::~CVulkanRenderer()
 {
 }
 
-bool CVulkanRenderer::InitRenderer(IWindow* window)
+bool CVulkanRenderer::InitRenderer(GLFWwindow* window)
 {
     VkResult result = volkInitialize();
 
@@ -31,6 +30,15 @@ bool CVulkanRenderer::InitRenderer(IWindow* window)
     std::vector<const char*> extensions;
     std::vector<const char*> validationLayers;
 
+    uint32_t glfwExtensionCount;
+    const char** glfwExtenisons;
+    glfwExtenisons = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+    for (uint32_t i = 0; i < glfwExtensionCount; i++)
+    {
+        extensions.push_back(glfwExtenisons[i]);
+    }
+
     VkInstanceCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
@@ -45,13 +53,8 @@ bool CVulkanRenderer::InitRenderer(IWindow* window)
     createInfo.enabledLayerCount = (uint32_t)validationLayers.size();
     createInfo.ppEnabledLayerNames = validationLayers.data();
 
-#ifdef MT_PLATFORM_WINDOWS
-    extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
-    extensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-
     createInfo.enabledExtensionCount = (uint32_t)extensions.size();
     createInfo.ppEnabledExtensionNames = extensions.data();
-#endif
 
     result = vkCreateInstance(&createInfo, nullptr, &m_vkInstance);
 
@@ -68,7 +71,7 @@ bool CVulkanRenderer::InitRenderer(IWindow* window)
     // -- Window creation -- //
     VkWin32SurfaceCreateInfoKHR windowInfo = {};
     windowInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    windowInfo.hwnd = reinterpret_cast<CWinWindow*>(window)->GetHWND();
+    windowInfo.hwnd = glfwGetWin32Window(window);
     windowInfo.hinstance = GetModuleHandleW(NULL);
 
     PFN_vkCreateWin32SurfaceKHR pfnvkCreateWin32SurfaceKHR = (PFN_vkCreateWin32SurfaceKHR)vkGetInstanceProcAddr(m_vkInstance, "vkCreateWin32SurfaceKHR");
@@ -853,7 +856,7 @@ VkPresentModeKHR CVulkanRenderer::ChooseSwapChainPresentMode(const std::vector<V
     return VK_PRESENT_MODE_IMMEDIATE_KHR; // YSYNC OFF
 }
 
-bool CVulkanRenderer::CreateSwapChain(VkDevice device, VkSwapchainKHR& swpachain, MQueueFamilyIndices indices, IWindow* pWindow)
+bool CVulkanRenderer::CreateSwapChain(VkDevice device, VkSwapchainKHR& swpachain, MQueueFamilyIndices indices, GLFWwindow* pWindow)
 {
     MSwapChainDetails details = GetSwapChainDetails(m_vkPhysicalDevice);
     VkSurfaceFormatKHR surfaceFormat = ChooseSwapChainFormat(details.formats);
@@ -906,16 +909,12 @@ bool CVulkanRenderer::CreateSwapChain(VkDevice device, VkSwapchainKHR& swpachain
     return true;
 }
 
-VkExtent2D CVulkanRenderer::ChooseSwapChainExtent2D(const VkSurfaceCapabilitiesKHR& capabilities, IWindow* pWindow)
+VkExtent2D CVulkanRenderer::ChooseSwapChainExtent2D(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* pWindow)
 {
     int width = 0;
     int height = 0;
 
-#ifdef MT_PLATFORM_WINDOWS
-    CWinWindow* pWinWindow = reinterpret_cast<CWinWindow*>(pWindow);
-    width = pWinWindow->GetWidth();
-    height = pWinWindow->GetHeight();
-#endif
+    glfwGetFramebufferSize(pWindow, &width, &height);
 
     VkExtent2D actualExtent = {
         static_cast<uint32_t>(width),

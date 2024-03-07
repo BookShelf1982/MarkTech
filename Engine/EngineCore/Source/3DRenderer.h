@@ -23,11 +23,10 @@ public:
 	~C3DRenderer();
 
 	void SetRenderAPI(ERendererAPI api);
-	bool Init(IWindow* pWindow);
+	bool Init(GLFWwindow* pWindow);
 	void Destroy();
 	void RenderFrame();
 private:
-	IWindow* m_pWindowRef;
 	IRenderer* m_pRenderInterface;
 };
 

@@ -1,14 +1,14 @@
 #pragma once
 #include "Renderer.h"
 
-#ifdef MT_PLATFORM_WINDOWS
-#define VK_USE_PLATFORM_WIN32_KHR
-#include "WinWindow.h"
-#endif
-
 #ifdef DEBUG
 #define USE_VALIDATION_LAYERS
 #endif
+
+#define VK_USE_PLATFORM_WIN32_KHR
+#include <GLFW/glfw3.h>
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
 
 #include <optional>
 #include <vector>
@@ -178,7 +178,7 @@ public:
 	CVulkanRenderer();
 	~CVulkanRenderer();
 
-	virtual	bool InitRenderer(IWindow* window) override;
+	virtual	bool InitRenderer(GLFWwindow* window) override;
 	virtual	void ShutdownRenderer() override;
 
 	virtual IShader* CreateShader(char* data, size_t dataSize) override;
@@ -272,8 +272,8 @@ private:
 	MQueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
 	VkSurfaceFormatKHR ChooseSwapChainFormat(const std::vector<VkSurfaceFormatKHR>& formats);
 	VkPresentModeKHR ChooseSwapChainPresentMode(const std::vector<VkPresentModeKHR>& modes);
-	bool CreateSwapChain(VkDevice device, VkSwapchainKHR& swpachain, MQueueFamilyIndices indices, IWindow* pWindow);
-	VkExtent2D ChooseSwapChainExtent2D(const VkSurfaceCapabilitiesKHR& capabilities, IWindow* pWindow);
+	bool CreateSwapChain(VkDevice device, VkSwapchainKHR& swpachain, MQueueFamilyIndices indices, GLFWwindow* pWindow);
+	VkExtent2D ChooseSwapChainExtent2D(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* pWindow);
 	VkShaderModule CreateShader(const std::vector<char>& buffer);
 	VkFormat FindSupportedFormat(const std::vector<VkFormat>& canidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 	VkFormat FindDepthFormat();
