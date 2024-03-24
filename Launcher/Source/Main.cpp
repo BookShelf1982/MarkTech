@@ -1,14 +1,14 @@
 #include <Windows.h>
 #include "SandboxApp.h"
 
-#ifdef DEBUG
-#include <crtdbg.h>
-#endif
-
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
-	CSandboxApp app;
-	app.Run();
+	{
+		CSandboxApp app;
+		app.Run();
+	}
+
+	_CrtDumpMemoryLeaks();
 
 	return 0;
 }

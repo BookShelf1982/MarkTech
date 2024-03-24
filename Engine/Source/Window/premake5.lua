@@ -1,4 +1,4 @@
-project "Graphics"
+project "Window"
 	kind "SharedLib"
 	language "C++"
 	cppdialect "C++17"
@@ -17,16 +17,17 @@ project "Graphics"
 	{
 		"Public/",
 		"%{wks.location}/Engine/Source/Global/Public/",
-		"%{wks.location}/Engine/ThirdParty/Glad/include/",
-		"C:/VulkanSDK/1.3.275.0/Include/",
-		"%{wks.location}/Engine/ThirdParty/Volk/include/"
+		"%{wks.location}/Engine/ThirdParty/GLFW/include/",
+	}
+	
+	libdirs
+	{
+		"%{wks.location}/Engine/THirdParty/GLFW/lib/"
 	}
 	
 	links
 	{
-		"Glad",
-		"Volk",
-		"opengl32.lib"
+		"glfw3.lib"
 	}
 	
 	postbuildcommands

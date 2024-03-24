@@ -14,7 +14,8 @@ project "Launcher"
 	
 	includedirs
 	{
-		"%{wks.location}/Engine/Source/Core/Public"
+		"%{wks.location}/Engine/Source/Core/Public/",
+		"%{wks.location}/Engine/Source/Global/Public/"
 	}
 	
 	links
@@ -22,11 +23,18 @@ project "Launcher"
 		"Core"
 	}
 	
+	postbuildcommands
+	{
+		"mkdir %{wks.location}Build\\Bin",
+		"{COPYFILE} %{wks.location}/bin/" .. outputdir .. "/%{prj.name}/%{prj.name}.exe %{wks.location}/Build/"
+	}
+	
 	defines {"MT_PLATFORM_WINDOWS"}
 	
 	filter "configurations:Debug"
         defines { "DEBUG" }
         symbols "On"
+		debugdir "%{wks.location}/Build/"
 		
 	filter "configurations:Release"
         optimize "On"

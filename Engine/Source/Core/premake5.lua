@@ -16,10 +16,12 @@ project "Core"
 	includedirs
 	{
 		"Public/",
-		"%{wks.location}/Engine/ThirdParty/"
+		"%{wks.location}/Engine/Source/Global/Public/",
+		"%{wks.location}/Engine/ThirdParty/",
+		"%{wks.location}/Engine/Source/Window/Public/",
+		"%{wks.location}/Engine/Source/Graphics/Public/",
+		"%{wks.location}/Engine/ThirdParty/GLFW/include/"
 	}
-	
-	defines {"MT_PLATFORM_WINDOWS"}
 	
 	filter "configurations:Debug"
        defines { "DEBUG" }
@@ -27,3 +29,6 @@ project "Core"
 		
 	filter "configurations:Release"
         optimize "On"
+		
+	filter "platforms:Win64"
+		defines {"MT_PLATFORM_WINDOWS"}

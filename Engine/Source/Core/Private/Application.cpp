@@ -22,14 +22,7 @@ IMarkTechApplication::IMarkTechApplication()
 
 	std::vector<std::string> modules = ParseINIArray(iniArray);
 
-	std::vector<const char*> names;
-
-	for (size_t i = 0; i < modules.size(); i++)
-	{
-		names.push_back(modules[i].c_str());
-	}
-
-	m_pEngine = CreateMarkTechEngine(names.data(), (uint32_t)names.size());
+	m_pEngine = CreateMarkTechEngine(modules);
 }
 
 IMarkTechApplication::~IMarkTechApplication()
@@ -42,7 +35,11 @@ void IMarkTechApplication::Run()
 	OnInit();
 	while (m_bIsRunning)
 	{
+		m_pEngine->Update();
 		OnUpdate();
+
+		if (m_pEngine->WantToQuit())
+			m_bIsRunning = false;
 	}
 	OnQuit();
 }
