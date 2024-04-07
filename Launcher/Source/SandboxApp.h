@@ -11,4 +11,6 @@ public:
 	virtual void OnUpdate() override;
 	virtual void OnQuit() override;
 
+private:
+	IMarkTechEngine* m_pEngine;
 };

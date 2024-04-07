@@ -8,7 +8,7 @@ class IMarkTechApplication
 {
 public:
 	IMarkTechApplication();
-	virtual ~IMarkTechApplication();
+	virtual ~IMarkTechApplication() {}
 
 	virtual void OnInit() {}
 	virtual void OnUpdate() {}
@@ -20,11 +20,13 @@ public:
 
 	static IMarkTechApplication* Get();
 
+protected:
+	std::vector<std::string> GetModulesFromINI();
+
 private:
 	static IMarkTechApplication* m_pInstance;
 
 	std::vector<std::string> ParseINIArray(const std::string& string);
 
 	bool m_bIsRunning;
-	IMarkTechEngine* m_pEngine;
 };

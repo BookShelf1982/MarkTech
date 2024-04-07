@@ -5,29 +5,10 @@
 IMarkTechApplication* IMarkTechApplication::m_pInstance = nullptr;
 
 IMarkTechApplication::IMarkTechApplication()
-	:m_bIsRunning(true), m_pEngine(nullptr)
+	:m_bIsRunning(true)
 {
 	MASSERT(!m_pInstance);
 	m_pInstance = this;
-
-	mINI::INIFile file("Modules.ini");
-	mINI::INIStructure moduleStruct;
-
-	MASSERT(file.read(moduleStruct));
-
-	bool bHasModulesKey = moduleStruct["Modules"].has("RequiredModules");
-	MASSERT(bHasModulesKey);
-
-	std::string iniArray = moduleStruct["Modules"]["RequiredModules"];
-
-	std::vector<std::string> modules = ParseINIArray(iniArray);
-
-	m_pEngine = CreateMarkTechEngine(modules);
-}
-
-IMarkTechApplication::~IMarkTechApplication()
-{
-	m_pEngine->Release();
 }
 
 void IMarkTechApplication::Run()
@@ -35,11 +16,7 @@ void IMarkTechApplication::Run()
 	OnInit();
 	while (m_bIsRunning)
 	{
-		m_pEngine->Update();
 		OnUpdate();
-
-		if (m_pEngine->WantToQuit())
-			m_bIsRunning = false;
 	}
 	OnQuit();
 }
@@ -53,6 +30,23 @@ IMarkTechApplication* IMarkTechApplication::Get()
 {
 	MASSERT(m_pInstance);
 	return m_pInstance;
+}
+
+std::vector<std::string> IMarkTechApplication::GetModulesFromINI()
+{
+	mINI::INIFile file("Modules.ini");
+	mINI::INIStructure moduleStruct;
+
+	MASSERT(file.read(moduleStruct));
+
+	bool bHasModulesKey = moduleStruct["Modules"].has("RequiredModules");
+	MASSERT(bHasModulesKey);
+
+	std::string iniArray = moduleStruct["Modules"]["RequiredModules"];
+
+	std::vector<std::string> modules = ParseINIArray(iniArray);
+
+	return modules;
 }
 
 std::vector<std::string> IMarkTechApplication::ParseINIArray(const std::string& string)

@@ -1,4 +1,4 @@
-project "Graphics"
+project "ResourceCompiler"
 	kind "SharedLib"
 	language "C++"
 	cppdialect "C++17"
@@ -17,14 +17,17 @@ project "Graphics"
 	{
 		"Public/",
 		"%{wks.location}/Engine/Source/Global/Public/",
-		"%{wks.location}/Engine/ThirdParty/Glad/include/",
-		"C:/VulkanSDK/1.3.275.0/Include/",
+		"C:/VulkanSDK/1.3.275.0/Include/"
+	}
+	
+	libdirs
+	{
+		"C:/VulkanSDK/1.3.275.0/Lib"
 	}
 	
 	links
 	{
-		"Glad",
-		"opengl32.lib"
+		"shaderc.lib"
 	}
 	
 	postbuildcommands

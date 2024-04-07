@@ -1,4 +1,5 @@
 #include "MarkTechEngine.h"
+#include <fstream>
 
 CEngine* CEngine::m_pIstance = nullptr;
 

@@ -1,5 +1,7 @@
 #pragma once
 #include "Core.h"
+#include "Buffer.h"
+#include "Shader.h"
 
 enum class EGraphicsAPI
 {
