@@ -13,8 +13,8 @@ private:
 	HMODULE m_Module;
 };
 
-class CWinModuleLoader : public IModuleLoader
+class CWinModuleLoader
 {
 public:
-	virtual IModule* LoadModule(const char* pModName) override;
+	static IModule* LoadModule(const char* pModName);
 };

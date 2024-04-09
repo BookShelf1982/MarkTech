@@ -32,8 +32,8 @@ project "ResourceCompiler"
 	
 	postbuildcommands
 	{
-		"mkdir %{wks.location}Build\\Bin\\",
-		"{COPYFILE} %{wks.location}/bin/" .. outputdir .. "/%{prj.name}/%{prj.name}.dll %{wks.location}/Build/Bin/"
+		"mkdir %{wks.location}Build\\Bin\\SdkTools\\",
+		"{COPYFILE} %{wks.location}/bin/" .. outputdir .. "/%{prj.name}/%{prj.name}.dll %{wks.location}/Build/Bin/SdkTools/"
 	}
 	
 	filter "configurations:Debug"

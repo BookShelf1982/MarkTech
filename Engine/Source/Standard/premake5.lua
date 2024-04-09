@@ -1,4 +1,4 @@
-project "Core"
+project "Standard"
 	kind "StaticLib"
 	language "C++"
 	cppdialect "C++17"
@@ -15,12 +15,7 @@ project "Core"
 	
 	includedirs
 	{
-		"Public/",
-		"%{wks.location}/Engine/Source/Standard/Public/",
-		"%{wks.location}/Engine/ThirdParty/",
-		"%{wks.location}/Engine/Source/Window/Public/",
-		"%{wks.location}/Engine/Source/Graphics/Public/",
-		"%{wks.location}/Engine/ThirdParty/GLFW/include/"
+		"Public/"
 	}
 	
 	filter "configurations:Debug"

@@ -1,5 +1,5 @@
-project "Core"
-	kind "StaticLib"
+project "ResourceManager"
+	kind "SharedLib"
 	language "C++"
 	cppdialect "C++17"
 	
@@ -16,16 +16,19 @@ project "Core"
 	includedirs
 	{
 		"Public/",
-		"%{wks.location}/Engine/Source/Standard/Public/",
-		"%{wks.location}/Engine/ThirdParty/",
-		"%{wks.location}/Engine/Source/Window/Public/",
-		"%{wks.location}/Engine/Source/Graphics/Public/",
-		"%{wks.location}/Engine/ThirdParty/GLFW/include/"
+		"%{wks.location}/Engine/Source/Global/Public/",
+		"C:/VulkanSDK/1.3.275.0/Include/"
+	}
+	
+	postbuildcommands
+	{
+		"mkdir %{wks.location}Build\\Bin\\",
+		"{COPYFILE} %{wks.location}/bin/" .. outputdir .. "/%{prj.name}/%{prj.name}.dll %{wks.location}/Build/Bin/"
 	}
 	
 	filter "configurations:Debug"
-       defines { "DEBUG" }
-       symbols "On"
+        defines { "DEBUG" }
+        symbols "On"
 		
 	filter "configurations:Release"
         optimize "On"

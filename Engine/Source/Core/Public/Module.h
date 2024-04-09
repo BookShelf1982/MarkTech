@@ -19,5 +19,5 @@ public:
 class IModuleLoader
 {
 public:
-	virtual IModule* LoadModule(const char* pModName) = 0;
+	IModule* LoadModule(const char* pModName);
 };

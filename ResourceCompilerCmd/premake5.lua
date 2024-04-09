@@ -1,5 +1,5 @@
-project "Launcher"
-	kind "WindowedApp"
+project "ResourceCompilerCmd"
+	kind "ConsoleApp"
 	language "C++"
 	cppdialect "C++17"
 	
@@ -15,7 +15,7 @@ project "Launcher"
 	includedirs
 	{
 		"%{wks.location}/Engine/Source/Core/Public/",
-		"%{wks.location}/Engine/Source/Standard/Public/"
+		"%{wks.location}/Engine/Source/Global/Public/"
 	}
 	
 	links
@@ -25,8 +25,8 @@ project "Launcher"
 	
 	postbuildcommands
 	{
-		"mkdir %{wks.location}Build\\Bin",
-		"{COPYFILE} %{wks.location}/bin/" .. outputdir .. "/%{prj.name}/%{prj.name}.exe %{wks.location}/Build/"
+		"mkdir %{wks.location}Build\\Bin\\SdkTools",
+		"{COPYFILE} %{wks.location}/bin/" .. outputdir .. "/%{prj.name}/%{prj.name}.exe %{wks.location}/Build/Bin/SdkTools/"
 	}
 	
 	defines {"MT_PLATFORM_WINDOWS"}

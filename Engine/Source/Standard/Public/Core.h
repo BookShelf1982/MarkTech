@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include "SharedPointer.h"
 
 #ifdef MT_PLATFORM_WINDOWS
 #define DLLEXPORT __declspec(dllexport)
