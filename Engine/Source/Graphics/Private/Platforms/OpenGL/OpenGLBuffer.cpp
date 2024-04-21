@@ -39,8 +39,8 @@ COpenGLBuffer::COpenGLBuffer(MCreateBufferInfo info)
 	}
 
 	glGenBuffers(1, &m_nId);
-	glBindBuffer(GL_ARRAY_BUFFER, m_nId);
-	glBufferData(GL_ARRAY_BUFFER, info.nSize, info.pData, usage);
+	glBindBuffer(target, m_nId);
+	glBufferData(target, info.nSize, info.pData, usage);
 }
 
 COpenGLBuffer::~COpenGLBuffer()

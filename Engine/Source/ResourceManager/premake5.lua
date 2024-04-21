@@ -16,7 +16,7 @@ project "ResourceManager"
 	includedirs
 	{
 		"Public/",
-		"%{wks.location}/Engine/Source/Global/Public/",
+		"%{wks.location}/Engine/Source/Standard/Public/",
 		"C:/VulkanSDK/1.3.275.0/Include/"
 	}
 	

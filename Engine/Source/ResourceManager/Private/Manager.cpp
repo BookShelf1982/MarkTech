@@ -1,4 +1,5 @@
 #include "Manager.h"
+#include "ShaderResourceImpl.h"
 #include <fstream>
 
 CResourceManager::CResourceManager()
@@ -9,7 +10,7 @@ CResourceManager::~CResourceManager()
 {
 }
 
-void* CResourceManager::ReadShaderFromFile(const char* pFilepath)
+IShaderResource* CResourceManager::ReadShaderFromFile(const char* pFilepath)
 {
 	std::fstream file(pFilepath, std::ios::in | std::ios::binary);
 	if (!file.is_open())
@@ -20,6 +21,7 @@ void* CResourceManager::ReadShaderFromFile(const char* pFilepath)
 	file.seekg(0);
 	uint32_t* pData = new uint32_t[fileSize];
 	file.read((char*)pData, fileSize);
+	file.close();
 
-	return pData;
+	return new CShaderResource(pData, (uint32_t)fileSize);
 }

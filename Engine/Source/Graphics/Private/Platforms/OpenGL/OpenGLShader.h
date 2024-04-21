@@ -9,6 +9,7 @@ public:
 	COpenGLShader(MCreateShaderInfo info);
 	~COpenGLShader();
 
+	uint32_t GetId() { return m_nId; }
 private:
 	uint32_t m_nId;
 

@@ -2,7 +2,8 @@
 #include "Engine.h"
 #include "Module.h"
 #include "WindowInterface.h"
-#include "GraphicsInterface.h"
+#include "ResourceManagerInterface.h"
+#include "3DRenderer.h"
 
 #ifdef MT_PLATFORM_WINDOWS
 #include "WinModule.h"
@@ -40,16 +41,20 @@ private:
 	std::vector<IModule*> m_LoadedModules;
 
 	window_funcs_t m_pfnWindowFuncs;
-	graphics_funcs_t m_pfnGraphicsFuncs;
+	resource_manager_funcs_t m_pfnResourceManagerFuncs;
 
 	IModule* m_pWindowModule;
-	IModule* m_pGraphicsModule;
+	IModule* m_pResourceManagerModule;
 
 	// --  Window Stuff -- //
 	GLFWwindow* m_pWindow;
 
-	// -- graphics -- //
-	IGraphicsContext* m_pGraphicsContext;
+	// -- Graphics -- //
+	C3DRenderer* m_pRenderer;
+	CTSharedPointer<IBuffer> m_Buffer;
+
+	// -- Resource Management -- //
+	IResourceManager* m_pResourceManager;
 };
 
 void WindowCloseCallback(GLFWwindow* pWindow);

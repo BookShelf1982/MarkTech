@@ -16,7 +16,7 @@ project "Window"
 	includedirs
 	{
 		"Public/",
-		"%{wks.location}/Engine/Source/Global/Public/",
+		"%{wks.location}/Engine/Source/Standard/Public/",
 		"%{wks.location}/Engine/ThirdParty/GLFW/include/",
 	}
 	

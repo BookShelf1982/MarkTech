@@ -2,8 +2,7 @@
 #include "Core.h"
 #include "Shader.h"
 
-// -- Input Layout -- //
-
+// --  Input Layout -- //
 enum class EElementType
 {
 	FLOAT,
@@ -23,6 +22,7 @@ struct MInputLayoutInfo
 {
 	MInputLayoutElement* pElements;
 	uint32_t nElementCount;
+	uint32_t nStride;
 };
 
 // -- Rasterizer -- //
@@ -55,20 +55,25 @@ struct MRasterizerInfo
 
 // -- Shaders -- //
 
+struct MShaderProgramElement
+{
+	IShader* m_pShader;
+};
+
 struct MShaderProgramInfo
 {
-	EShaderStage stage;
-	const char* pEntrypoint;
+	MShaderProgramElement* pPrograms;
+	uint32_t nNumPrograms;
 };
+
 
 // -- Pipeline -- //
 
 struct MCreatePipelineInfo
 {
-	MInputLayoutInfo vertexInputLayout;
+	MInputLayoutInfo inputLayout;
 	MRasterizerInfo rasterizerInfo;
-	MShaderProgramInfo vertShader;
-	MShaderProgramInfo fragShader;
+	MShaderProgramInfo shaderProgrm;
 };
 
 class IPipeline

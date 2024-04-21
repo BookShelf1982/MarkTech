@@ -1,5 +1,4 @@
 #include "OpenGLGraphicsContext.h"
-#include "OpenGLShader.h"
 
 COpenGLGraphicsContext::COpenGLGraphicsContext()
 {
@@ -48,13 +47,31 @@ COpenGLGraphicsContext::COpenGLGraphicsContext(EGraphicsAPI api, HWND hwnd)
 
 	wglMakeCurrent(hdc, m_Hglrc);
 
-	glDebugMessageCallback(DebugCallback,  nullptr);
+	glEnable(GL_DEBUG_OUTPUT);
+	glDebugMessageCallback(MessageCallback, 0);
+	glGenVertexArrays(1, &m_nDefaultVAO);
+	glBindVertexArray(m_nDefaultVAO);
+}
 
-	OutputDebugStringA((char*)glGetString(GL_VERSION));
+void GLAPIENTRY
+MessageCallback(GLenum source,
+	GLenum type,
+	GLuint id,
+	GLenum severity,
+	GLsizei length,
+	const GLchar* message,
+	const void* userParam)
+{
+	char buffer[1024];
+	sprintf(buffer, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+		(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
+		type, severity, message);
+	OutputDebugStringA(buffer);
 }
 
 COpenGLGraphicsContext::~COpenGLGraphicsContext()
 {
+	glDeleteVertexArrays(1, &m_nDefaultVAO);
 	wglMakeCurrent(m_Hdc, NULL);
 	wglDeleteContext(m_Hglrc);
 }
@@ -63,12 +80,108 @@ void COpenGLGraphicsContext::Test()
 {
 	glClearColor(0.0f, 0.0f, 0.45f, 10.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
-	glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, nullptr);
 }
 
 void COpenGLGraphicsContext::SwapImages()
 {
 	SwapBuffers(m_Hdc);
+}
+
+IShader* COpenGLGraphicsContext::CreateShader(MCreateShaderInfo info)
+{
+	return new COpenGLShader(info);
+}
+
+IBuffer* COpenGLGraphicsContext::CreateBuffer(MCreateBufferInfo info)
+{
+	return new COpenGLBuffer(info);
+}
+
+IPipeline* COpenGLGraphicsContext::CreatePipeline(MCreatePipelineInfo info)
+{
+	return new COpenGLPipeline(info);
+}
+
+void COpenGLGraphicsContext::BindPipeline(IPipeline* pPipeline)
+{
+	COpenGLPipeline* pGLPipeline = dynamic_cast<COpenGLPipeline*>(pPipeline);
+	glUseProgram(pGLPipeline->GetShaderProgramId());
+
+	MInputLayoutInfo input = pGLPipeline->GetInputLayout();
+	for (uint32_t i = 0; i < input.nElementCount; i++)
+	{
+		uint32_t size = 0;
+		uint32_t type = GL_FLOAT;
+		switch (input.pElements[i].type)
+		{
+		case EElementType::FLOAT:
+			size = 1;
+			type = GL_FLOAT;
+			break;
+		case EElementType::FLOAT2:
+			size = 2;
+			type = GL_FLOAT;
+			break;
+		case EElementType::FLOAT3:
+			size = 3;
+			type = GL_FLOAT;
+			break;
+		case EElementType::FLOAT4:
+			size = 4;
+			type = GL_FLOAT;
+			break;
+		default:
+			break;
+		}
+
+		glVertexAttribPointer(
+			input.pElements[i].nIndex,
+			size,
+			type,
+			GL_FALSE,
+			input.nStride,
+			(void*)input.pElements[i].nOffsetInBytes);
+
+		glEnableVertexAttribArray(input.pElements[i].nIndex);
+	}
+}
+
+void COpenGLGraphicsContext::BindBuffer(IBuffer* pBuffer, EBindingTarget type)
+{
+	uint32_t nBufferType = 0;
+	switch (type)
+	{
+	case EBindingTarget::VERTEX_ARRAY:
+		nBufferType = GL_ARRAY_BUFFER;
+		break;
+	case EBindingTarget::INDEX_ARRAY:
+		nBufferType = GL_ELEMENT_ARRAY_BUFFER;
+		break;
+	case EBindingTarget::UNIFORM_BUFFER:
+		nBufferType = GL_UNIFORM_BUFFER;
+		break;
+	default:
+		nBufferType = GL_ARRAY_BUFFER;
+		break;
+	}
+
+	glBindBuffer(nBufferType, dynamic_cast<COpenGLBuffer*>(pBuffer)->GetId());
+}
+
+void COpenGLGraphicsContext::DrawVertices(EDrawMode drawMode, uint32_t nStartIndex, uint32_t nNumVerts)
+{
+	uint32_t nDrawMode = 0;
+	switch (drawMode)
+	{
+	case EDrawMode::TRIANGLES:
+		nDrawMode = GL_TRIANGLES;
+		break;
+	default:
+		nDrawMode = GL_TRIANGLES;
+		break;
+	}
+
+	glDrawArrays(nDrawMode, nStartIndex, nNumVerts);
 }
 
 void COpenGLGraphicsContext::SetDeviceContextFormat(PIXELFORMATDESCRIPTOR pfd, HDC hdc)
@@ -78,11 +191,6 @@ void COpenGLGraphicsContext::SetDeviceContextFormat(PIXELFORMATDESCRIPTOR pfd, H
 	nPixelFormat = ChoosePixelFormat(hdc, &pfd);
 
 	SetPixelFormat(hdc, nPixelFormat, &pfd);
-}
-
-IShader* COpenGLGraphicsContext::CreateShader(MCreateShaderProgramInfo info)
-{
-	return new COpenGLShader(info);
 }
 
 HGLRC COpenGLGraphicsContext::CreateFalseContext(HDC hdc)
@@ -111,6 +219,16 @@ HGLRC COpenGLGraphicsContext::CreateActualContext(HDC hdc)
 
 	wglChoosePixelFormatARB(hdc, attribList, NULL, 1, &pixelFormat, &numFormats);
 
+#ifdef  DEBUG
+	const int contextAttribList[] =
+	{
+		WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
+		WGL_CONTEXT_MINOR_VERSION_ARB, 6,
+		GL_CONTEXT_PROFILE_MASK, GL_CONTEXT_CORE_PROFILE_BIT,
+		WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_DEBUG_BIT_ARB,
+		0, // End
+	};
+#else
 	const int contextAttribList[] =
 	{
 		WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
@@ -118,12 +236,8 @@ HGLRC COpenGLGraphicsContext::CreateActualContext(HDC hdc)
 		GL_CONTEXT_PROFILE_MASK, GL_CONTEXT_CORE_PROFILE_BIT,
 		0, // End
 	};
+#endif
 	HGLRC hglrc = wglCreateContextAttribsARB(hdc, NULL, contextAttribList);
 
 	return hglrc;
-}
-
-void DebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
-{
-	OutputDebugStringA(message);
 }

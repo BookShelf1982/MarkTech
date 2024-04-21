@@ -19,5 +19,5 @@ public:
 class IModuleLoader
 {
 public:
-	IModule* LoadModule(const char* pModName);
+	static IModule* LoadModule(const char* pModName);
 };

@@ -23,8 +23,7 @@ void CEngine::Update()
     }
 
     m_pfnWindowFuncs.pfnPollWindow();
-    m_pGraphicsContext->Test();
-    m_pGraphicsContext->SwapImages();
+    m_pRenderer->RenderFrame();
 }
 
 bool CEngine::WantToQuit()
@@ -46,9 +45,9 @@ CEngine::CEngine(const std::vector<std::string>& modules)
         {
             m_pWindowModule = m_LoadedModules[i];
         }
-        if (modules[i] == "Graphics.dll")
+        if (modules[i] == "ResourceManager.dll")
         {
-            m_pGraphicsModule = m_LoadedModules[i];
+            m_pResourceManagerModule = m_LoadedModules[i];
         }
     }
 #endif
@@ -56,28 +55,25 @@ CEngine::CEngine(const std::vector<std::string>& modules)
     // -- Get ptr funcs for specific modules -- //
 
     // -- Window module -- //
-    if (m_pWindowModule != nullptr)
-    {
-        m_pfnWindowFuncs.pfnCreateWindow = (PFN_CreateWindow)m_pWindowModule->GetModuleProcAddress("CreateGLFWWindow");
-        m_pfnWindowFuncs.pfnPollWindow = (PFN_PollWindow)m_pWindowModule->GetModuleProcAddress("PollWindow");
-        m_pfnWindowFuncs.pfnDestroyWindow = (PFN_DestroyWindow)m_pWindowModule->GetModuleProcAddress("DestroyGLFWWindow");
-        m_pfnWindowFuncs.pfnSetWindowCloseCallback = (PFN_SetWindowCloseCallback)m_pWindowModule->GetModuleProcAddress("SetWindowCloseCallback");
-        m_pfnWindowFuncs.pfnSetWindowUserPointer = (PFN_SetWindowUserPointer)m_pWindowModule->GetModuleProcAddress("SetWindowUserPointer");
-        m_pfnWindowFuncs.pfnGetWindowUserPointer = (PFN_GetWindowUserPointer)m_pWindowModule->GetModuleProcAddress("GetWindowUserPointer");
-        m_pfnWindowFuncs.pfnGetWindowHWND = (PFN_GetWindowHWND)m_pWindowModule->GetModuleProcAddress("GetWindowHWND");
-    }
+    m_pfnWindowFuncs.pfnCreateWindow = (PFN_CreateWindow)m_pWindowModule->GetModuleProcAddress("CreateGLFWWindow");
+    m_pfnWindowFuncs.pfnPollWindow = (PFN_PollWindow)m_pWindowModule->GetModuleProcAddress("PollWindow");
+    m_pfnWindowFuncs.pfnDestroyWindow = (PFN_DestroyWindow)m_pWindowModule->GetModuleProcAddress("DestroyGLFWWindow");
+    m_pfnWindowFuncs.pfnSetWindowCloseCallback = (PFN_SetWindowCloseCallback)m_pWindowModule->GetModuleProcAddress("SetWindowCloseCallback");
+    m_pfnWindowFuncs.pfnSetWindowUserPointer = (PFN_SetWindowUserPointer)m_pWindowModule->GetModuleProcAddress("SetWindowUserPointer");
+    m_pfnWindowFuncs.pfnGetWindowUserPointer = (PFN_GetWindowUserPointer)m_pWindowModule->GetModuleProcAddress("GetWindowUserPointer");
+    m_pfnWindowFuncs.pfnGetWindowHWND = (PFN_GetWindowHWND)m_pWindowModule->GetModuleProcAddress("GetWindowHWND");
 
-    // -- Graphics module -- //
-    m_pfnGraphicsFuncs.pfnCreateGraphicsContext = (PFN_CreateGraphicsContext)m_pGraphicsModule->GetModuleProcAddress("CreateGraphicsContext");
-    m_pfnGraphicsFuncs.pfnDestroyGraphicsContext = (PFN_DestroyGraphicContext)m_pGraphicsModule->GetModuleProcAddress("DestroyGraphicsContext");
+    // -- Resource Manager Module -- //
+    m_pfnResourceManagerFuncs.pfnCreateResourceManager = (PFN_CreateResourceManager)m_pResourceManagerModule->GetModuleProcAddress("CreateResourceManager");
 
     Init();
 }
 
 CEngine::~CEngine()
 {
-    m_pfnGraphicsFuncs.pfnDestroyGraphicsContext(m_pGraphicsContext);
     m_pfnWindowFuncs.pfnDestroyWindow(m_pWindow);
+    delete m_pRenderer;
+    delete m_pResourceManager;
 
     for (size_t i = 0; i < m_LoadedModules.size(); i++)
     {
@@ -93,12 +89,17 @@ void CEngine::DestroyEngine()
 
 void CEngine::Init()
 {
-    m_pWindow = m_pfnWindowFuncs.pfnCreateWindow(1280, 720, "HelloWorld!");
+    CString str = "Hello World";
+
+    m_pWindow = m_pfnWindowFuncs.pfnCreateWindow(1280, 720, str.c_str());
     m_pfnWindowFuncs.pfnSetWindowUserPointer(m_pWindow, this);
 
     m_pfnWindowFuncs.pfnSetWindowCloseCallback(m_pWindow, WindowCloseCallback);
+#ifdef MT_PLATFORM_WINDOWS
+    m_pRenderer = new C3DRenderer(m_pfnWindowFuncs.pfnGetWindowHWND(m_pWindow));
+#endif
 
-    m_pGraphicsContext = m_pfnGraphicsFuncs.pfnCreateGraphicsContext(EGraphicsAPI::OpenGL, m_pfnWindowFuncs.pfnGetWindowHWND(m_pWindow));
+    m_pResourceManager = m_pfnResourceManagerFuncs.pfnCreateResourceManager();
 }
 
 void CEngine::Quit()

@@ -49,6 +49,14 @@ std::vector<std::string> IMarkTechApplication::GetModulesFromINI()
 	return modules;
 }
 
+std::vector<IModule*> IMarkTechApplication::LoadModules(const std::vector<std::string>& modules)
+{
+	std::vector<IModule*> modulesArray(modules.size());
+	
+	
+	return modulesArray;
+}
+
 std::vector<std::string> IMarkTechApplication::ParseINIArray(const std::string& string)
 {
 	// -- remove curly braces -- //

@@ -13,6 +13,11 @@ project "Core"
 		"Private/**.h"
 	}
 	
+	links
+	{
+		"Standard"
+	}
+	
 	includedirs
 	{
 		"Public/",
@@ -20,6 +25,7 @@ project "Core"
 		"%{wks.location}/Engine/ThirdParty/",
 		"%{wks.location}/Engine/Source/Window/Public/",
 		"%{wks.location}/Engine/Source/Graphics/Public/",
+		"%{wks.location}/Engine/Source/ResourceManager/Public/",
 		"%{wks.location}/Engine/ThirdParty/GLFW/include/"
 	}
 	

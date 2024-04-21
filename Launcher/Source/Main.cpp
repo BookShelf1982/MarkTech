@@ -8,7 +8,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		app.Run();
 	}
 
+#ifdef DEBUG
 	_CrtDumpMemoryLeaks();
+#endif
 
 	return 0;
 }

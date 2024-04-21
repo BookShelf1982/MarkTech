@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include "List.h"
+#include "StringType.h"
 #include "SharedPointer.h"
 
 #ifdef MT_PLATFORM_WINDOWS

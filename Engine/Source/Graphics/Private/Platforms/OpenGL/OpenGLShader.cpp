@@ -41,13 +41,6 @@ uint32_t COpenGLShader::CreateShader(MCreateShaderInfo info)
 	glGetShaderiv(shaderId, GL_COMPILE_STATUS, &isCompiled);
 	if (isCompiled == GL_FALSE)
 	{
-		GLint maxLength = 0;
-		glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &maxLength);
-
-		// The maxLength includes the NULL character
-		std::vector<GLchar> infoLog(maxLength);
-		glGetShaderInfoLog(shaderId, maxLength, &maxLength, &infoLog[0]);
-
 		// We don't need the shader anymore.
 		glDeleteShader(shaderId);
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "Core.h"
 #include "Engine.h"
+#include "Module.h"
 #include <string>
 #include <vector>
 
@@ -22,6 +23,7 @@ public:
 
 protected:
 	std::vector<std::string> GetModulesFromINI();
+	std::vector<IModule*> LoadModules(const std::vector<std::string>& modules);
 
 private:
 	static IMarkTechApplication* m_pInstance;
