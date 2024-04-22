@@ -35,10 +35,10 @@ uint32_t COpenGLPipeline::CreateShaderProgram(MShaderProgramInfo info)
 		return 0;
 	}
 
-	for (uint32_t i = 0; i < info.nNumPrograms; i++)
+	/*for (uint32_t i = 0; i < info.nNumPrograms; i++)
 	{
 		glDetachShader(nProgram, dynamic_cast<COpenGLShader*>(info.pPrograms[i].m_pShader)->GetId());
-	}
+	}*/
 
 	return nProgram;
 }

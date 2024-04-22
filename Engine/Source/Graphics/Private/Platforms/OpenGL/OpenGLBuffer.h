@@ -12,3 +12,14 @@ public:
 private:
 	uint32_t m_nId;
 };
+
+class COpenGLVertexBuffer : public IBuffer
+{
+	COpenGLVertexBuffer(MCreateBufferInfo info);
+	~COpenGLVertexBuffer();
+
+	uint32_t Getd() { return m_nId; }
+private:
+	uint32_t m_nId;
+	uint32_t m_nVAOId;
+};

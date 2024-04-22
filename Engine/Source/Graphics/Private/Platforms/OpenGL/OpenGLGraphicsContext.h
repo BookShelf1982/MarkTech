@@ -24,16 +24,16 @@ public:
 	virtual void BindBuffer(IBuffer* pBuffer, EBindingTarget type) override;
 	virtual void BindPipeline(IPipeline* pPipeline) override;
 	virtual void DrawVertices(EDrawMode drawMode, uint32_t nStartIndex, uint32_t nNumVerts) override;
+	virtual void DrawIndexed(EDrawMode drawMode, uint32_t nCount) override;
 private:
 	HDC m_Hdc;
 	HGLRC m_Hglrc;
+	uint32_t m_nVAO;
 
 	// -- Private Helper functions -- //
 	void SetDeviceContextFormat(PIXELFORMATDESCRIPTOR pfd, HDC hdc);
 	HGLRC CreateFalseContext(HDC hdc);
 	HGLRC CreateActualContext(HDC hdc);
-
-	uint32_t m_nDefaultVAO;
 };
 
 void GLAPIENTRY

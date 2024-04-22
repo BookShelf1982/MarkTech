@@ -47,10 +47,16 @@ COpenGLGraphicsContext::COpenGLGraphicsContext(EGraphicsAPI api, HWND hwnd)
 
 	wglMakeCurrent(hdc, m_Hglrc);
 
+	glGenVertexArrays(1, &m_nVAO);
+	glBindVertexArray(m_nVAO);
+
 	glEnable(GL_DEBUG_OUTPUT);
 	glDebugMessageCallback(MessageCallback, 0);
-	glGenVertexArrays(1, &m_nDefaultVAO);
-	glBindVertexArray(m_nDefaultVAO);
+
+	char buffer[1024];
+	sprintf_s(buffer, "%s\n%s\n", glGetString(GL_VERSION), glGetString(GL_VENDOR));
+	OutputDebugStringA(buffer);
+
 }
 
 void GLAPIENTRY
@@ -63,7 +69,7 @@ MessageCallback(GLenum source,
 	const void* userParam)
 {
 	char buffer[1024];
-	sprintf(buffer, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+	sprintf_s(buffer, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
 		(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
 		type, severity, message);
 	OutputDebugStringA(buffer);
@@ -71,7 +77,7 @@ MessageCallback(GLenum source,
 
 COpenGLGraphicsContext::~COpenGLGraphicsContext()
 {
-	glDeleteVertexArrays(1, &m_nDefaultVAO);
+	glDeleteVertexArrays(1, &m_nVAO);
 	wglMakeCurrent(m_Hdc, NULL);
 	wglDeleteContext(m_Hglrc);
 }
@@ -110,7 +116,7 @@ void COpenGLGraphicsContext::BindPipeline(IPipeline* pPipeline)
 	MInputLayoutInfo input = pGLPipeline->GetInputLayout();
 	for (uint32_t i = 0; i < input.nElementCount; i++)
 	{
-		uint32_t size = 0;
+		uint32_t size = 1;
 		uint32_t type = GL_FLOAT;
 		switch (input.pElements[i].type)
 		{
@@ -134,6 +140,8 @@ void COpenGLGraphicsContext::BindPipeline(IPipeline* pPipeline)
 			break;
 		}
 
+		glEnableVertexAttribArray(input.pElements[i].nIndex);
+
 		glVertexAttribPointer(
 			input.pElements[i].nIndex,
 			size,
@@ -141,8 +149,6 @@ void COpenGLGraphicsContext::BindPipeline(IPipeline* pPipeline)
 			GL_FALSE,
 			input.nStride,
 			(void*)input.pElements[i].nOffsetInBytes);
-
-		glEnableVertexAttribArray(input.pElements[i].nIndex);
 	}
 }
 
@@ -182,6 +188,22 @@ void COpenGLGraphicsContext::DrawVertices(EDrawMode drawMode, uint32_t nStartInd
 	}
 
 	glDrawArrays(nDrawMode, nStartIndex, nNumVerts);
+}
+
+void COpenGLGraphicsContext::DrawIndexed(EDrawMode drawMode, uint32_t nCount)
+{
+	uint32_t nDrawMode = 0;
+	switch (drawMode)
+	{
+	case EDrawMode::TRIANGLES:
+		nDrawMode = GL_TRIANGLES;
+		break;
+	default:
+		nDrawMode = GL_TRIANGLES;
+		break;
+	}
+
+	glDrawElements(nDrawMode, nCount, GL_UNSIGNED_INT, 0);
 }
 
 void COpenGLGraphicsContext::SetDeviceContextFormat(PIXELFORMATDESCRIPTOR pfd, HDC hdc)

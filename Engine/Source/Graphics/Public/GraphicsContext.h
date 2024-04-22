@@ -31,4 +31,5 @@ public:
 	virtual void BindBuffer(IBuffer* pBuffer, EBindingTarget type) = 0;
 	virtual void BindPipeline(IPipeline* pPipeline) = 0;
 	virtual void DrawVertices(EDrawMode drawMode, uint32_t nStartIndex, uint32_t nNumVerts) = 0;
+	virtual void DrawIndexed(EDrawMode drawMode, uint32_t nCount) = 0;
 };

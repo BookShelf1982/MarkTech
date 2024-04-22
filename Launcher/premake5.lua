@@ -29,12 +29,13 @@ project "Launcher"
 		"{COPYFILE} %{wks.location}/bin/" .. outputdir .. "/%{prj.name}/%{prj.name}.exe %{wks.location}/Build/"
 	}
 	
+	debugdir "%{wks.location}/Build/"
+	
 	defines {"MT_PLATFORM_WINDOWS"}
 	
 	filter "configurations:Debug"
         defines { "DEBUG" }
         symbols "On"
-		debugdir "%{wks.location}/Build/"
 		
 	filter "configurations:Release"
         optimize "On"

@@ -1,10 +1,6 @@
 #include "OpenGLShader.h"
 #include <vector>
 
-COpenGLShader::COpenGLShader()
-{
-}
-
 COpenGLShader::COpenGLShader(MCreateShaderInfo info)
 {
 	m_nId = CreateShader(info);
@@ -35,7 +31,7 @@ uint32_t COpenGLShader::CreateShader(MCreateShaderInfo info)
 
 	glShaderBinary(1, &shaderId, GL_SHADER_BINARY_FORMAT_SPIR_V, info.pShaderData, info.nShaderDataSize);
 
-	glSpecializeShader(shaderId, info.pEntrypoint, 0, nullptr, nullptr);
+	glSpecializeShader(shaderId, "main", 0, nullptr, nullptr);
 
 	GLint isCompiled = 0;
 	glGetShaderiv(shaderId, GL_COMPILE_STATUS, &isCompiled);
@@ -44,7 +40,7 @@ uint32_t COpenGLShader::CreateShader(MCreateShaderInfo info)
 		// We don't need the shader anymore.
 		glDeleteShader(shaderId);
 
-		MASSERT(false);
+		// Use the infoLog as you see fit.
 
 		// In this simple program, we'll just leave
 		return 0;

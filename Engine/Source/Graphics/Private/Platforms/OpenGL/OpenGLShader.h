@@ -5,7 +5,6 @@
 class COpenGLShader : public IShader
 {
 public:
-	COpenGLShader();
 	COpenGLShader(MCreateShaderInfo info);
 	~COpenGLShader();
 

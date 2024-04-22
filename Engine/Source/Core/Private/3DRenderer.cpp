@@ -12,11 +12,11 @@ comp_shader_t C3DRenderer::ReadShaderFromFile(const char* pFilepath)
 	file.seekg(0, std::ios::end);
 	size_t fileSize = file.tellg();
 	file.seekg(0);
-	uint32_t* pData = new uint32_t[fileSize];
+	char* pData = new char[fileSize];
 	file.read((char*)pData, fileSize);
 	file.close();
 
-	result.nDataSize = (uint32_t)fileSize;
+	result.nDataSize = fileSize;
 	result.pData = pData;
 
 	return result;
@@ -33,15 +33,15 @@ C3DRenderer::C3DRenderer(HWND hwnd)
 	m_pGraphicsContext = m_pfnGraphicsFuncs.pfnCreateGraphicsContext(EGraphicsAPI::OpenGL, hwnd);
 
 	// vert buffer
-	float positions[6] = {
-		0.0f, 0.5f,
-		0.5f, -0.5f,
-		-0.5f, -0.5f
+	Vert verts[3] = {
+		{0.0f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f},
+		{0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f},
+		{-0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f}
 	};
 
 	MCreateBufferInfo bufferInfo = {};
-	bufferInfo.pData = positions;
-	bufferInfo.nSize = sizeof(positions);
+	bufferInfo.pData = verts;
+	bufferInfo.nSize = sizeof(verts);
 	bufferInfo.target = EBindingTarget::VERTEX_ARRAY;
 	bufferInfo.usage = EBufferUsage::STATIC;
 
@@ -84,16 +84,22 @@ C3DRenderer::C3DRenderer(HWND hwnd)
 	MInputLayoutElement posElement = {};
 	posElement.nIndex = 0;
 	posElement.nOffsetInBytes = 0;
-	posElement.type = EElementType::FLOAT2;
+	posElement.type = EElementType::FLOAT3;
 
-	CTList<MInputLayoutElement> inputElements(1);
+	MInputLayoutElement colElement = {};
+	colElement.nIndex = 1;
+	colElement.nOffsetInBytes = sizeof(float) * 3;
+	colElement.type = EElementType::FLOAT3;
+
+	CTList<MInputLayoutElement> inputElements(2);
 	inputElements.Push(posElement);
+	inputElements.Push(colElement);
 
 	// input layout
 	MInputLayoutInfo inputLayoutInfo = {};
 	inputLayoutInfo.pElements = inputElements.Data();
 	inputLayoutInfo.nElementCount = inputElements.Size();
-	inputLayoutInfo.nStride = sizeof(float) * 2;
+	inputLayoutInfo.nStride = sizeof(Vert);
 
 	// Pipeline
 	MCreatePipelineInfo pipelineInfo = {};
@@ -117,7 +123,8 @@ void C3DRenderer::RenderFrame()
 	m_pGraphicsContext->Test();
 	m_pGraphicsContext->BindBuffer(m_Buffer.GetAddress(), EBindingTarget::VERTEX_ARRAY);
 	m_pGraphicsContext->BindPipeline(m_Pipeline.GetAddress());
-	m_pGraphicsContext->DrawVertices(EDrawMode::TRIANGLES, 0, 2);
+	m_pGraphicsContext->DrawVertices(EDrawMode::TRIANGLES, 0, 3);
+
 	m_pGraphicsContext->SwapImages();
 }
 
