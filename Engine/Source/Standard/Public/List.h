@@ -1,5 +1,6 @@
 #pragma once
 #include "AllocatorType.h"
+#include <stdio.h>
 
 template<typename T, class A = CAllocator>
 class CTList
@@ -33,7 +34,7 @@ inline CTList<T, A>::CTList()
 
 template<typename T, class A>
 inline CTList<T, A>::CTList(unsigned int nSize)
-	:m_pList(nullptr), m_nSize(0), m_nMaxSize(nSize)
+	: m_pList(nullptr), m_nSize(0), m_nMaxSize(nSize)
 {
 	m_pList = (T*)m_Allocator.Allocate(nSize * sizeof(T));
 	m_Allocator.ConstructObject<T>(m_pList, nSize);
@@ -63,14 +64,21 @@ inline CTList<T, A>::~CTList()
 template<typename T, class A>
 inline void CTList<T, A>::Push(T element)
 {
+	printf("Element pushed!\n");
 	if (m_nSize >= m_nMaxSize)
 	{
 		// Allocate new array
 		m_nMaxSize += 1;
 		T* pNewArray = (T*)m_Allocator.Allocate(m_nMaxSize * sizeof(T));
-		m_Allocator.ConstructObject<T>(pNewArray, m_nSize);
-		memcpy(pNewArray, m_pList, m_nSize * sizeof(T)); // Copy data from previous to new
+		for (unsigned int i = 0; i < m_nSize; i++)
+		{
+			pNewArray[i] = m_pList[i];
+		}
 
+		for (unsigned int i = 0; i < m_nSize; i++)
+		{
+			m_pList[i].~T();
+		}
 		m_Allocator.Deallocate(m_pList); // Free old array
 
 		m_pList = pNewArray; // set array to new array
@@ -81,7 +89,7 @@ inline void CTList<T, A>::Push(T element)
 }
 
 template<typename T, class A>
-inline void CTList<T, A>::Reserve(uint32_t count)
+inline void CTList<T, A>::Reserve(unsigned int count)
 {
 	if (count > m_nSize)
 	{

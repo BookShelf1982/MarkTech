@@ -114,7 +114,7 @@ C3DRenderer::C3DRenderer(HWND hwnd)
 
 C3DRenderer::~C3DRenderer()
 {
-	m_pfnGraphicsFuncs.pfnDestroyGraphicsContext(m_pGraphicsContext);
+	delete m_pGraphicsContext;
 	delete m_pGraphicsModule;
 }
 
