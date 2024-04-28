@@ -4,12 +4,17 @@
 CSandboxApp::CSandboxApp()
 	:m_pEngine(nullptr)
 {
-	std::vector<std::string> modules = GetModulesFromINI();
-	m_pEngine = CreateMarkTechEngine(modules);
+	CString string = "Hello World!";
+	/*CString hello = string.SubString(0, 5);
+	CString hi = "Hi";
+	hi = string;*/
+	MEngineData engData = GetEngineDataFromINI("GameInfo.ini");
+	m_pEngine = CreateMarkTechEngine(engData);
 }
 
 CSandboxApp::~CSandboxApp()
 {
+	
 }
 
 void CSandboxApp::OnInit()

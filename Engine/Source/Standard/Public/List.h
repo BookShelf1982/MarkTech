@@ -7,11 +7,17 @@ class CTList
 public:
 	CTList();
 	CTList(unsigned int nSize);
+	CTList(const CTList& list);
 	~CTList();
 
 	void Push(T element);
-	uint32_t Size() { return m_nSize; }
-	T* Data() { return m_pList; }
+	void Reserve(unsigned int count);
+	unsigned int Size() const { return m_nSize; }
+	T* Data() const { return m_pList; }
+
+	T operator[](unsigned int index) const { return m_pList[index]; }
+
+	void operator=(const CTList& list);
 private:
 	T* m_pList;
 	unsigned int m_nSize;
@@ -34,9 +40,20 @@ inline CTList<T, A>::CTList(unsigned int nSize)
 }
 
 template<typename T, class A>
+inline CTList<T, A>::CTList(const CTList& list)
+	:m_pList(nullptr), m_nMaxSize(list.m_nMaxSize), m_nSize(list.m_nSize)
+{
+	m_pList = (T*)m_Allocator.Allocate(list.m_nMaxSize * sizeof(T));
+	for (unsigned int i = 0; i < m_nMaxSize; i++)
+	{
+		m_pList[i] = list.m_pList[i];
+	}
+}
+
+template<typename T, class A>
 inline CTList<T, A>::~CTList()
 {
-	for (unsigned int i = 0; i < m_nSize; i++)
+	for (unsigned int i = 0; i < m_nMaxSize; i++)
 	{
 		m_pList[i].~T();
 	}
@@ -46,9 +63,55 @@ inline CTList<T, A>::~CTList()
 template<typename T, class A>
 inline void CTList<T, A>::Push(T element)
 {
-	if (m_nSize != m_nMaxSize)
+	if (m_nSize >= m_nMaxSize)
 	{
-		m_pList[m_nSize] = element;
-		m_nSize++;
+		// Allocate new array
+		m_nMaxSize += 1;
+		T* pNewArray = (T*)m_Allocator.Allocate(m_nMaxSize * sizeof(T));
+		m_Allocator.ConstructObject<T>(pNewArray, m_nSize);
+		memcpy(pNewArray, m_pList, m_nSize * sizeof(T)); // Copy data from previous to new
+
+		m_Allocator.Deallocate(m_pList); // Free old array
+
+		m_pList = pNewArray; // set array to new array
+	}
+
+	m_pList[m_nSize] = element;
+	m_nSize++;
+}
+
+template<typename T, class A>
+inline void CTList<T, A>::Reserve(uint32_t count)
+{
+	if (count > m_nSize)
+	{
+		// Allocate new array
+		T* pNewArray = (T*)m_Allocator.Allocate(count * sizeof(T));
+		m_Allocator.ConstructObject<T>(pNewArray, m_nSize);
+		memcpy(pNewArray, m_pList, m_nSize * sizeof(T)); // Copy data from previous to new
+
+		m_Allocator.Deallocate(m_pList); // Free old array
+
+		m_pList = pNewArray; // set array to new array
+	}
+}
+
+template<typename T, class A>
+inline void CTList<T, A>::operator=(const CTList& list)
+{
+	// Destruct and deallocate current array
+	for (unsigned int i = 0; i < m_nMaxSize; i++)
+	{
+		m_pList[i].~T();
+	}
+	m_Allocator.Deallocate(m_pList);
+
+	// Copy array into our array
+	m_nSize = list.m_nSize;
+	m_nMaxSize = list.m_nSize;
+	m_pList = (T*)m_Allocator.Allocate(list.m_nMaxSize * sizeof(T));
+	for (unsigned int i = 0; i < m_nMaxSize; i++)
+	{
+		m_pList[i] = list.m_pList[i];
 	}
 }

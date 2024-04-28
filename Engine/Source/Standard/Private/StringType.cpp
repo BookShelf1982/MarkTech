@@ -1,28 +1,61 @@
 #include "StringType.h"
 
 CString::CString()
-	:m_nSize(0), m_pString(nullptr)
+{
+}
+
+CString::CString(unsigned int nSize)
+	:m_Str(nSize)
 {
 }
 
 CString::CString(const char* pString)
-	:m_nSize(0), m_pString(nullptr)
+	:m_Str(pString)
 {
-	m_nSize = strlen(pString);
-	m_pString = new char[m_nSize + 1];
-	memcpy((void*)m_pString, pString, m_nSize);
-	m_pString[m_nSize] = 0;
 }
 
 CString::CString(const CString& string)
-	:m_nSize(string.m_nSize), m_pString(nullptr)
+	:m_Str(string.m_Str)
 {
-	m_pString = new char[m_nSize + 1];
-	memcpy(m_pString, string.m_pString, m_nSize+1);
 }
 
 CString::~CString()
 {
-	if (m_pString)
-		delete[] m_pString;
+}
+
+CString CString::SubString(unsigned int nStartIndex, unsigned int nLength)
+{
+	CString str(nLength);
+	memcpy((void*)str.c_str(), m_Str.c_str() + (char)nStartIndex, nLength);
+	return str;
+}
+
+unsigned int CString::FindFirstOf(char character, unsigned int nOffset = 0)
+{
+	for (unsigned int i = nOffset; i < m_Str.size(); i++)
+	{
+		if (m_Str.c_str()[i] == character)
+			return i;
+	}
+	return 0;
+}
+
+bool CString::operator==(const CString& str) const
+{
+	return m_Str == str.m_Str;
+}
+
+bool CString::operator==(const char* pStr) const
+{
+	return m_Str == pStr;
+}
+
+void CString::operator=(const char* pStr)
+{
+	m_Str = pStr;
+}
+
+void CString::operator=(const CString& str)
+{
+	m_Str = str.m_Str;
 }

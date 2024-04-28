@@ -22,13 +22,12 @@ public:
 	static IMarkTechApplication* Get();
 
 protected:
-	std::vector<std::string> GetModulesFromINI();
-	std::vector<IModule*> LoadModules(const std::vector<std::string>& modules);
+	MEngineData GetEngineDataFromINI(const CString& filepath);
 
 private:
 	static IMarkTechApplication* m_pInstance;
 
-	std::vector<std::string> ParseINIArray(const std::string& string);
+	CTList<CString> ParseINIArray(const std::string& string);
 
 	bool m_bIsRunning;
 };

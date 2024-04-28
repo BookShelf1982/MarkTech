@@ -1,6 +1,13 @@
 #pragma once
 #include "Core.h"
 
+struct MEngineData
+{
+	CTList<CString> modules;
+	CString defaultMap;
+	CString gameName;
+};
+
 class IMarkTechEngine
 {
 public:
@@ -11,4 +18,4 @@ public:
 	virtual bool WantToQuit() = 0;
 };
 
-IMarkTechEngine* CreateMarkTechEngine(const std::vector<std::string>& modules);
+IMarkTechEngine* CreateMarkTechEngine(const MEngineData& data);

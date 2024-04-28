@@ -16,7 +16,7 @@ comp_shader_t C3DRenderer::ReadShaderFromFile(const char* pFilepath)
 	file.read((char*)pData, fileSize);
 	file.close();
 
-	result.nDataSize = fileSize;
+	result.nDataSize = (uint32_t)fileSize;
 	result.pData = pData;
 
 	return result;

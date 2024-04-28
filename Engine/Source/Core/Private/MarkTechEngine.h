@@ -22,12 +22,12 @@ public:
 
 	void Quit();
 
-	static CEngine* CreateEngine(const std::vector<std::string>& modules);
+	static CEngine* CreateEngine(const MEngineData& data);
 
 	static window_funcs_t GetWindowFuncs() { return CEngine::m_pIstance->m_pfnWindowFuncs; }
 
 private:
-	CEngine(const std::vector<std::string>& modules);
+	CEngine(MEngineData engData);
 	~CEngine();
 
 	static void DestroyEngine();
@@ -37,6 +37,8 @@ private:
 	static CEngine* m_pIstance;
 
 	bool m_bClosing;
+
+	MEngineData m_Data;
 
 	std::vector<IModule*> m_LoadedModules;
 

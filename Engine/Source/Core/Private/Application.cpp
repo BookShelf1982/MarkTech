@@ -32,61 +32,48 @@ IMarkTechApplication* IMarkTechApplication::Get()
 	return m_pInstance;
 }
 
-std::vector<std::string> IMarkTechApplication::GetModulesFromINI()
+MEngineData IMarkTechApplication::GetEngineDataFromINI(const CString& filepath)
 {
-	mINI::INIFile file("Modules.ini");
-	mINI::INIStructure moduleStruct;
+	mINI::INIFile file(filepath.c_str());
+	mINI::INIStructure iniStruct;
+	MASSERT(file.read(iniStruct)); // Read ini file
+	MASSERT(iniStruct.has("MarkTech.GameInfo"));
+	MASSERT(iniStruct.has("MarkTech.Modules"));
+	MASSERT(iniStruct["MarkTech.Modules"].has("RequiredModules"));
 
-	MASSERT(file.read(moduleStruct));
+	MEngineData engData;
+	if (iniStruct["MarkTech.GameInfo"].has("GameName"))
+		engData.gameName = iniStruct["MarkTech.GameInfo"]["GameName"].c_str();
+	if (iniStruct["MarkTech.GameInfo"].has("DefaultMap"))
+		engData.defaultMap = iniStruct["MarkTech.GameInfo"]["DefaultMap"].c_str();
+	
+	std::string iniArray = iniStruct["MarkTech.Modules"]["RequiredModules"];
+	CTList<CString> moduleNames = ParseINIArray(iniArray);
+	engData.modules = moduleNames;
 
-	bool bHasModulesKey = moduleStruct["Modules"].has("RequiredModules");
-	MASSERT(bHasModulesKey);
-
-	std::string iniArray = moduleStruct["Modules"]["RequiredModules"];
-
-	std::vector<std::string> modules = ParseINIArray(iniArray);
-
-	return modules;
+	return engData;
 }
 
-std::vector<IModule*> IMarkTechApplication::LoadModules(const std::vector<std::string>& modules)
-{
-	std::vector<IModule*> modulesArray(modules.size());
-	
-	
-	return modulesArray;
-}
-
-std::vector<std::string> IMarkTechApplication::ParseINIArray(const std::string& string)
+CTList<CString> IMarkTechApplication::ParseINIArray(const std::string& string)
 {
 	// -- remove curly braces -- //
-	std::string newString = string.substr(1, string.length() - 2);
+	CString String2 = string.c_str();
+	CString newString = String2.SubString(1, String2.Size() - 2);
+	CTList<CString> strings;
 
-	std::vector<std::string> strings;
-
-	bool bFirstString = true;
-	for (size_t i = 0; i < newString.length();)
+	for (uint32_t i = 0; i < newString.Size();)
 	{
-		std::string element;
-		size_t nOffsetIndex = i;
-		size_t nCommaIndex = newString.find_first_of(",", nOffsetIndex + 1);
-		size_t nRange = nCommaIndex - nOffsetIndex;
-		size_t nSearchPos = nOffsetIndex;
+		uint32_t nStartPos = i;
+		uint32_t nEndPos = newString.FindFirstOf(',', i);
 		
-		if (!bFirstString)
-		{
-			nSearchPos++;
-			nRange--;
-		}
+		if (nEndPos == 0)
+			nEndPos = newString.Size();
 
-		element = newString.substr(nSearchPos, nRange);
+		uint32_t nLength = nEndPos - nStartPos;
+		CString element = newString.SubString(nStartPos, nLength);
+		i = nStartPos + nLength + 1;
 
-		i = nCommaIndex;
-
-		if (bFirstString)
-			bFirstString = false;
-
-		strings.emplace_back(element.c_str());
+		strings.Push(element);
 	}
 
 	return strings;

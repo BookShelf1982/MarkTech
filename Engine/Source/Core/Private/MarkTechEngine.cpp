@@ -3,10 +3,10 @@
 
 CEngine* CEngine::m_pIstance = nullptr;
 
-CEngine* CEngine::CreateEngine(const std::vector<std::string>& modules)
+CEngine* CEngine::CreateEngine(const MEngineData& data)
 {
     MASSERT(!m_pIstance);
-    m_pIstance = new CEngine(modules);
+    m_pIstance = new CEngine(data);
     return m_pIstance;
 }
 
@@ -31,21 +31,21 @@ bool CEngine::WantToQuit()
     return m_bClosing;
 }
 
-CEngine::CEngine(const std::vector<std::string>& modules)
-    :m_bClosing(false), m_pWindowModule(nullptr)
+CEngine::CEngine(MEngineData engData)
+    :m_bClosing(false), m_pWindowModule(nullptr), m_Data(engData)
 {
     // -- Load all libraries -- //
 #ifdef MT_PLATFORM_WINDOWS
     CWinModuleLoader loader;
-    for (uint32_t i = 0; i < modules.size(); i++)
+    for (uint32_t i = 0; i < engData.modules.Size(); i++)
     {
-        m_LoadedModules.push_back(loader.LoadModule(modules[i].c_str()));
+        m_LoadedModules.push_back(loader.LoadModule(engData.modules[i].c_str()));
         
-        if (modules[i] == "Window.dll")
+        if (engData.modules[i] == "Window.dll")
         {
             m_pWindowModule = m_LoadedModules[i];
         }
-        if (modules[i] == "ResourceManager.dll")
+        if (engData.modules[i] == "ResourceManager.dll")
         {
             m_pResourceManagerModule = m_LoadedModules[i];
         }
@@ -89,9 +89,7 @@ void CEngine::DestroyEngine()
 
 void CEngine::Init()
 {
-    CString str = "Hello World";
-
-    m_pWindow = m_pfnWindowFuncs.pfnCreateWindow(1280, 720, str.c_str());
+    m_pWindow = m_pfnWindowFuncs.pfnCreateWindow(1280, 720, m_Data.gameName.c_str());
     m_pfnWindowFuncs.pfnSetWindowUserPointer(m_pWindow, this);
 
     m_pfnWindowFuncs.pfnSetWindowCloseCallback(m_pWindow, WindowCloseCallback);
@@ -107,9 +105,9 @@ void CEngine::Quit()
     m_bClosing = true;
 }
 
-IMarkTechEngine* CreateMarkTechEngine(const std::vector<std::string>& modules)
+IMarkTechEngine* CreateMarkTechEngine(const MEngineData& data)
 {
-    return CEngine::CreateEngine(modules);
+    return CEngine::CreateEngine(data);
 }
 
 void WindowCloseCallback(GLFWwindow* pWindow)

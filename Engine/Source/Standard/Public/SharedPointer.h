@@ -1,8 +1,7 @@
 #pragma once
-#include <vector>
-#include <memory>
+#include "AllocatorType.h"
 
-template<typename T>
+template<typename T, class A = CAllocator>
 class CRefCounted
 {
 public:
@@ -18,38 +17,41 @@ public:
 private:
 	uint32_t nCount;
 	T* m_ptr;
+	A m_Allocator;
 };
 
-template<typename T>
-inline CRefCounted<T>::CRefCounted(T* ptr)
+template<typename T, class A>
+inline CRefCounted<T,A>::CRefCounted(T* ptr)
 	:m_ptr(nullptr), nCount(0)
 {
 	m_ptr = ptr;
 }
 
-template<typename T>
-inline CRefCounted<T>::~CRefCounted()
+template<typename T, class A>
+inline CRefCounted<T, A>::~CRefCounted()
 {
-	delete m_ptr;
+	m_ptr->~T();
+	m_Allocator.Deallocate(m_ptr);
 }
 
-template<typename T>
-inline void CRefCounted<T>::AddRef()
+template<typename T, class A>
+inline void CRefCounted<T, A>::AddRef()
 {
 	nCount++;
 }
 
-template<typename T>
-inline void CRefCounted<T>::RemoveRef()
+template<typename T, class A>
+inline void CRefCounted<T, A>::RemoveRef()
 {
 	nCount--;
 	if (nCount == 0)
 	{
-		delete this;
+		this->~CRefCounted();
+		m_Allocator.Deallocate(this);
 	}
 }
 
-template<typename T>
+template<typename T, class A = CAllocator>
 class CTSharedPointer
 {
 public:
@@ -67,40 +69,44 @@ public:
 	void operator=(T* ptr);
 
 private:
-	CRefCounted<T>* m_pRef;
+	CRefCounted<T, A>* m_pRef;
+	A m_Allocator;
 };
 
-template<typename T>
-inline CTSharedPointer<T>::CTSharedPointer()
+template<typename T, class A>
+inline CTSharedPointer<T, A>::CTSharedPointer()
 	:m_pRef(nullptr)
 {
 }
 
-template<typename T>
-inline CTSharedPointer<T>::CTSharedPointer(T* ptr)
+template<typename T, class A>
+inline CTSharedPointer<T, A>::CTSharedPointer(T* ptr)
 	:m_pRef(nullptr)
 {
-	m_pRef = new CRefCounted<T>(ptr);
+	m_pRef = (CRefCounted<T, A>*)m_Allocator.Allocate(sizeof(CRefCounted<T, A>));
+	CRefCounted<T, A> temp(ptr);
+	memcpy(m_pRef, &temp, sizeof(CRefCounted<T, A>));
+
 	m_pRef->AddRef();
 }
 
-template<typename T>
-inline CTSharedPointer<T>::CTSharedPointer(const CTSharedPointer& other)
+template<typename T, class A>
+inline CTSharedPointer<T, A>::CTSharedPointer(const CTSharedPointer& other)
 	:m_pRef(nullptr)
 {
 	m_pRef = other.m_pRef;
 	m_pRef->AddRef();
 }
 
-template<typename T>
-inline CTSharedPointer<T>::~CTSharedPointer()
+template<typename T, class A>
+inline CTSharedPointer<T, A>::~CTSharedPointer()
 {
 	if(m_pRef)
 		m_pRef->RemoveRef();
 }
 
-template<typename T>
-inline void CTSharedPointer<T>::Reset()
+template<typename T, class A>
+inline void CTSharedPointer<T, A>::Reset()
 {
 	if (m_pRef)
 	{
@@ -109,8 +115,8 @@ inline void CTSharedPointer<T>::Reset()
 	}
 }
 
-template<typename T>
-inline void CTSharedPointer<T>::operator=(const CTSharedPointer& other)
+template<typename T, class A>
+inline void CTSharedPointer<T, A>::operator=(const CTSharedPointer& other)
 {
 	if (m_pRef)
 		m_pRef->RemoveRef();
@@ -119,18 +125,20 @@ inline void CTSharedPointer<T>::operator=(const CTSharedPointer& other)
 	m_pRef->AddRef();
 }
 
-template<typename T>
-inline void CTSharedPointer<T>::operator=(T* ptr)
+template<typename T, class A>
+inline void CTSharedPointer<T, A>::operator=(T* ptr)
 {
 	if (!m_pRef)
 	{
-		m_pRef = new CRefCounted<T>(ptr);
+		m_pRef = (CRefCounted<T, A>*)m_Allocator.Allocate(sizeof(CRefCounted<T, A>));
+		CRefCounted<T, A> temp(ptr);
+		memcpy(m_pRef, &temp, sizeof(CRefCounted<T, A>));
 		m_pRef->AddRef();
 	}
 }
 
-template<typename T>
-inline T* CTSharedPointer<T>::operator->()
+template<typename T, class A>
+inline T* CTSharedPointer<T, A>::operator->()
 {
 	return m_pRef->GetPtr();
 }
