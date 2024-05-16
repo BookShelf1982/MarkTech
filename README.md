@@ -1,3 +1,3 @@
 # MarkTech
 
-A Game Framework
+A Small Game Engine

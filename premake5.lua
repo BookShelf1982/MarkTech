@@ -4,13 +4,11 @@ workspace "MarkTech"
 	architecture "x86_64"
 	
 	outputdir = ("%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}")
-
-	include "Launcher/"
-	include "ResourceCompilerCmd/"
-	include "Engine/Source/Core/"
-	include "Engine/Source/Standard/"
-	include "Engine/Source/ResourceManager/"
-	include "Engine/Source/Graphics/"
-	include "Engine/Source/Window/"
-	include "Engine/Source/ResourceCompiler"
-	include "Engine/ThirdParty/Glad/"
+	
+	IncludeDirs = {}
+	IncludeDirs["Core"] = "%{wks.location}/Engine/Source/Runtime/Core/Public/"
+	IncludeDirs["DSA"] = "%{wks.location}/Engine/Source/Runtime/DSA/Public/"
+	
+	include "Engine/Source/Runtime/Core/"
+	include "Engine/Source/Runtime/DSA/"
+	include "Engine/Source/Runtime/Sandbox/"
