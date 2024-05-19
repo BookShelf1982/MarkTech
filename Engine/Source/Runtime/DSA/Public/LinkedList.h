@@ -10,6 +10,9 @@
 
 namespace MarkTech
 {
+	/*
+	* Node type in the linked list.
+	*/
 	template<typename T>
 	struct LinkedNode
 	{
@@ -26,12 +29,15 @@ namespace MarkTech
 	{
 	}
 
+
 	template<typename T>
 	inline LinkedNode<T>::~LinkedNode()
 	{
-		data.~T();
 	}
 
+	/*
+	* List Iterator iterates through a linked list
+	*/
 	template<typename LinkedList>
 	class ListIterator
 	{
@@ -40,20 +46,37 @@ namespace MarkTech
 		using PointerType = ValueType*;
 		using ReferenceType = ValueType&;
 
-		ListIterator(LinkedList node)
-			:m_ptr(node.m_pFirstNode)
+		ListIterator(PointerType node)
+			:m_ptr(node)
 		{
 		}
 
-		void operator++()
+		void operator++(I32)
 		{
-			m_ptr = m_ptr.pNextNode;
+			m_ptr = m_ptr->pNextNode;
 		}
 
+		bool operator==(const ListIterator& other)
+		{
+			return m_ptr == other.m_ptr;
+		}
+
+		bool operator!=(const ListIterator& other)
+		{
+			return m_ptr != other.m_ptr;
+		}
+
+		PointerType operator->()
+		{
+			return m_ptr;
+		}
 	private:
 		PointerType m_ptr;
 	};
 
+	/*
+	* Linked list container
+	*/
 	template<typename T, class A = Allocator>
 	class LinkedList
 	{
@@ -64,18 +87,26 @@ namespace MarkTech
 		using NodeType = LinkedNode<T>;
 
 		void Insert(const T& element);
+		void Remove(U32 index);
+		Iterator Begin() { return Iterator(m_pFirstNode); }
 	private:
 		A m_Alloc;
 		LinkedNode<T>* m_pFirstNode;
 		U32 m_Size;
 	};
 
+	/*
+	* Sets values to 0
+	*/
 	template<typename T, class A>
 	inline LinkedList<T, A>::LinkedList()
 		:m_pFirstNode(nullptr), m_Size(0)
 	{
 	}
 
+	/*
+	* Destroys all nodes and frees node memory
+	*/
 	template<typename T, class A>
 	inline LinkedList<T, A>::~LinkedList()
 	{
@@ -91,6 +122,9 @@ namespace MarkTech
 		}
 	}
 
+	/*
+	* Insert a node in linked list
+	*/
 	template<typename T, class A>
 	inline void LinkedList<T, A>::Insert(const T& element)
 	{
@@ -112,5 +146,29 @@ namespace MarkTech
 			m_pFirstNode = pNode;
 		else
 			pPrevNode->pNextNode = pNode;
+	}
+
+	/*
+	* Removes a node from the linked list
+	*/
+	template<typename T, class A>
+	inline void LinkedList<T, A>::Remove(U32 index)
+	{
+		LinkedNode<T>* pNode = m_pFirstNode;
+		LinkedNode<T>* pPrevNode = nullptr;
+
+		for (U32 i = 0; i < index; i++)
+		{
+			pPrevNode = pNode;
+			pNode = pNode->pNextNode;
+		}
+		
+		if (!pNode)
+			return;
+
+		pPrevNode->pNextNode = pNode->pNextNode;
+		
+		pNode->~LinkedNode();
+		m_Alloc.Free(pNode);
 	}
 }
