@@ -3,6 +3,7 @@
 #ifdef MT_PLATFORM_WINDOWS
 #include <Windows.h>
 #endif
+
 namespace MarkTech
 {
 	enum class FileAccessType
@@ -12,7 +13,6 @@ namespace MarkTech
 		READ_WRITE
 	};
 
-#ifdef MT_PLATFORM_WINDOWS
 	class File
 	{
 	public:
@@ -24,9 +24,10 @@ namespace MarkTech
 		void Read(char* pBuffer, U32 sizeOfBytes);
 		void Write(char* pBuffer, U32 sizeOfBytes);
 	private:
+#ifdef MT_PLATFORM_WINDOWS
 		HANDLE m_hFileHandle;
+#endif
 		bool m_IsOpened;
 		FileAccessType m_AccessType;
 	};
-#endif
 }

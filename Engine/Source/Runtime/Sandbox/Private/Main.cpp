@@ -1,7 +1,6 @@
+#include <Memory\StackAllocator.h>
 #include <stdio.h>
-#include <DynArray.h>
-#include <LinkedList.h>
-#include <File.h>
+#include <memory.h>
 #include <crtdbg.h>
 
 using namespace MarkTech;
@@ -9,33 +8,17 @@ using namespace MarkTech;
 int main()
 {
 	{
-		LinkedList<U32> list;
-		list.Insert(29);
-		list.Insert(20);
-		list.Remove(1);
-		list.Insert(245);
-		list.Insert(242);
-
-		for (LinkedList<U32>::Iterator i = list.Begin(); i != nullptr; i++)
+		StackAllocator allocator(1024, 1);
+		for (U32 i = 0; i < 3; i++)
 		{
-			printf("%u\n", i->data);
+			allocator.Mark();
+			char* pBuffer = (char*)allocator.Alloc(sizeof(char) * 14);
+			char string[14] = "Hello World!\n";
+			memcpy(pBuffer, string, 14);
 		}
 
-		File file("wee.dat", FileAccessType::WRITE);
-		
-		U32 number = 123456789;
-
-		file.Write((char*)&number, sizeof(U32));
-		file.Close();
-		printf("Write file: %u", number);
-
-		File writeFile("wee.dat", FileAccessType::READ);
-
-		U32 newNumber = 0;
-
-		writeFile.Read((char*)&newNumber, sizeof(U32));
-		writeFile.Close();
-		printf("Read file: %u", newNumber);
+		allocator.FreeToMark();
+		allocator.Clear();
 	}
 
 	_CrtDumpMemoryLeaks();

@@ -19,5 +19,8 @@ namespace MarkTech
 	typedef unsigned __int64 U64;
 
 	typedef float F32;
+	typedef double F64;
+
+	typedef unsigned __int64  uintptr;
 }
 #endif

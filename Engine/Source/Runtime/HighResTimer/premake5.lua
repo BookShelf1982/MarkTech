@@ -1,4 +1,4 @@
-project "DSA"
+project "HighResTimer"
 	kind "StaticLib"
 	language "C++"
 	cppdialect "C++17"

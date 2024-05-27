@@ -7,9 +7,17 @@ project "SandboxApp"
     objdir ("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")
 	
 	files { "Private/**.cpp", "Private/**.h" }
-	includedirs { "Public/", IncludeDirs["DSA"], IncludeDirs["FileSystem"] }
 	
-	links { "DSA", "FileSystem" }
+	includedirs { 
+		"Public/", 
+		IncludeDirs["Shared"], 
+		IncludeDirs["DSA"], 
+		IncludeDirs["FileSystem"], 
+		IncludeDirs["HighResTimer"], 
+		IncludeDirs["Core"] 
+	}
+	
+	links { "DSA", "FileSystem", "HighResTimer", "Core" }
 	
 	filter "configurations:Debug"
        defines { "DEBUG" }

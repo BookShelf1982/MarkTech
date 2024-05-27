@@ -7,7 +7,7 @@ project "FileSystem"
     objdir ("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")
 	
 	files { "Private/**.cpp", "Private/**.h", "Public/**.h" }
-	includedirs { "Public/", IncludeDirs["DSA"] }
+	includedirs { "Public/", IncludeDirs["Shared"] }
 	
 	links { "DSA" }
 	

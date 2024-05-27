@@ -169,9 +169,11 @@ namespace MarkTech
 			// Free old array
 			for (U32 i = 0; i < oldSize; i++)
 			{
-				m_pArray[i].~T();
+				pTemp[i].~T();
 			}
-			m_Alloc.Free(m_pArray);
+			m_Alloc.Free(pTemp);
+
+			m_MaxSize = m_CurrentSize + 1;
 		}
 
 		// Put object into array and increment current size
@@ -186,5 +188,24 @@ namespace MarkTech
 	template<typename T, class A>
 	inline void DynArray<T, A>::Resize(U32 size)
 	{
+		if (m_MaxSize > size)
+			return;
+
+		T* pTemp = m_pArray;
+		m_pArray = (T*)m_Alloc.Allocate(size * sizeof(T));
+
+		for (U32 i = 0; i < m_MaxSize; i++)
+		{
+			m_pArray[i] = pTemp[i];
+		}
+
+		U32 oldMaxSize = m_MaxSize;
+		m_MaxSize = size;
+
+		for (U32 i = 0; i < oldMaxSize; i++)
+		{
+			pTemp[i].~T();
+		}
+		m_Alloc.Free(pTemp);
 	}
 }
