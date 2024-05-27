@@ -17,7 +17,7 @@ namespace MarkTech
         size_t actualBytes = bytes + align;
 
         // Allocate unaligned block.
-        U8* pRawMem = (U8*)malloc(sizeof(U8) * actualBytes);
+        U8* pRawMem = (U8*)malloc(actualBytes);
         memset(pRawMem, 0, actualBytes);
 
         // Align the block. If no alignment occurred,

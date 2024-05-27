@@ -1,6 +1,5 @@
 #include <Memory\StackAllocator.h>
 #include <stdio.h>
-#include <memory.h>
 #include <crtdbg.h>
 
 using namespace MarkTech;
@@ -8,17 +7,19 @@ using namespace MarkTech;
 int main()
 {
 	{
-		StackAllocator allocator(1024, 1);
-		for (U32 i = 0; i < 3; i++)
+		StackAllocator allocator(1024, 4);
+		StackMarker marker = allocator.Mark();
+		for (U32 i = 0; i < 12; i++)
 		{
-			allocator.Mark();
-			char* pBuffer = (char*)allocator.Alloc(sizeof(char) * 14);
-			char string[14] = "Hello World!\n";
-			memcpy(pBuffer, string, 14);
-		}
+			marker = allocator.Mark();
+			U32* pNum = (U32*)allocator.Alloc(sizeof(U32));
+			*pNum = 300;
+			printf("%u\n", *pNum);
 
-		allocator.FreeToMark();
-		allocator.Clear();
+			if (i==11)
+				printf("button");
+		}
+		allocator.FreeToMark(marker);
 	}
 
 	_CrtDumpMemoryLeaks();

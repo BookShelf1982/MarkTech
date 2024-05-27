@@ -3,6 +3,8 @@
 
 namespace MarkTech
 {
+	typedef U32 StackMarker;
+
 	class StackAllocator
 	{
 	public:
@@ -11,9 +13,9 @@ namespace MarkTech
 
 		void* Alloc(U32 sizeInBytes);
 
-		void Mark();
+		StackMarker Mark();
 
-		void FreeToMark();
+		void FreeToMark(StackMarker marker);
 
 		void Clear();
 
@@ -22,5 +24,6 @@ namespace MarkTech
 		U8* m_pTopMarker;
 		U8* m_pRollbackMarker;
 		U32 m_AllocatedSize;
+		U32 m_UsedSize;
 	};
 }

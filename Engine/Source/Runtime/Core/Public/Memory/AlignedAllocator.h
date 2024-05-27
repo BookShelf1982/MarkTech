@@ -16,8 +16,8 @@ namespace MarkTech
 	template<typename T>
 	inline T* AlignPointer(T* ptr, size_t align)
 	{
-		const uintptr_t addr = reinterpret_cast<uintptr_t>(ptr);
-		const uintptr_t addrAligned = AlignAddress(addr, align);
+		const uintptr addr = reinterpret_cast<uintptr>(ptr);
+		const uintptr addrAligned = AlignAddress(addr, align);
 		return reinterpret_cast<T*>(addrAligned);
 	}
 	
