@@ -11,13 +11,12 @@ project "SandboxApp"
 	includedirs { 
 		"Public/", 
 		IncludeDirs["Shared"], 
-		IncludeDirs["DSA"], 
 		IncludeDirs["FileSystem"], 
 		IncludeDirs["HighResTimer"], 
 		IncludeDirs["Core"] 
 	}
 	
-	links { "DSA", "FileSystem", "HighResTimer", "Core" }
+	links { "FileSystem", "HighResTimer", "Core" }
 	
 	filter "configurations:Debug"
        defines { "DEBUG" }

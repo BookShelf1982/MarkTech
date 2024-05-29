@@ -1,6 +1,6 @@
 #pragma once
 #include "PrimitiveTypes.h"
-#include <Allocator.h>
+#include "Memory\Allocator.h"
 #include <string.h>
 
 /*
@@ -82,6 +82,7 @@ namespace MarkTech
 	{
 	public:
 		LinkedList();
+		LinkedList(U32 nodeCount);
 		~LinkedList();
 		using Iterator = ListIterator<LinkedList<T, A>>;
 		using NodeType = LinkedNode<T>;
@@ -93,6 +94,7 @@ namespace MarkTech
 		A m_Alloc;
 		LinkedNode<T>* m_pFirstNode;
 		U32 m_Size;
+		U32 m_PreallocatedNodeCount;
 	};
 
 	/*
@@ -100,8 +102,18 @@ namespace MarkTech
 	*/
 	template<typename T, class A>
 	inline LinkedList<T, A>::LinkedList()
-		:m_pFirstNode(nullptr), m_Size(0)
+		:m_pFirstNode(nullptr), m_Size(0), m_PreallocatedNodeCount(0)
 	{
+	}
+
+	/*
+	* Allocates a fixed amount of nodes in a contiguous memory block.
+	*/
+	template<typename T, class A>
+	inline LinkedList<T, A>::LinkedList(U32 nodeCount)
+		:m_pFirstNode(nullptr), m_Size(0), m_PreallocatedNodeCount(nodeCount)
+	{
+		LinkedNode<T>* pNodes = m_Alloc.Alloc((nodeCount * sizeof(LinkedNode<T>), 8));
 	}
 
 	/*
@@ -110,6 +122,9 @@ namespace MarkTech
 	template<typename T, class A>
 	inline LinkedList<T, A>::~LinkedList()
 	{
+		if (!m_pFirstNode)
+			return;
+
 		LinkedNode<T>* pCurrentNode = m_pFirstNode;
 		LinkedNode<T>* pNextNode = m_pFirstNode->pNextNode;
 

@@ -9,8 +9,6 @@ project "FileSystem"
 	files { "Private/**.cpp", "Private/**.h", "Public/**.h" }
 	includedirs { "Public/", IncludeDirs["Shared"] }
 	
-	links { "DSA" }
-	
 	filter "configurations:Debug"
        defines { "DEBUG" }
        symbols "On"

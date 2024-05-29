@@ -14,6 +14,7 @@ namespace MarkTech
 		Allocator();
 		~Allocator();
 
+		void* Alloc(U32 sizeInBytes, U32 alignment);
 		void* Allocate(U32 sizeInBytes);
 		void Free(void* ptr);
 	private:
