@@ -1,5 +1,5 @@
-project "SandboxApp"
-	kind "ConsoleApp"
+project "Engine"
+	kind "StaticLib"
 	language "C++"
 	cppdialect "C++17"
 	
@@ -10,12 +10,13 @@ project "SandboxApp"
 	
 	includedirs { 
 		"Public/", 
-		IncludeDirs["Engine"],
-		IncludeDirs["Shared"],
-		IncludeDirs["Core"]
+		IncludeDirs["Shared"], 
+		IncludeDirs["FileSystem"], 
+		IncludeDirs["HighResTimer"], 
+		IncludeDirs["Core"] 
 	}
 	
-	links { "Engine" }
+	links { "FileSystem", "HighResTimer", "Core" }
 	
 	filter "configurations:Debug"
        defines { "DEBUG" }

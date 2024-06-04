@@ -1,6 +1,6 @@
-#include <Memory\PoolAllocator.h>
-#include <DSA\DynArray.h>
+#include <Engine.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <memory.h>
 #include <crtdbg.h>
 
@@ -9,7 +9,9 @@ using namespace MarkTech;
 int main()
 {
 	{
-		printf("Hello World!");
+		Engine engine;
+		engine.Init();
+		engine.Shutdown();
 	}
 
 	_CrtDumpMemoryLeaks();
