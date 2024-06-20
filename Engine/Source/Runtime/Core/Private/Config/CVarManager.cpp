@@ -62,7 +62,20 @@ namespace MarkTech
 		return pNewCvar->value;
 	}
 
-	void CVarManager::SetCVar(const char* name, F32 value)
+	bool CVarManager::SetCVar(const char* name, F32 value)
 	{
+		CVarF32* pVar = m_gpCVarManager->m_pStartVar;
+		while (pVar != nullptr)
+		{
+			if (strcmp(name, pVar->name.c_str()) == 0)
+			{
+				pVar->value = value;
+				return true;
+			}
+
+			pVar = pVar->pNext;
+		}
+
+		return false;
 	}
 }

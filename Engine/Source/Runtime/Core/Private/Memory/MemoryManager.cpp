@@ -38,6 +38,7 @@ namespace MarkTech
 		m_pMemCursor += (sizeInBytes + alignment);
 		U8* pCursor = m_pMemCursor;
 		AlignPointer(pCursor, alignment);
+		m_UsedMemory += sizeInBytes;
 		return pCursor;
 	}
 
@@ -49,7 +50,19 @@ namespace MarkTech
 		m_pDbgMemCursor += (sizeInBytes + alignment);
 		U8* pCursor = m_pDbgMemCursor;
 		AlignPointer(pCursor, alignment);
+		m_UsedDebugMemory += sizeInBytes;
 		return pCursor;
+	}
+
+	MemoryQuery MemoryManager::GetMemoryStats()
+	{
+		MemoryQuery stats = {};
+		stats.allocatedMemory = m_gpMemManager->m_AllocatedMemory;
+		stats.allocatedDebugMemory = m_gpMemManager->m_AllocatedDebugMemory;
+		stats.usedMemory = m_gpMemManager->m_UsedMemory;
+		stats.usedDebugMemory = m_gpMemManager->m_UsedDebugMemory;
+
+		return stats;
 	}
 
 	void* MemoryManager::AllocDbg(U64 sizeInBytes, U64 alignment)

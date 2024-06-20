@@ -6,6 +6,14 @@
 
 namespace MarkTech
 {
+	struct MemoryQuery
+	{
+		U64 allocatedMemory;
+		U64 allocatedDebugMemory;
+		U64 usedMemory;
+		U64 usedDebugMemory;
+	};
+
 	class MemoryManager
 	{
 	public:
@@ -20,6 +28,8 @@ namespace MarkTech
 
 		static void* AllocDbg(U64 sizeInBytes, U64 alignment);
 		void* AllocMemDbg(U64 sizeInBytes, U64 alignment);
+
+		static MemoryQuery GetMemoryStats();
 
 	private:
 		U8* m_pMemory;

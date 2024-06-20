@@ -22,7 +22,7 @@ namespace MarkTech
 		void Shutdown();
 
 		static F32 GetCVar(const char* name);
-		static void SetCVar(const char* name, F32 value);
+		static bool SetCVar(const char* name, F32 value);
 
 	private:
 		CVarF32* m_pStartVar;

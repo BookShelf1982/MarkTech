@@ -1,15 +1,20 @@
 #include "Memory\PoolAllocator.h"
-#include "Memory\AlignedAllocator.h"
+#include "Memory\MemoryManager.h"
 #include <memory.h>
 
 namespace MarkTech
 {
-	PoolAllocator::PoolAllocator(U32 sizeInBytes, U32 blockSizeInBytes, U32 alignment)
+	PoolAllocator::PoolAllocator()
+		:m_pMemory(nullptr), m_pFreeElements(nullptr), m_pLinkStart(nullptr), m_ElementsSize(0), m_NumOfElements(0)
+	{
+	}
+
+	PoolAllocator::PoolAllocator(U64 sizeInBytes, U64 blockSizeInBytes, U64 alignment)
 		:m_pMemory(nullptr), m_pFreeElements(nullptr), m_pLinkStart(nullptr), m_ElementsSize(blockSizeInBytes), m_NumOfElements(sizeInBytes / blockSizeInBytes)
 	{
 		if ((sizeInBytes % blockSizeInBytes) == 0)
 		{
-			m_pLinkStart = (FreeElement*)AllocAligned((size_t)(sizeInBytes + (m_NumOfElements * sizeof(FreeElement))), sizeof(void*));
+			m_pLinkStart = (FreeElement*)MemoryManager::Alloc((size_t)(sizeInBytes + (m_NumOfElements * sizeof(FreeElement))), sizeof(void*));
 			m_pMemory = reinterpret_cast<U8*>((U8*)(m_pLinkStart) + m_NumOfElements * sizeof(FreeElement));
 
 			U32 offset = 0;
@@ -30,7 +35,6 @@ namespace MarkTech
 
 	PoolAllocator::~PoolAllocator()
 	{
-		FreeAligned(m_pLinkStart);
 	}
 
 	void* PoolAllocator::Alloc()

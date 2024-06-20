@@ -22,5 +22,7 @@ namespace MarkTech
 	typedef double F64;
 
 	typedef unsigned __int64  uintptr;
+
+	typedef unsigned __int64 ByteSize;
 }
 #endif

@@ -7,16 +7,20 @@ namespace MarkTech
 		:m_AccessType(accessType)
 	{
 		DWORD accessTypeArg = 0;
+		DWORD openMode = 0;
 		switch (accessType)
 		{
 		case FileAccessType::READ:
 			accessTypeArg = GENERIC_READ;
+			openMode = OPEN_ALWAYS;
 			break;
 		case FileAccessType::WRITE:
 			accessTypeArg = GENERIC_WRITE;
+			openMode = CREATE_NEW;
 			break;
 		case FileAccessType::READ_WRITE:
 			accessTypeArg = GENERIC_READ | GENERIC_WRITE;
+			openMode = OPEN_ALWAYS;
 			break;
 		}
 
@@ -25,21 +29,32 @@ namespace MarkTech
 			accessTypeArg,
 			0,
 			NULL,
-			OPEN_ALWAYS,
+			openMode,
 			FILE_ATTRIBUTE_NORMAL,
 			NULL
 		);
 
-		if (m_hFileHandle == INVALID_HANDLE_VALUE && GetLastError() == ERROR_FILE_NOT_FOUND)
+		if (m_hFileHandle == INVALID_HANDLE_VALUE || GetLastError() == ERROR_FILE_NOT_FOUND)
 			m_IsOpened = false;
 		else
 			m_IsOpened = true;
+		
+		LARGE_INTEGER size = {};
+		if (!GetFileSizeEx(m_hFileHandle, &size))
+			DWORD err = GetLastError();
+
+		m_Size = size.QuadPart;
 	}
 
 	File::~File()
 	{
 		if (m_IsOpened)
 			CloseHandle(m_hFileHandle);
+	}
+
+	U64 File::GetSize() const
+	{
+		return m_Size;
 	}
 
 	void File::Close()
@@ -73,6 +88,37 @@ namespace MarkTech
 			sizeOfBytes,
 			NULL,
 			NULL
+		);
+	}
+
+	void File::Seek(U64 location, SeekOrigin orign = SeekOrigin::CURRENT)
+	{
+		if (m_AccessType == FileAccessType::READ && m_IsOpened == true)
+			return;
+
+		DWORD moveMethod = FILE_CURRENT;
+
+		switch (orign)
+		{
+		case MarkTech::SeekOrigin::BEGINING:
+			moveMethod = FILE_BEGIN;
+			break;
+		case MarkTech::SeekOrigin::CURRENT:
+			moveMethod = FILE_CURRENT;
+			break;
+		case MarkTech::SeekOrigin::END:
+			moveMethod = FILE_END;
+			break;
+		default:
+			moveMethod = FILE_CURRENT;
+			break;
+		}
+
+		SetFilePointer(
+			m_hFileHandle,
+			location,
+			NULL,
+			moveMethod
 		);
 	}
 #endif

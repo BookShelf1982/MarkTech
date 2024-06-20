@@ -1,7 +1,7 @@
 #pragma once
 #include "PrimitiveTypes.h"
-#include "Memory\Allocator.h"
-#include <string.h>
+#include "DSManager.h"
+#include <memory.h>
 
 /*
 * Linked List container
@@ -77,21 +77,19 @@ namespace MarkTech
 	/*
 	* Linked list container
 	*/
-	template<typename T, class A = Allocator>
+	template<typename T>
 	class LinkedList
 	{
 	public:
 		LinkedList();
-		LinkedList(U32 nodeCount);
 		~LinkedList();
-		using Iterator = ListIterator<LinkedList<T, A>>;
+		using Iterator = ListIterator<LinkedList<T>>;
 		using NodeType = LinkedNode<T>;
 
 		void Insert(const T& element);
 		void Remove(U32 index);
 		Iterator Begin() { return Iterator(m_pFirstNode); }
 	private:
-		A m_Alloc;
 		LinkedNode<T>* m_pFirstNode;
 		U32 m_Size;
 		U32 m_PreallocatedNodeCount;
@@ -100,27 +98,17 @@ namespace MarkTech
 	/*
 	* Sets values to 0
 	*/
-	template<typename T, class A>
-	inline LinkedList<T, A>::LinkedList()
+	template<typename T>
+	inline LinkedList<T>::LinkedList()
 		:m_pFirstNode(nullptr), m_Size(0), m_PreallocatedNodeCount(0)
 	{
 	}
 
 	/*
-	* Allocates a fixed amount of nodes in a contiguous memory block.
-	*/
-	template<typename T, class A>
-	inline LinkedList<T, A>::LinkedList(U32 nodeCount)
-		:m_pFirstNode(nullptr), m_Size(0), m_PreallocatedNodeCount(nodeCount)
-	{
-		LinkedNode<T>* pNodes = m_Alloc.Alloc((nodeCount * sizeof(LinkedNode<T>), 8));
-	}
-
-	/*
 	* Destroys all nodes and frees node memory
 	*/
-	template<typename T, class A>
-	inline LinkedList<T, A>::~LinkedList()
+	template<typename T>
+	inline LinkedList<T>::~LinkedList()
 	{
 		if (!m_pFirstNode)
 			return;
@@ -132,7 +120,7 @@ namespace MarkTech
 		{
 			pNextNode = pCurrentNode->pNextNode;
 			pCurrentNode->~LinkedNode();
-			m_Alloc.Free(pCurrentNode);
+			DSManager::FreeBlock(pCurrentNode, sizeof(LinkedNode<T>));
 			pCurrentNode = pNextNode;
 		}
 	}
@@ -140,8 +128,8 @@ namespace MarkTech
 	/*
 	* Insert a node in linked list
 	*/
-	template<typename T, class A>
-	inline void LinkedList<T, A>::Insert(const T& element)
+	template<typename T>
+	inline void LinkedList<T>::Insert(const T& element)
 	{
 		LinkedNode<T>* pNode = m_pFirstNode;
 		LinkedNode<T>* pPrevNode = nullptr;
@@ -152,7 +140,7 @@ namespace MarkTech
 			pNode = pNode->pNextNode;
 		}
 
-		pNode = (LinkedNode<T>*)m_Alloc.Allocate((U32)sizeof(LinkedNode<T>));
+		pNode = (LinkedNode<T>*)DSManager::AllocBlock(sizeof(LinkedNode<T>));
 		LinkedNode<T> temp;
 		temp.data = element;
 		memcpy(pNode, &temp, sizeof(temp));
@@ -166,8 +154,8 @@ namespace MarkTech
 	/*
 	* Removes a node from the linked list
 	*/
-	template<typename T, class A>
-	inline void LinkedList<T, A>::Remove(U32 index)
+	template<typename T>
+	inline void LinkedList<T>::Remove(U32 index)
 	{
 		LinkedNode<T>* pNode = m_pFirstNode;
 		LinkedNode<T>* pPrevNode = nullptr;
@@ -184,6 +172,6 @@ namespace MarkTech
 		pPrevNode->pNextNode = pNode->pNextNode;
 		
 		pNode->~LinkedNode();
-		m_Alloc.Free(pNode);
+		DSManager::FreeBlock(pNode, sizeof(LinkedNode<T>));
 	}
 }

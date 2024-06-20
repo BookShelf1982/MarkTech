@@ -12,7 +12,8 @@ namespace MarkTech
 	class PoolAllocator
 	{
 	public:
-		PoolAllocator(U32 sizeInBytes, U32 blockSizeInBytes, U32 alignment);
+		PoolAllocator();
+		PoolAllocator(U64 sizeInBytes, U64 blockSizeInBytes, U64 alignment);
 		~PoolAllocator();
 
 		void* Alloc();
@@ -22,7 +23,7 @@ namespace MarkTech
 		U8* m_pMemory;
 		FreeElement* m_pFreeElements;
 		FreeElement* m_pLinkStart;
-		U32 m_ElementsSize;
+		U64 m_ElementsSize;
 		U32 m_NumOfElements;
 	};
 }
