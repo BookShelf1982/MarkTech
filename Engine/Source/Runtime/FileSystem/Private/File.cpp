@@ -12,7 +12,7 @@ namespace MarkTech
 		{
 		case FileAccessType::READ:
 			accessTypeArg = GENERIC_READ;
-			openMode = OPEN_ALWAYS;
+			openMode = OPEN_EXISTING;
 			break;
 		case FileAccessType::WRITE:
 			accessTypeArg = GENERIC_WRITE;
@@ -63,37 +63,37 @@ namespace MarkTech
 		CloseHandle(m_hFileHandle);
 	}
 
-	void File::Read(char* pBuffer, U32 sizeOfBytes)
+	void File::Read(char* pBuffer, U64 sizeOfBytes)
 	{
-		if (m_AccessType == FileAccessType::WRITE && m_IsOpened == true)
+		if (m_AccessType == FileAccessType::WRITE || m_IsOpened == false)
 			return;
 
 		ReadFile(
 			m_hFileHandle,
 			pBuffer,
-			sizeOfBytes,
+			(U32)sizeOfBytes,
 			NULL,
 			NULL
 		);
 	}
 
-	void File::Write(char* pBuffer, U32 sizeOfBytes)
+	void File::Write(char* pBuffer, U64 sizeOfBytes)
 	{
-		if (m_AccessType == FileAccessType::READ && m_IsOpened == true)
+		if (m_AccessType == FileAccessType::READ || m_IsOpened == false)
 			return;
 
 		WriteFile(
 			m_hFileHandle,
 			pBuffer,
-			sizeOfBytes,
+			(U32)sizeOfBytes,
 			NULL,
 			NULL
 		);
 	}
 
-	void File::Seek(U64 location, SeekOrigin orign = SeekOrigin::CURRENT)
+	void File::Seek(I32 location, SeekOrigin orign)
 	{
-		if (m_AccessType == FileAccessType::READ && m_IsOpened == true)
+		if (m_AccessType == FileAccessType::WRITE || m_IsOpened == false)
 			return;
 
 		DWORD moveMethod = FILE_CURRENT;

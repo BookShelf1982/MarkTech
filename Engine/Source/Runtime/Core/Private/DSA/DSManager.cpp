@@ -51,6 +51,7 @@ namespace MarkTech
             if (blockSize <= ((i + 1) * 2))
             {
                 m_pPoolAllocs[i].Free(ptr);
+                return;
             }
         }
     }

@@ -1,58 +1,32 @@
 #include "Engine.h"
-#include <DSA\Dictionary.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 namespace MarkTech
 {
 	Engine::Engine()
 	{
-		m_pMemManager = new MemoryManager();
-		m_pDebugStringManager = new DebugStringManager();
-		m_pDSManager = new DSManager();
-		m_pCVarManager = new CVarManager();
-		m_pTest = new TestMod();
 	}
 
 	Engine::~Engine()
 	{
-		delete m_pTest;
-		delete m_pCVarManager;
-		delete m_pDSManager;
-		delete m_pDebugStringManager;
-		delete m_pMemManager;
 	}
 
 	void Engine::Init()
 	{
-		m_pMemManager->Init(MEGABYTE * 128, MEGABYTE * 128);
-		m_pDebugStringManager->Init(m_pMemManager->AllocDbg(MEGABYTE * 8, 1), MEGABYTE * 8);
-		m_pDSManager->Init(2048);
-		m_pCVarManager->Init(1024);
-		m_pTest->Init();
+		m_MemManager.Init(MEGABYTE * 128, MEGABYTE * 128);
+		m_DebugStringManager.Init(m_MemManager.AllocDbg(MEGABYTE * 8, 1), MEGABYTE * 8);
+		m_DSManager.Init(2048, 32);
+		m_CVarManager.Init(1024);
+		m_ResourceManager.Init(MEGABYTE * 6);
+		m_ResourceManager.LoadResourcePackage("package.mpk");
+		m_ResourceManager.LoadResource(2);
 	}
 
 	void Engine::Shutdown()
 	{
-		m_pCVarManager->Shutdown();
-		m_pDSManager->Shutdown();
-		m_pDebugStringManager->Shutdown();
-		m_pMemManager->Shutdown();
-	}
-
-	TestMod::TestMod()
-	{
-	}
-
-	TestMod::~TestMod()
-	{
-	}
-
-	void TestMod::Init()
-	{
-	}
-
-	void TestMod::Shutdown()
-	{
+		m_ResourceManager.Shutdown();
+		m_CVarManager.Shutdown();
+		m_DSManager.Shutdown();
+		m_DebugStringManager.Shutdown();
+		m_MemManager.Shutdown();
 	}
 }

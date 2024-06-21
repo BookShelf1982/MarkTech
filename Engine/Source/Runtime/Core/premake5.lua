@@ -9,6 +9,8 @@ project "Core"
 	files { "Private/**.cpp", "Private/**.h", "Public/**.h" }
 	includedirs { "Public/", IncludeDirs["Shared"] }
 	
+	defines { "_CRT_SECURE_NO_WARNINGS" }
+	
 	filter "configurations:Debug"
        defines { "DEBUG" }
        symbols "On"

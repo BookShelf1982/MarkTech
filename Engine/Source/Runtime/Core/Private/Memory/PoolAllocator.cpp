@@ -10,14 +10,14 @@ namespace MarkTech
 	}
 
 	PoolAllocator::PoolAllocator(U64 sizeInBytes, U64 blockSizeInBytes, U64 alignment)
-		:m_pMemory(nullptr), m_pFreeElements(nullptr), m_pLinkStart(nullptr), m_ElementsSize(blockSizeInBytes), m_NumOfElements(sizeInBytes / blockSizeInBytes)
+		:m_pMemory(nullptr), m_pFreeElements(nullptr), m_pLinkStart(nullptr), m_ElementsSize(blockSizeInBytes), m_NumOfElements((U32)(sizeInBytes / blockSizeInBytes))
 	{
 		if ((sizeInBytes % blockSizeInBytes) == 0)
 		{
 			m_pLinkStart = (FreeElement*)MemoryManager::Alloc((size_t)(sizeInBytes + (m_NumOfElements * sizeof(FreeElement))), sizeof(void*));
 			m_pMemory = reinterpret_cast<U8*>((U8*)(m_pLinkStart) + m_NumOfElements * sizeof(FreeElement));
 
-			U32 offset = 0;
+			U64 offset = 0;
 			for (U32 i = 0; i < m_NumOfElements; i++)
 			{
 				m_pLinkStart[i].pBlock = &m_pMemory[offset];

@@ -123,6 +123,8 @@ namespace MarkTech
 			DSManager::FreeBlock(pCurrentNode, sizeof(LinkedNode<T>));
 			pCurrentNode = pNextNode;
 		}
+
+		m_pFirstNode = nullptr;
 	}
 
 	/*
@@ -149,6 +151,8 @@ namespace MarkTech
 			m_pFirstNode = pNode;
 		else
 			pPrevNode->pNextNode = pNode;
+
+		m_Size++;
 	}
 
 	/*
@@ -173,5 +177,6 @@ namespace MarkTech
 		
 		pNode->~LinkedNode();
 		DSManager::FreeBlock(pNode, sizeof(LinkedNode<T>));
+		m_Size--;
 	}
 }

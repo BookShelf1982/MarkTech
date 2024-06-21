@@ -13,10 +13,11 @@ project "Engine"
 		IncludeDirs["Shared"], 
 		IncludeDirs["FileSystem"], 
 		IncludeDirs["HighResTimer"], 
-		IncludeDirs["Core"] 
+		IncludeDirs["Core"],
+		IncludeDirs["ResourceManager"]
 	}
 	
-	links { "FileSystem", "HighResTimer", "Core" }
+	links { "FileSystem", "HighResTimer", "Core", "ResourceManager" }
 	
 	filter "configurations:Debug"
        defines { "DEBUG" }

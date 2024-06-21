@@ -14,6 +14,7 @@ namespace MarkTech
 		void Remove(KeyType key);
 		void Modify(KeyType key, ValType value);
 		ValType Get(KeyType key);
+		bool Has(KeyType key);
 
 	private:
 		struct LinkType
@@ -50,7 +51,7 @@ namespace MarkTech
 		U32 index = 0;
 		for (auto it = m_ElementList.Begin(); it != nullptr; it++)
 		{
-			if (it.data->key == key)
+			if (it->data.key == key)
 				m_ElementList.Remove(index);
 
 			index++;
@@ -62,9 +63,9 @@ namespace MarkTech
 	{
 		for (auto it = m_ElementList.Begin(); it != nullptr; it++)
 		{
-			if (it.data->key == key)
+			if (it->data.key == key)
 			{
-				it.data->value = value;
+				it->data.value = value;
 			}
 		}
 	}
@@ -74,12 +75,24 @@ namespace MarkTech
 	{
 		for (auto it = m_ElementList.Begin(); it != nullptr; it++)
 		{
-			if (it.data->key == key)
+			if (it->data.key == key)
 			{
-				return it.data->value;
+				return it->data.value;
 			}
 		}
 
 		return ValType();
+	}
+
+	template<typename KeyType, typename ValType>
+	inline bool Dictionary<KeyType, ValType>::Has(KeyType key)
+	{
+		for (auto it = m_ElementList.Begin(); it != nullptr; it++)
+		{
+			if (it->data.key == key)
+				return true;
+		}
+
+		return false;
 	}
 }

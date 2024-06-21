@@ -3,20 +3,10 @@
 #include <DSA\DSManager.h>
 #include <Config\CVarManager.h>
 #include <String\DebugStringManager.h>
+#include <ResourceManager.h>
 
 namespace MarkTech
 {
-	class TestMod
-	{
-	public:
-		TestMod();
-		~TestMod();
-
-		void Init();
-		void Shutdown();
-	private:
-	};
-
 	class Engine
 	{
 	public:
@@ -26,10 +16,10 @@ namespace MarkTech
 		void Init();
 		void Shutdown();
 	private:
-		MemoryManager* m_pMemManager;
-		DebugStringManager* m_pDebugStringManager;
-		DSManager* m_pDSManager;
-		CVarManager* m_pCVarManager;
-		TestMod* m_pTest;
+		MemoryManager m_MemManager;
+		DebugStringManager m_DebugStringManager;
+		DSManager m_DSManager;
+		CVarManager m_CVarManager;
+		ResourceManager m_ResourceManager;
 	};
 }

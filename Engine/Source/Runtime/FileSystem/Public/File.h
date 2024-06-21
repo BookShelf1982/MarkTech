@@ -30,9 +30,9 @@ namespace MarkTech
 		bool IsOpen() const { return m_IsOpened; }
 
 		void Close();
-		void Read(char* pBuffer, U32 sizeOfBytes);
-		void Write(char* pBuffer, U32 sizeOfBytes);
-		void Seek(U64 location, SeekOrigin orign);
+		void Read(char* pBuffer, U64 sizeOfBytes);
+		void Write(char* pBuffer, U64 sizeOfBytes);
+		void Seek(I32 location, SeekOrigin orign = SeekOrigin::CURRENT);
 	private:
 #ifdef MT_PLATFORM_WINDOWS
 		HANDLE m_hFileHandle;

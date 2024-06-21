@@ -12,7 +12,8 @@ project "SandboxApp"
 		"Public/", 
 		IncludeDirs["Engine"],
 		IncludeDirs["Shared"],
-		IncludeDirs["Core"]
+		IncludeDirs["Core"],
+		IncludeDirs["ResourceManager"]
 	}
 	
 	links { "Engine" }

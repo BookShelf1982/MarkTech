@@ -7,8 +7,8 @@ project "ResourceManager"
     objdir ("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")
 	
 	files { "Private/**.cpp", "Private/**.h", "Public/**.h" }
-	includedirs { "Public/", IncludeDirs["Shared"], IncludeDirs["Core"] }
-	links { "Core" }
+	includedirs { "Public/", IncludeDirs["Shared"], IncludeDirs["Core"], IncludeDirs["FileSystem"] }
+	links { "Core", "FileSystem" }
 	
 	filter "configurations:Debug"
        defines { "DEBUG" }
