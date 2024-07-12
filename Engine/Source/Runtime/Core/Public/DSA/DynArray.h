@@ -1,5 +1,5 @@
 #pragma once
-#include "Memory\Allocator.h"
+#include "Memory\MemoryManager.h"
 
 /*
 * Dynamic Array Container
@@ -82,7 +82,7 @@ namespace MarkTech
 		:m_ptr(ptr) 
 	{}
 
-	template<typename T, class A = Allocator>
+	template<typename T>
 	class DynArray
 	{
 	public:
@@ -101,7 +101,6 @@ namespace MarkTech
 		Iterator End() { return Iterator(m_pArray + m_CurrentSize); }
 	private:
 		T* m_pArray; // Contiguous array
-		A m_Alloc; // Allocator object
 		U32 m_MaxSize; // Max allocated elements
 		U32 m_CurrentSize; // Current size of elements in array
 	};
@@ -110,8 +109,8 @@ namespace MarkTech
 	* Default constructor
 	* Basically set everything to zero besides the allocator
 	*/
-	template<typename T, class A>
-	inline DynArray<T, A>::DynArray()
+	template<typename T>
+	inline DynArray<T>::DynArray()
 		:m_pArray(nullptr), m_CurrentSize(0), m_MaxSize(0)
 	{
 	}
@@ -120,8 +119,8 @@ namespace MarkTech
 	* Constructor with size arg
 	* Allocates contiguous array using specified size
 	*/
-	template<typename T, class A>
-	inline DynArray<T, A>::DynArray(U32 size)
+	template<typename T>
+	inline DynArray<T>::DynArray(U32 size)
 		:m_pArray(nullptr), m_CurrentSize(0), m_MaxSize(size)
 	{
 		m_pArray = (T*)m_Alloc.Allocate(size * sizeof(T));
@@ -131,8 +130,8 @@ namespace MarkTech
 	* Destructor
 	* Loop through every element in array and destroy it. Then free the memory
 	*/
-	template<typename T, class A>
-	inline DynArray<T, A>::~DynArray()
+	template<typename T>
+	inline DynArray<T>::~DynArray()
 	{
 		if (m_pArray)
 		{
@@ -148,8 +147,8 @@ namespace MarkTech
 	* Insert Func
 	* Insert an element into the array
 	*/
-	template<typename T, class A>
-	inline void DynArray<T, A>::Insert(T obj)
+	template<typename T>
+	inline void DynArray<T>::Insert(T obj)
 	{
 		// Is the current size of elements in array equal to the allocated size?
 		if (m_CurrentSize == m_MaxSize)
@@ -185,8 +184,8 @@ namespace MarkTech
 	* Resize Func
 	* Resizes the array
 	*/
-	template<typename T, class A>
-	inline void DynArray<T, A>::Resize(U32 size)
+	template<typename T>
+	inline void DynArray<T>::Resize(U32 size)
 	{
 		if (m_MaxSize > size)
 			return;

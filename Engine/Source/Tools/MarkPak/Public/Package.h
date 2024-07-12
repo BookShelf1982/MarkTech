@@ -6,7 +6,7 @@ namespace MarkTech
 {
 	struct PackageMetadata
 	{
-		U64 blobSizeInBytes;
+		U32 id;
 		U32 entryCount;
 	};
 

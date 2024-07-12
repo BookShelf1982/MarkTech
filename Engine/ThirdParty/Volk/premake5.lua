@@ -1,4 +1,4 @@
-project "Core"
+project "Volk"
 	kind "StaticLib"
 	language "C++"
 	cppdialect "C++17"
@@ -6,13 +6,14 @@ project "Core"
 	targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
     objdir ("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")
 	
-	files { "Private/**.cpp", "Private/**.h", "Public/**.h" }
-	includedirs { "Public/", IncludeDirs["Shared"] }
+	files { "volk.c", "volk.h" }
 	
-	defines { "_CRT_SECURE_NO_WARNINGS" }
+	includedirs { IncludeDirs["VULKAN"] }
+	
+	defines { "VOLK_STATIC_DEFINES" }
 	
 	filter "configurations:Debug"
-       defines { "DEBUG", "MT_ENABLE_ASSERTS" }
+       defines { "DEBUG" }
        symbols "On"
 		
 	filter "configurations:Release"
@@ -20,4 +21,4 @@ project "Core"
         optimize "On"
 		
 	filter "platforms:Win64"
-		defines { "MT_PLATFORM_WINDOWS" }
+		defines { "VK_USE_PLATFORM_WIN32_KHR" }

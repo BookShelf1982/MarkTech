@@ -1,5 +1,8 @@
 #include "String\String.h"
+#include "Memory\AlignedAllocator.h"
+#include <stdio.h>
 #include <string.h>
+#include <cstdarg>
 
 namespace MarkTech
 {
@@ -8,17 +11,36 @@ namespace MarkTech
 	{
 	}
 
-	String::~String()
+	String::String(const char* str)
+		:m_pString(nullptr), m_Length(0)
 	{
+		U64 size = strlen(str);
+		if (size > 32)
+			return;
 
+		m_pString = (char*)AllocAligned(size, 1);
+		m_Length = size;
+
+		strcpy(m_pString, str);
 	}
 
-	void String::operator=(const char* string)
+	String::~String()
 	{
-		U64 size = strlen(string);
-		m_pString = (char*)DebugStringManager::AllocStringDbg(size);
+		if (m_pString)
+			FreeAligned(m_pString);
+	}
+
+	void String::Format(const char* format, ...)
+	{
+	}
+
+	void String::operator=(const char* str)
+	{
+		U64 size = strlen(str);
 		m_Length = size;
-		memcpy(m_pString, string, m_Length + 1);
-		m_pString[m_Length] = 0;
+		if (!m_pString)
+			m_pString = (char*)AllocAligned(size, 1);
+
+		strcpy(m_pString, str);
 	}
 }

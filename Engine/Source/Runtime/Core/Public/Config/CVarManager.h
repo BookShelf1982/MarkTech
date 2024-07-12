@@ -1,6 +1,6 @@
 #pragma once
 #include <PrimitiveTypes.h>
-#include "Memory\PoolAllocator.h"
+#include "Memory\StackAllocator.h"
 #include "String\String.h"
 
 namespace MarkTech

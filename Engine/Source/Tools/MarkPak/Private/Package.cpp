@@ -1,6 +1,7 @@
 #include "Package.h"
 #include <Memory\MemoryManager.h>
 #include <File.h>
+#include <random>
 
 namespace MarkTech
 {
@@ -16,7 +17,6 @@ namespace MarkTech
 	void Package::AddPackageEntry(PackageEntry entry)
 	{
 		metadata.entryCount++;
-		metadata.blobSizeInBytes += entry.entrySize;
 		m_EntryList.Insert(entry);
 	}
 
@@ -28,6 +28,10 @@ namespace MarkTech
 			return;
 
 		// Write package metadata
+		std::random_device rd;
+		std::uniform_int_distribution<U32> dist;
+
+		metadata.id = dist(rd);
 		outputFile.Write((char*)&metadata, sizeof(PackageMetadata));
 
 		// Write package entries to file

@@ -1,5 +1,5 @@
 #pragma once
-#include "DebugStringManager.h"
+#include <PrimitiveTypes.h>
 
 namespace MarkTech
 {
@@ -7,10 +7,13 @@ namespace MarkTech
 	{
 	public:
 		String();
+		String(const char* str);
 		~String();
 
-		void operator=(const char* string);
-		const char* c_str() { return m_pString; }
+		void Format(const char* format, ...);
+
+		void operator=(const char* str);
+		const char* c_str() const { return m_pString; }
 	private:
 		I8* m_pString;
 		U64 m_Length;

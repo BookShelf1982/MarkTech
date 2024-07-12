@@ -1,12 +1,13 @@
 #include "Memory\MemoryManager.h"
 #include "Memory\AlignedAllocator.h"
+#include "Debug\Assert.h"
 
 namespace MarkTech
 {
 	MemoryManager* MemoryManager::m_gpMemManager = nullptr;
 
 	MemoryManager::MemoryManager()
-		:m_pMemory(nullptr), m_pMemCursor(nullptr), m_AllocatedMemory(0), m_AllocatedDebugMemory(0), m_UsedMemory(0), m_UsedDebugMemory(0), m_pDbgMemCursor(0)
+		:m_pMemory(nullptr), m_pMemCursor(nullptr), m_AllocatedMemory(0), m_UsedMemory(0)
 	{
 		if (!m_gpMemManager)
 			m_gpMemManager = this;
@@ -16,13 +17,11 @@ namespace MarkTech
 	{
 	}
 
-	void MemoryManager::Init(U64 sizeInBytes, U64 debugSizeInBytes)
+	void MemoryManager::Init(U64 sizeInBytes)
 	{
-		m_pMemory = (U8*)AllocAligned((size_t)sizeInBytes + debugSizeInBytes, 1);
+		m_pMemory = (U8*)AllocAligned((size_t)sizeInBytes, 1);
 		m_pMemCursor = m_pMemory;
 		m_AllocatedMemory = sizeInBytes;
-		m_AllocatedDebugMemory = debugSizeInBytes;
-		m_pDbgMemCursor = m_pMemCursor + debugSizeInBytes;
 	}
 
 	void MemoryManager::Shutdown()
@@ -32,8 +31,12 @@ namespace MarkTech
 
 	void* MemoryManager::AllocMem(U64 sizeInBytes, U64 alignment)
 	{
-		if ((m_UsedMemory + sizeInBytes + alignment) > m_AllocatedMemory)
+		U64 memoryUsedAfter = (m_UsedMemory + sizeInBytes + alignment);
+		if (memoryUsedAfter > m_AllocatedMemory)
+		{
+			MT_ASSERT(memoryUsedAfter < m_AllocatedMemory);
 			return nullptr;
+		}
 
 		m_pMemCursor += (sizeInBytes + alignment);
 		U8* pCursor = m_pMemCursor;
@@ -42,36 +45,18 @@ namespace MarkTech
 		return pCursor;
 	}
 
-	void* MemoryManager::AllocMemDbg(U64 sizeInBytes, U64 alignment)
-	{
-		if ((m_UsedDebugMemory + sizeInBytes + alignment) > m_AllocatedDebugMemory)
-			return nullptr;
-
-		m_pDbgMemCursor += (sizeInBytes + alignment);
-		U8* pCursor = m_pDbgMemCursor;
-		AlignPointer(pCursor, alignment);
-		m_UsedDebugMemory += sizeInBytes;
-		return pCursor;
-	}
-
 	MemoryQuery MemoryManager::GetMemoryStats()
 	{
 		MemoryQuery stats = {};
 		stats.allocatedMemory = m_gpMemManager->m_AllocatedMemory;
-		stats.allocatedDebugMemory = m_gpMemManager->m_AllocatedDebugMemory;
 		stats.usedMemory = m_gpMemManager->m_UsedMemory;
-		stats.usedDebugMemory = m_gpMemManager->m_UsedDebugMemory;
 
 		return stats;
 	}
 
-	void* MemoryManager::AllocDbg(U64 sizeInBytes, U64 alignment)
-	{
-		return m_gpMemManager->AllocMemDbg(sizeInBytes, alignment);
-	}
-
 	void* MemoryManager::Alloc(U64 sizeInBytes, U64 alignment)
 	{
+		MT_ASSERT(m_gpMemManager);
 		return m_gpMemManager->AllocMem(sizeInBytes, alignment);
 	}
 }

@@ -18,7 +18,7 @@ namespace MarkTech
 
 	void CVarManager::Init(U32 cvarCount)
 	{
-		m_CvarPool = StackAllocator(MemoryManager::AllocDbg(cvarCount * sizeof(CVarF32), 8), cvarCount * sizeof(CVarF32));
+		m_CvarPool = StackAllocator(cvarCount * sizeof(CVarF32), 8);
 		CVarManager::GetCVar("game.cheats");
 	}
 

@@ -10,17 +10,18 @@ project "Engine"
 	
 	includedirs { 
 		"Public/", 
+		IncludeDirs["Core"],
 		IncludeDirs["Shared"], 
 		IncludeDirs["FileSystem"], 
 		IncludeDirs["HighResTimer"], 
-		IncludeDirs["Core"],
-		IncludeDirs["ResourceManager"]
+		IncludeDirs["ResourceManager"],
+		IncludeDirs["Graphics"]
 	}
 	
-	links { "FileSystem", "HighResTimer", "Core", "ResourceManager" }
+	links { "FileSystem", "HighResTimer", "Core", "ResourceManager", "Graphics" }
 	
 	filter "configurations:Debug"
-       defines { "DEBUG" }
+       defines { "DEBUG", "MT_ENABLE_ASSERTS" }
        symbols "On"
 		
 	filter "configurations:Release"

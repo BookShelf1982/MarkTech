@@ -2,6 +2,7 @@
 #include <PrimitiveTypes.h>
 #include <DSA\Dictionary.h>
 #include <Memory\StackAllocator.h>
+#include <String\String.h>
 
 namespace MarkTech
 {
@@ -9,7 +10,7 @@ namespace MarkTech
 
 	struct PackageMetadata
 	{
-		U64 blobSizeInBytes;
+		U32 id;
 		U32 entryCount;
 	};
 
@@ -44,15 +45,15 @@ namespace MarkTech
 
 		void LoadPackage(const char* filepath);
 		bool LoadResourceWithId(U64 id);
-		bool LoadResourceFromPackage(U64 resource, U8 package);
+		bool LoadResourceFromPackage(U64 resource);
+		LookupData GetResourceData(U64 resource);
 
 		static void LoadResourcePackage(const char* filepath);
 		static bool LoadResource(U64 id);
 	private:
 		Dictionary<ResourceHandle, LookupData> m_LookupList;
-		Dictionary<ResourceHandle, U8> m_ResourcePackageOwnership;
+		Dictionary<ResourceHandle, U32> m_ResourcePackageOwnership;
 		Dictionary<U32, char*> m_PackageFilename;
-		U32 m_PackageCount;
 		StackAllocator m_AssetAllocator;
 
 		static ResourceManager* m_gpResourceManager;

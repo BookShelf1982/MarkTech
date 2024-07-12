@@ -1,5 +1,5 @@
-project "SandboxApp"
-	kind "WindowedApp"
+project "Graphics"
+	kind "StaticLib"
 	language "C++"
 	cppdialect "C++17"
 	
@@ -7,20 +7,12 @@ project "SandboxApp"
     objdir ("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")
 	
 	files { "Private/**.cpp", "Private/**.h", "Public/**.h" }
+	includedirs { "Public/", IncludeDirs["Shared"], IncludeDirs["Volk"], IncludeDirs["VULKAN"], IncludeDirs["Core"], IncludeDirs["ResourceManager"] }
 	
-	includedirs { 
-		"Public/", 
-		IncludeDirs["Engine"],
-		IncludeDirs["Shared"],
-		IncludeDirs["Core"],
-		IncludeDirs["ResourceManager"],
-		IncludeDirs["Graphics"]
-	}
-	
-	links { "Engine" }
+	links { "Volk", "Core", "ResourceManager" }
 	
 	filter "configurations:Debug"
-       defines { "DEBUG", "MT_ENABLE_ASSERTS" }
+       defines { "DEBUG" }
        symbols "On"
 		
 	filter "configurations:Release"

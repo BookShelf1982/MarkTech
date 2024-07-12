@@ -1,6 +1,5 @@
 #include "ResourceManager.h"
-#include <Memory\MemoryManager.h>
-#include <String\DebugStringManager.h>
+#include <Memory\AlignedAllocator.h>
 #include <File.h>
 
 namespace MarkTech
@@ -8,7 +7,7 @@ namespace MarkTech
 	ResourceManager* ResourceManager::m_gpResourceManager = nullptr;
 
 	ResourceManager::ResourceManager()
-		:m_AssetAllocator(nullptr, 0), m_PackageCount(0)
+		:m_AssetAllocator(nullptr, 0)
 	{
 		if (!m_gpResourceManager)
 			m_gpResourceManager = this;
@@ -37,16 +36,16 @@ namespace MarkTech
 		File input(filepath, FileAccessType::READ);
 		if (!input.IsOpen())
 			return;
-
-		// Add package to package filename table
-		U64 size = strlen(filepath);
-		char* pStr = (char*)DebugStringManager::AllocStringDbg(size);
-		strcpy(pStr, filepath);
-		m_PackageFilename.Insert(m_PackageCount, pStr);
-
+		
 		// Read metadata
 		PackageMetadata metadata = {};
 		input.Read((char*)&metadata, sizeof(PackageMetadata));
+
+		// Add package to package filename table
+		U64 size = strlen(filepath);
+		char* pStr = (char*)AllocAligned(size + 1, 1);
+		strcpy_s(pStr, size, filepath);
+		m_PackageFilename.Insert(metadata.id, pStr);
 
 		// Read package entries
 		for (U32 i = 0; i < metadata.entryCount; i++)
@@ -60,10 +59,8 @@ namespace MarkTech
 			data.type = entry.entryType;
 
 			m_LookupList.Insert(entry.entryId, data);
-			m_ResourcePackageOwnership.Insert(entry.entryId, m_PackageCount);
+			m_ResourcePackageOwnership.Insert(entry.entryId, metadata.id);
 		}
-
-		m_PackageCount++;
 	}
 
 	bool ResourceManager::LoadResourceWithId(U64 id)
@@ -77,14 +74,16 @@ namespace MarkTech
 			return true;
 
 		// Load resource
-		if (LoadResourceFromPackage(id, m_ResourcePackageOwnership.Get(id)))
+		if (LoadResourceFromPackage(id))
 			return true;
 
 		return false;
 	}
 
-	bool ResourceManager::LoadResourceFromPackage(U64 resource, U8 package)
+	bool ResourceManager::LoadResourceFromPackage(U64 resource)
 	{
+		U32 package = m_ResourcePackageOwnership.Get(resource);
+
 		// Opem package from id
 		File file(m_PackageFilename.Get(package), FileAccessType::READ);
 		if (!file.IsOpen())
@@ -111,7 +110,7 @@ namespace MarkTech
 			return false;
 		
 		// Go to offset
-		file.Seek((byteOffset), SeekOrigin::BEGINING);
+		file.Seek(((I32)byteOffset), SeekOrigin::BEGINING);
 
 		LookupData data = m_LookupList.Get(resource);
 		data.pData = (U8*)m_AssetAllocator.Alloc(data.size);
@@ -121,6 +120,14 @@ namespace MarkTech
 		m_LookupList.Modify(resource, data);
 
 		return true;
+	}
+
+	LookupData ResourceManager::GetResourceData(U64 resource)
+	{
+		if (!m_LookupList.Has(resource))
+			return LookupData() = {};
+
+		return m_LookupList.Get(resource);
 	}
 
 	void ResourceManager::LoadResourcePackage(const char* filepath)

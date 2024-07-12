@@ -1,20 +1,23 @@
 #include <Engine.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <memory.h>
 #include <crtdbg.h>
+#ifdef MT_PLATFORM_WINDOWS
+#include <Windows.h>
+#endif
 
 using namespace MarkTech;
 
-int main()
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
 	{
 		Engine engine;
 		engine.Init();
+		engine.StartEngineLoop();
 		engine.Shutdown();
 	}
 
+#ifdef DEBUG
 	_CrtDumpMemoryLeaks();
+#endif
 
 	return 0;
 }
