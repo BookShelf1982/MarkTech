@@ -1,51 +1,110 @@
-#include <Memory\MemoryManager.h>
-#include <DSA\DSManager.h>
+#include <File.h>
+#include <Path.h>
+#include <MemoryArena.h>
 #include <Package.h>
 #include <TextFile.h>
+#ifdef DEBUG
 #include <crtdbg.h>
+#endif
 
 using namespace MarkTech;
 
+#ifdef MT_PLATFORM_WINDOWS
+	HMODULE fileMod = NULL;
+	HMODULE coreMod = NULL;
+#endif
+
+PFN_FindAllFilesInPath FindAllFilesInPath = nullptr;
+PFN_FileListFree FileListFree = nullptr;
+PFN_MakePath MakePath = nullptr;
+PFN_MakeAbsolutePath MakeAbsolutePath = nullptr;
+
+PFN_FOpen FOpen = nullptr;
+PFN_FClose FClose = nullptr;
+PFN_FRead FRead = nullptr;
+PFN_FWrite FWrite = nullptr;
+PFN_FSeek FSeek = nullptr;
+
+PFN_InitMemoryArena InitMemoryArena = nullptr;
+PFN_AllocFromMemoryArena AllocFromMemoryArena = nullptr;
+PFN_FreeToPointer FreeToPointer = nullptr;
+PFN_KillMemoryArena KillMemoryArena = nullptr;
+
+void LinkFileSystem()
+{
+#ifdef MT_PLATFORM_WINDOWS
+	fileMod = LoadLibraryA("FileSystem.dll");
+	if (fileMod == NULL)
+		return;
+
+	FOpen = (PFN_FOpen)GetProcAddress(fileMod, "FOpen");
+	FClose = (PFN_FClose)GetProcAddress(fileMod, "FClose");
+	FWrite = (PFN_FWrite)GetProcAddress(fileMod, "FWrite");
+	FRead = (PFN_FRead)GetProcAddress(fileMod, "FRead");
+	FSeek = (PFN_FSeek)GetProcAddress(fileMod, "FSeek");
+
+	FindAllFilesInPath = (PFN_FindAllFilesInPath)GetProcAddress(fileMod, "FindAllFilesInPath");
+	FileListFree = (PFN_FileListFree)GetProcAddress(fileMod, "FileListFree");
+	MakePath = (PFN_MakePath)GetProcAddress(fileMod, "MakePath");
+	MakeAbsolutePath = (PFN_MakeAbsolutePath)GetProcAddress(fileMod, "MakeAbsolutePath");
+#endif
+}
+
+void UnlinkFileSystem()
+{
+#ifdef MT_PLATFORM_WINDOWS
+	FreeLibrary(fileMod);
+#endif
+}
+
+void LinkCore()
+{
+#ifdef MT_PLATFORM_WINDOWS
+	coreMod = LoadLibraryA("Core.dll");
+	if (coreMod == NULL)
+		return;
+
+	InitMemoryArena = (PFN_InitMemoryArena)GetProcAddress(coreMod, "InitMemoryArena");
+	AllocFromMemoryArena = (PFN_AllocFromMemoryArena)GetProcAddress(coreMod, "AllocFromMemoryArena");
+	KillMemoryArena = (PFN_KillMemoryArena)GetProcAddress(coreMod, "KillMemoryArena");
+	FreeToPointer = (PFN_FreeToPointer)GetProcAddress(coreMod, "FreeToPointer");
+#endif
+}
+
+void UnlinkCore()
+{
+#ifdef MT_PLATFORM_WINDOWS
+	FreeLibrary(coreMod);
+#endif
+}
+
 int main()
 {
-	// Init
-	MemoryManager m_pMemManager;
-	DSManager m_pDSManager;
+	LinkCore();
+	LinkFileSystem();
 
-	m_pMemManager.Init(4 * MEGABYTE, 0);
-	m_pDSManager.Init(1024, 32);
+	InitMemoryArena(MEGABYTE * 2);
 
-	{
-		// Create package
-		Package pack;
+	Path searchPath = MakePath(".\\");
 
-		// Create text file
-		TextFile textFile = ReadTextFile("text.txt");
-		TextFile textFile2 = ReadTextFile("text1.txt");
+	FileList list = FindAllFilesInPath(&searchPath);
+	FileListFree(&list);
 
-		// Add text file to package
-		PackageEntry textFileEntry = {};
-		textFileEntry.entryId = 1;
-		textFileEntry.entrySize = textFile.length;
-		textFileEntry.entryType = EntryType::ANSI;
-		textFileEntry.pData = textFile.pBuffer;
+	TextFile file = ReadTextFile("text1.txt");
+	PackageEntry entry = {};
+	entry.entryId = 1;
+	entry.entrySize = file.length;
+	entry.entryType = EntryType::ANSI;
+	entry.pData = file.pBuffer;
 
-		PackageEntry textFileEntry2 = {};
-		textFileEntry2.entryId = 2;
-		textFileEntry2.entrySize = textFile2.length;
-		textFileEntry2.entryType = EntryType::ANSI;
-		textFileEntry2.pData = textFile2.pBuffer;
+	Package pack = {};
+	AddPackageEntry(&pack, entry);
+	WritePackageToFile(&pack, "OutputCool.mpk");
 
-		pack.AddPackageEntry(textFileEntry);
-		pack.AddPackageEntry(textFileEntry2);
+	KillMemoryArena();
 
-		// Write package to file
-		pack.WritePackageToFile("output.mpk");
-	}
-
-	// Shutdown
-	m_pDSManager.Shutdown();
-	m_pMemManager.Shutdown();
+	UnlinkFileSystem();
+	UnlinkCore();
 
 #ifdef DEBUG
 	_CrtDumpMemoryLeaks();

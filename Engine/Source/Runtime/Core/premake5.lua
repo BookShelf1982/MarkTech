@@ -1,5 +1,5 @@
 project "Core"
-	kind "StaticLib"
+	kind "SharedLib"
 	language "C++"
 	cppdialect "C++17"
 	
@@ -9,7 +9,7 @@ project "Core"
 	files { "Private/**.cpp", "Private/**.h", "Public/**.h" }
 	includedirs { "Public/", IncludeDirs["Shared"] }
 	
-	defines { "_CRT_SECURE_NO_WARNINGS" }
+	defines { "MT_CORELIB", "MT_BUILD_DLL" }
 	
 	filter "configurations:Debug"
        defines { "DEBUG", "MT_ENABLE_ASSERTS" }

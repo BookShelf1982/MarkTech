@@ -1,6 +1,6 @@
 #include "TextFile.h"
-#include <Memory\MemoryManager.h>
 #include <File.h>
+#include <MemoryArena.h>
 
 namespace MarkTech
 {
@@ -8,16 +8,17 @@ namespace MarkTech
     {
         TextFile fileContents = {};
 
-        File file(filepath, FileAccessType::READ);
-        if (!file.IsOpen())
+        File file = FOpen(filepath, FileAccessType::READ);
+        if (!file.isOpened)
             return fileContents;
 
-        U64 bufferSize = file.GetSize();
+        U64 bufferSize = file.size;
         fileContents.length = bufferSize;
-        fileContents.pBuffer = (char*)MemoryManager::Alloc(bufferSize, 1);
+        fileContents.pBuffer = (char*)AllocFromMemoryArena(bufferSize);
 
-        file.Read(fileContents.pBuffer, bufferSize);
-        file.Close();
+        FRead(&file, fileContents.pBuffer, bufferSize);
+
+        FClose(&file);
 
         return fileContents;
     }

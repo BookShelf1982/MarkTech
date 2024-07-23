@@ -8,7 +8,6 @@ project "MarkPak"
 	
 	files { "Private/**.cpp", "Private/**.h", "Public/**.h" }
 	includedirs { "Public/", IncludeDirs["Shared"], IncludeDirs["Core"], IncludeDirs["FileSystem"] }
-	links { "Core", "FileSystem" }
 	
 	filter "configurations:Debug"
        defines { "DEBUG" }

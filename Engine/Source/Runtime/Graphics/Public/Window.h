@@ -1,27 +1,27 @@
 #pragma once
 #include <PrimitiveTypes.h>
+#ifdef MT_PLATFORM_WINDOWS
+#include <Windows.h>
+#endif
 
 namespace MarkTech
 {
-	typedef void (*PF_WINDOWEVENTHANDLER)();
-
-	struct WindowProperties
+	enum class WindowEvent
 	{
-		const wchar_t* pTitle;
-		U32 width;
-		U32 height;
+		WINDOW_CLOSE
 	};
 
-	class Window
+	typedef void (*PFN_WINDOWEVENTHANDLER)(WindowEvent);
+
+	struct Window
 	{
-	public:
-		virtual ~Window() = default;
-
-		virtual void SetEventHandler(PF_WINDOWEVENTHANDLER pfn) = 0;
-		virtual void PollWindowEvents() = 0;
-		virtual WindowProperties GetProperties() const = 0;
-		virtual void Destroy() = 0;
-
-		static Window* New(WindowProperties properties);
+#ifdef MT_PLATFORM_WINDOWS
+		HWND hWnd;
+#endif
 	};
+
+	Window MakeWindow(const wchar_t* pTitle, U16 width, U16 height);
+	void KillWindow(const Window* pWindow);
+	void PollWindowMessages();
+	void SetWindowEventHandler(PFN_WINDOWEVENTHANDLER eventHandler);
 }

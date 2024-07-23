@@ -3,9 +3,11 @@
 namespace MarkTech
 {
 #ifdef MT_PLATFORM_WINDOWS
-	File::File(const char* pFilepath, FileAccessType accessType)
-		:m_AccessType(accessType)
+	File FOpen(const char* pFilepath, FileAccessType accessType)
 	{
+		File file = {};
+		file.accessType = accessType;
+
 		DWORD accessTypeArg = 0;
 		DWORD openMode = 0;
 		switch (accessType)
@@ -24,7 +26,7 @@ namespace MarkTech
 			break;
 		}
 
-		m_hFileHandle = CreateFileA(
+		file.hFile = CreateFileA(
 			pFilepath,
 			accessTypeArg,
 			0,
@@ -34,71 +36,62 @@ namespace MarkTech
 			NULL
 		);
 
-		if (m_hFileHandle == INVALID_HANDLE_VALUE || GetLastError() == ERROR_FILE_NOT_FOUND)
-			m_IsOpened = false;
+		if (file.hFile == INVALID_HANDLE_VALUE || GetLastError() == ERROR_FILE_NOT_FOUND)
+			file.isOpened = false;
 		else
-			m_IsOpened = true;
-		
+			file.isOpened = true;
+
 		LARGE_INTEGER size = {};
-		if (!GetFileSizeEx(m_hFileHandle, &size))
+		if (!GetFileSizeEx(file.hFile, &size))
 			DWORD err = GetLastError();
 
-		m_Size = size.QuadPart;
+		file.size = size.QuadPart;
+		
+		return file;
 	}
 
-	File::~File()
+	void FClose(File* pFile)
 	{
-		if (m_IsOpened)
-			CloseHandle(m_hFileHandle);
+		pFile->isOpened = false;
+		CloseHandle(pFile->hFile);
 	}
 
-	U64 File::GetSize() const
+	void FRead(const File* pFile, char* pBuffer, U64 bytesToRead)
 	{
-		return m_Size;
-	}
-
-	void File::Close()
-	{
-		m_IsOpened = false;
-		CloseHandle(m_hFileHandle);
-	}
-
-	void File::Read(char* pBuffer, U64 sizeOfBytes)
-	{
-		if (m_AccessType == FileAccessType::WRITE || m_IsOpened == false)
+		if (pFile->accessType == FileAccessType::WRITE || pFile->isOpened == false)
 			return;
 
 		ReadFile(
-			m_hFileHandle,
+			pFile->hFile,
 			pBuffer,
-			(U32)sizeOfBytes,
+			(U32)bytesToRead,
 			NULL,
 			NULL
 		);
 	}
 
-	void File::Write(char* pBuffer, U64 sizeOfBytes)
+	void FWrite(const File* pFile, char* pBuffer, U64 bytesToRead)
 	{
-		if (m_AccessType == FileAccessType::READ || m_IsOpened == false)
+		if (pFile->accessType == FileAccessType::READ || pFile->isOpened == false)
 			return;
 
 		WriteFile(
-			m_hFileHandle,
+			pFile->hFile,
 			pBuffer,
-			(U32)sizeOfBytes,
+			(U32)bytesToRead,
 			NULL,
 			NULL
 		);
 	}
 
-	void File::Seek(I32 location, SeekOrigin orign)
+	void FSeek(const File* pFile, I32 location, SeekOrigin origin)
 	{
-		if (m_AccessType == FileAccessType::WRITE || m_IsOpened == false)
+		if (pFile->accessType == FileAccessType::WRITE || pFile->isOpened == false)
 			return;
 
 		DWORD moveMethod = FILE_CURRENT;
 
-		switch (orign)
+		switch (origin)
 		{
 		case MarkTech::SeekOrigin::BEGINING:
 			moveMethod = FILE_BEGIN;
@@ -115,7 +108,7 @@ namespace MarkTech
 		}
 
 		SetFilePointer(
-			m_hFileHandle,
+			pFile->hFile,
 			location,
 			NULL,
 			moveMethod

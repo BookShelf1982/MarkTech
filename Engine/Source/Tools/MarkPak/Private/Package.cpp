@@ -1,61 +1,75 @@
 #include "Package.h"
-#include <Memory\MemoryManager.h>
 #include <File.h>
+#include <MemoryArena.h>
 #include <random>
 
 namespace MarkTech
 {
-	Package::Package()
-		:metadata()
+	void AddPackageEntry(Package* pPackage, PackageEntry entry)
 	{
+		// increment the entry count
+		pPackage->metadata.entryCount++;
+
+		// TODO: add the package entry in the entry linked list
+		if (!pPackage->m_pEntryList)
+		{
+			pPackage->m_pEntryList = (PackageEntry*)AllocFromMemoryArena(sizeof(PackageEntry));
+			*pPackage->m_pEntryList = entry;
+			return;
+		}
+
+		PackageEntry* pEntry = pPackage->m_pEntryList;
+		while (pEntry->pNext != nullptr)
+		{
+			pEntry = pEntry->pNext;
+		}
+
+		pEntry->pNext = (PackageEntry*)AllocFromMemoryArena(sizeof(PackageEntry));
+		*pEntry->pNext = entry;
 	}
 
-	Package::~Package()
-	{
-	}
-
-	void Package::AddPackageEntry(PackageEntry entry)
-	{
-		metadata.entryCount++;
-		m_EntryList.Insert(entry);
-	}
-
-	void Package::WritePackageToFile(const char* filepath)
+	void WritePackageToFile(Package* pPackage, const char* pFilepath)
 	{
 		// Open file
-		File outputFile(filepath, FileAccessType::WRITE);
-		if (!outputFile.IsOpen())
+		File outputFile = FOpen(pFilepath, FileAccessType::WRITE);
+		if (!outputFile.isOpened)
 			return;
 
 		// Write package metadata
 		std::random_device rd;
 		std::uniform_int_distribution<U32> dist;
 
-		metadata.id = dist(rd);
-		outputFile.Write((char*)&metadata, sizeof(PackageMetadata));
+		pPackage->metadata.id = dist(rd); // Generate a random resource id
+		FWrite(&outputFile, (char*)&pPackage->metadata, sizeof(PackageMetadata));
 
 		// Write package entries to file
-		U64 offsetToEntryData = (sizeof(PackageMetadata) + (metadata.entryCount * sizeof(BlobEntry)));
-		for (auto it = m_EntryList.Begin(); it != nullptr; it++)
+		U64 offsetToEntryData = (sizeof(PackageMetadata) + (pPackage->metadata.entryCount * sizeof(BlobEntry)));
+		PackageEntry* pEntry = pPackage->m_pEntryList;
+
+		while (pEntry != nullptr)
 		{
 			BlobEntry entry = {};
-			entry.entryId = it->data.entryId;
-			entry.entrySize = it->data.entrySize;
-			entry.entryType = it->data.entryType;
+			entry.entryId = pEntry->entryId;
+			entry.entrySize = pEntry->entrySize;
+			entry.entryType = pEntry->entryType;
 			entry.entryOffset = offsetToEntryData;
-			
+
 			offsetToEntryData += entry.entrySize;
 
-			outputFile.Write((char*)&entry, sizeof(BlobEntry));
+			FWrite(&outputFile, (char*)&entry, sizeof(BlobEntry));
+
+			pEntry = pEntry->pNext;
 		}
 
 		// Write package entry data to file
-		for (auto it = m_EntryList.Begin(); it != nullptr; it++)
+		pEntry = pPackage->m_pEntryList;
+		while (pEntry != nullptr)
 		{
-			outputFile.Write((char*)it->data.pData, it->data.entrySize);
+			FWrite(&outputFile, (char*)pEntry->pData, pEntry->entrySize);
+			pEntry = pEntry->pNext;
 		}
 
 		// Close file
-		outputFile.Close();
+		FClose(&outputFile);
 	}
 }

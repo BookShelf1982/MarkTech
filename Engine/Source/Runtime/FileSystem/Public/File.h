@@ -1,5 +1,6 @@
 #pragma once
 #include <PrimitiveTypes.h>
+#include <DLLUTLS.h>
 #ifdef MT_PLATFORM_WINDOWS
 #include <Windows.h>
 #endif
@@ -20,25 +21,36 @@ namespace MarkTech
 		END
 	};
 
-	class File
+	struct File
 	{
-	public:
-		File(const char* pFilepath, FileAccessType accessType);
-		~File();
-
-		U64 GetSize() const;
-		bool IsOpen() const { return m_IsOpened; }
-
-		void Close();
-		void Read(char* pBuffer, U64 sizeOfBytes);
-		void Write(char* pBuffer, U64 sizeOfBytes);
-		void Seek(I32 location, SeekOrigin orign = SeekOrigin::CURRENT);
-	private:
 #ifdef MT_PLATFORM_WINDOWS
-		HANDLE m_hFileHandle;
+		HANDLE hFile;
 #endif
-		bool m_IsOpened;
-		FileAccessType m_AccessType;
-		U64 m_Size;
+		bool isOpened;
+		U64 size;
+		FileAccessType accessType;
 	};
+
+#ifdef MT_FILESYSTEMLIB
+	MT_DLLEXPORT File FOpen(const char* pFilepath, FileAccessType accessType);
+	//MT_DLLEXPORT File FOpen(const char* pFilepath, FileAccessType accessType);
+	MT_DLLEXPORT void FClose(File* pFile);
+	MT_DLLEXPORT void FRead(const File* pFile, char* pBuffer, U64 bytesToRead);
+	MT_DLLEXPORT void FWrite(const File* pFile, char* pBuffer, U64 bytesToRead);
+	MT_DLLEXPORT void FSeek(const File* pFile, I32 location, SeekOrigin origin = SeekOrigin::CURRENT);
 }
+#else
+}
+	typedef MarkTech::File (*PFN_FOpen)(const char* pFilepath, MarkTech::FileAccessType accessType);
+	typedef void (*PFN_FClose)(MarkTech::File* pFile);
+	typedef void (*PFN_FRead)(const MarkTech::File* pFile, char* pBuffer, MarkTech::U64 bytesToRead);
+	typedef void (*PFN_FWrite)(const MarkTech::File* pFile, char* pBuffer, MarkTech::U64 bytesToRead);
+	typedef void (*PFN_FSeek)(const MarkTech::File* pFile, MarkTech::I32 location, MarkTech::SeekOrigin origin);
+
+	extern PFN_FOpen FOpen;
+	extern PFN_FClose FClose;
+	extern PFN_FRead FRead;
+	extern PFN_FWrite FWrite;
+	extern PFN_FSeek FSeek;
+
+#endif

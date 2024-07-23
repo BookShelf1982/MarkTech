@@ -1,6 +1,5 @@
 #pragma once
 #include <PrimitiveTypes.h>
-#include <DSA\LinkedList.h>
 
 namespace MarkTech
 {
@@ -29,18 +28,15 @@ namespace MarkTech
 		EntryType entryType;
 		void* pData;
 		U64 entrySize;
+		PackageEntry* pNext;
 	};
 
-	class Package
+	struct Package
 	{
-	public:
-		Package();
-		~Package();
-
-		void AddPackageEntry(PackageEntry entry);
-		void WritePackageToFile(const char* filepath);
-	private:
 		PackageMetadata metadata;
-		LinkedList<PackageEntry> m_EntryList;
+		PackageEntry* m_pEntryList;
 	};
+
+	void AddPackageEntry(Package* pPackage, PackageEntry entry);
+	void WritePackageToFile(Package* pPackage, const char* pFilepath);
 }

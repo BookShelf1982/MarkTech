@@ -6,10 +6,12 @@
 
 namespace MarkTech
 {
-    I64 HighResTimer::GetCurrentTimestamp()
+#ifdef MT_PLATFORM_WINDOWS
+    I64 GetCurrentTimestamp()
     {
         LARGE_INTEGER time;
         QueryPerformanceCounter(&time);
         return time.QuadPart;
     }
+#endif
 }

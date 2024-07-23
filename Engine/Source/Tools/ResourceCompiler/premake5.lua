@@ -8,7 +8,8 @@ project "ResourceCompiler"
 	
 	files { "Private/**.cpp", "Private/**.h", "Public/**.h" }
 	includedirs { "Public/", IncludeDirs["Shared"], IncludeDirs["Core"], IncludeDirs["FileSystem"], IncludeDirs["MarkPak"]}
-	links { "Core", "FileSystem", "MarkPak" }
+
+	links { "MarkPak" }
 	
 	filter "configurations:Debug"
        defines { "DEBUG" }
