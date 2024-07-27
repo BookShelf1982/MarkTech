@@ -5,20 +5,10 @@
 #include <Windows.h>
 #endif
 
+#define MAX_PATH_LENGTH 512
+
 namespace MarkTech
 {
-	enum class PathType 
-	{
-		ABSOLUTE_PATH,
-		RELATIVE_PATH
-	};
-
-	struct Path
-	{
-		char pPath[260];
-		PathType type;
-	};
-
 	struct FileList
 	{
 		char** ppList;
@@ -26,21 +16,23 @@ namespace MarkTech
 	};
 
 #ifdef MT_FILESYSTEMLIB
-	MT_DLLEXPORT FileList FindAllFilesInPath(Path* path);
+	MT_DLLEXPORT FileList FindAllFilesInPath(const char* path);
 	MT_DLLEXPORT void FileListFree(FileList* fileList);
-
-	MT_DLLEXPORT Path MakePath(char* pPath);
-	MT_DLLEXPORT void MakeAbsolutePath(Path* pPath);
+	MT_DLLEXPORT void AddFilename(char* pPath, const char* pFilename);
+	MT_DLLEXPORT void AddExtension(char* pPath, const char* pExtension);
+	MT_DLLEXPORT char* GetExtension(char* pPath);
 }
 #else
 }
-typedef MarkTech::FileList (*PFN_FindAllFilesInPath)(MarkTech::Path* pPath);
+typedef MarkTech::FileList (*PFN_FindAllFilesInPath)(const char* pPath);
 typedef void (*PFN_FileListFree)(MarkTech::FileList* fileList);
-typedef MarkTech::Path (*PFN_MakePath)(char* pPath);
-typedef void (*PFN_MakeAbsolutePath)(MarkTech::Path* pPath);
+typedef void (*PFN_AddFilename)(char* pPath, const char* pFilename);
+typedef void (*PFN_AddExtension)(char* pPath, const char* pExtension);
+typedef char* (*PFN_GetExtension)(char* pPath);
 
 extern PFN_FindAllFilesInPath FindAllFilesInPath;
 extern PFN_FileListFree FileListFree;
-extern PFN_MakePath MakePath;
-extern PFN_MakeAbsolutePath MakeAbsolutePath;
+extern PFN_AddFilename AddFilename;
+extern PFN_AddExtension AddExtension;
+extern PFN_GetExtension GetExtension;
 #endif

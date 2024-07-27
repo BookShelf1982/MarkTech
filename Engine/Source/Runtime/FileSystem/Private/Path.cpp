@@ -6,16 +6,15 @@
 namespace MarkTech
 {
 #ifdef MT_PLATFORM_WINDOWS
-	FileList FindAllFilesInPath(Path* pPath)
+	FileList FindAllFilesInPath(const char* pPath)
 	{
 		FileList fileList = {};
 
 		char pDirCpy[MAX_PATH] = {};
 
-		MakeAbsolutePath(pPath);
+		GetFullPathNameA(pPath, MAX_PATH, pDirCpy, NULL);
 
-		strcpy_s(pDirCpy, pPath->pPath);
-		strcat_s(pDirCpy, "*");
+		strcat_s(pDirCpy, "\\*");
 
 		WIN32_FIND_DATAA findData;
 		HANDLE hFind;
@@ -73,30 +72,20 @@ namespace MarkTech
 
 		free(fileList->ppList);
 	}
-	
-	Path MakePath(char* pPath)
+
+	void AddFilename(char* pPath, const char* pFilename)
 	{
-		Path path = {};
-		strcpy_s(path.pPath, pPath);
-
-		if (pPath[1] == ':' && pPath[2] == '\\')
-		{
-			path.type = PathType::ABSOLUTE_PATH;
-			return path;
-		}
-
-		path.type = PathType::RELATIVE_PATH;
-		return path;
+		PathAppendA(pPath, pFilename);
 	}
 
-	void MakeAbsolutePath(Path* pPath)
+	void AddExtension(char* pPath, const char* pExtension)
 	{
-		if (pPath->type == PathType::ABSOLUTE_PATH)
-			return;
-
-		char pBuf[MAX_PATH] = "";
-		strcpy_s(pBuf, pPath->pPath);
-		GetFullPathNameA(pBuf, MAX_PATH, pPath->pPath, NULL);
+		PathAddExtensionA(pPath, pExtension);
+	}
+	
+	char* GetExtension(char* pPath)
+	{
+		return PathFindExtensionA(pPath);
 	}
 #endif
 }

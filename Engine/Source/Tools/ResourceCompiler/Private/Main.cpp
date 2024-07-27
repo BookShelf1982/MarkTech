@@ -3,6 +3,7 @@
 #include <MemoryArena.h>
 #include <Package.h>
 #include <TextFile.h>
+#include <AssetTable.h>
 #ifdef DEBUG
 #include <crtdbg.h>
 #endif
@@ -16,8 +17,9 @@ using namespace MarkTech;
 
 PFN_FindAllFilesInPath FindAllFilesInPath = nullptr;
 PFN_FileListFree FileListFree = nullptr;
-PFN_MakePath MakePath = nullptr;
-PFN_MakeAbsolutePath MakeAbsolutePath = nullptr;
+PFN_GetExtension GetExtension = nullptr;
+PFN_AddExtension AddExtension = nullptr;
+PFN_AddFilename AddFilename = nullptr;
 
 PFN_FOpen FOpen = nullptr;
 PFN_FClose FClose = nullptr;
@@ -42,11 +44,9 @@ void LinkFileSystem()
 	FWrite = (PFN_FWrite)GetProcAddress(fileMod, "FWrite");
 	FRead = (PFN_FRead)GetProcAddress(fileMod, "FRead");
 	FSeek = (PFN_FSeek)GetProcAddress(fileMod, "FSeek");
-
-	FindAllFilesInPath = (PFN_FindAllFilesInPath)GetProcAddress(fileMod, "FindAllFilesInPath");
-	FileListFree = (PFN_FileListFree)GetProcAddress(fileMod, "FileListFree");
-	MakePath = (PFN_MakePath)GetProcAddress(fileMod, "MakePath");
-	MakeAbsolutePath = (PFN_MakeAbsolutePath)GetProcAddress(fileMod, "MakeAbsolutePath");
+	AddFilename = (PFN_AddFilename)GetProcAddress(fileMod, "AddFilename");
+	GetExtension = (PFN_GetExtension)GetProcAddress(fileMod, "GetExtension");
+	AddExtension = (PFN_AddExtension)GetProcAddress(fileMod, "AddExtension");
 #endif
 }
 
@@ -78,28 +78,62 @@ void UnlinkCore()
 #endif
 }
 
-int main()
+int main(int argc, char* argv[])
 {
+	// Parse command line args
+	char* pInputPath = nullptr;
+	char* pOutputPath = nullptr;
+	char* pPackageName = nullptr;
+
+	for (int i = 0; i < argc; i++)
+	{
+		if (strcmp(argv[i], "-input") == 0)
+		{
+			pInputPath = argv[i + 1];
+			i++;
+			continue;
+		}
+
+		if (strcmp(argv[i], "-output") == 0)
+		{
+			pOutputPath = argv[i + 1];
+			i++;
+			continue;
+		}
+
+		if (strcmp(argv[i], "-name") == 0)
+		{
+			pPackageName = argv[i + 1];
+			i++;
+			continue;
+		}
+	}
+
+	// Initialization
 	LinkCore();
 	LinkFileSystem();
-
 	InitMemoryArena(MEGABYTE * 2);
 
-	Path searchPath = MakePath(".\\");
-
-	FileList list = FindAllFilesInPath(&searchPath);
-	FileListFree(&list);
-
-	TextFile file = ReadTextFile("text1.txt");
-	PackageEntry entry = {};
-	entry.entryId = 1;
-	entry.entrySize = file.length;
-	entry.entryType = EntryType::ANSI;
-	entry.pData = file.pBuffer;
+	// Create asset table from file
+	AssetTable table = CreateAssetTable(pInputPath);
 
 	Package pack = {};
-	AddPackageEntry(&pack, entry);
-	WritePackageToFile(&pack, "OutputCool.mpk");
+
+	// Read all assets from asset table
+	for (U64 i = 0; i < table.entryCount; i++)
+	{
+		AssetType type = EvaluateAssetType(table.pEntries[i].pPath);
+		PackageEntry entry = {};
+		entry.entryId = table.pEntries[i].id;
+		entry.entryType = type;
+		AddPackageEntry(&pack, entry);
+	}
+	
+	char outputPath[512] = "";
+	strcpy_s(outputPath, pOutputPath);
+	AddFilename(outputPath, pPackageName);
+	WritePackageToFile(&pack, outputPath);
+
 
 	KillMemoryArena();
 

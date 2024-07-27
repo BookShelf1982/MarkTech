@@ -1,6 +1,7 @@
 #pragma once
 #include <PrimitiveTypes.h>
 #include <DLLUTLS.h>
+#include "Path.h"
 #ifdef MT_PLATFORM_WINDOWS
 #include <Windows.h>
 #endif
@@ -33,7 +34,6 @@ namespace MarkTech
 
 #ifdef MT_FILESYSTEMLIB
 	MT_DLLEXPORT File FOpen(const char* pFilepath, FileAccessType accessType);
-	//MT_DLLEXPORT File FOpen(const char* pFilepath, FileAccessType accessType);
 	MT_DLLEXPORT void FClose(File* pFile);
 	MT_DLLEXPORT void FRead(const File* pFile, char* pBuffer, U64 bytesToRead);
 	MT_DLLEXPORT void FWrite(const File* pFile, char* pBuffer, U64 bytesToRead);

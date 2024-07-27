@@ -28,10 +28,13 @@ namespace MarkTech
 		*pEntry->pNext = entry;
 	}
 
-	void WritePackageToFile(Package* pPackage, const char* pFilepath)
+	void WritePackageToFile(Package* pPackage, const char* pName)
 	{
 		// Open file
-		File outputFile = FOpen(pFilepath, FileAccessType::WRITE);
+		char path[512] = "";
+		strcpy(path, pName);
+		AddExtension(path, ".mpk");
+		File outputFile = FOpen(path, FileAccessType::WRITE);
 		if (!outputFile.isOpened)
 			return;
 

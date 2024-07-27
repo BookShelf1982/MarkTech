@@ -1,10 +1,19 @@
 #include "File.h"
+#include <Shlwapi.h>
 
 namespace MarkTech
 {
 #ifdef MT_PLATFORM_WINDOWS
 	File FOpen(const char* pFilepath, FileAccessType accessType)
 	{
+		{ // Create directory if it doesn't exist
+			char path[512] = "";
+			strcpy_s(path, pFilepath);
+			PathRemoveFileSpecA(path);
+			if (!PathFileExistsA(path))
+				CreateDirectoryA(path, nullptr);
+		}
+
 		File file = {};
 		file.accessType = accessType;
 

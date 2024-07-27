@@ -1,5 +1,6 @@
 #pragma once
 #include <PrimitiveTypes.h>
+#include "AssetTypes.h"
 
 namespace MarkTech
 {
@@ -9,15 +10,10 @@ namespace MarkTech
 		U32 entryCount;
 	};
 
-	enum class EntryType
-	{
-		ANSI
-	};
-
 	struct BlobEntry
 	{
 		U64 entryId;
-		EntryType entryType;
+		AssetType entryType;
 		U64 entryOffset;
 		U64 entrySize;
 	};
@@ -25,7 +21,7 @@ namespace MarkTech
 	struct PackageEntry
 	{
 		U64 entryId;
-		EntryType entryType;
+		AssetType entryType;
 		void* pData;
 		U64 entrySize;
 		PackageEntry* pNext;
@@ -38,5 +34,5 @@ namespace MarkTech
 	};
 
 	void AddPackageEntry(Package* pPackage, PackageEntry entry);
-	void WritePackageToFile(Package* pPackage, const char* pFilepath);
+	void WritePackageToFile(Package* pPackage, const char* pName);
 }
