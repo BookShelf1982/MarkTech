@@ -14,6 +14,7 @@ workspace "MarkTech"
 	IncludeDirs["Graphics"] = "%{wks.location}/Engine/Source/Runtime/Graphics/Public/"
 	IncludeDirs["MarkPak"] = "%{wks.location}/Engine/Source/Tools/MarkPak/Public/"
 	IncludeDirs["Volk"] = "%{wks.location}/Engine/ThirdParty/Volk/"
+	IncludeDirs["stb"] = "%{wks.location}/Engine/ThirdParty/stb/"
 	IncludeDirs["VULKAN"] = "C:\\VulkanSDK\\1.3.275.0\\Include"
 
 	

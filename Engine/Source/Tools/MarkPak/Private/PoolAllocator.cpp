@@ -18,7 +18,7 @@ namespace MarkTech
         for (U64 i = 0; i < blockCount; i++)
         {
             pNextPtr += blockSize;
-
+            
             if (i == blockCount - 1)
                 *pElement = (U64)0;
             else

@@ -1,25 +1,22 @@
 #include "TextFile.h"
 #include <File.h>
-#include <MemoryArena.h>
 
 namespace MarkTech
 {
-    TextFile ReadTextFile(const char* filepath)
-    {
-        TextFile fileContents = {};
+	void CompileTextFile(char* pOutputFilepath, const char* pInputFilepath)
+	{
+		ChangeExtension(pOutputFilepath, ".txt");
 
-        File file = FOpen(filepath, FileAccessType::READ);
-        if (!file.isOpened)
-            return fileContents;
+		// Open text file asset
+		File textFile = FOpen(pInputFilepath, FileAccessType::READ);
+		char* pTextFileContents = (char*)malloc(textFile.size);
+		FRead(&textFile, pTextFileContents, textFile.size);
+		FClose(&textFile);
 
-        U64 bufferSize = file.size;
-        fileContents.length = bufferSize;
-        fileContents.pBuffer = (char*)AllocFromMemoryArena(bufferSize);
-
-        FRead(&file, fileContents.pBuffer, bufferSize);
-
-        FClose(&file);
-
-        return fileContents;
-    }
+		// Write to compiled asset
+		File compiled = FOpen(pOutputFilepath, FileAccessType::WRITE);
+		FWrite(&compiled, pTextFileContents, textFile.size);
+		FClose(&compiled);
+		free(pTextFileContents);
+	}
 }

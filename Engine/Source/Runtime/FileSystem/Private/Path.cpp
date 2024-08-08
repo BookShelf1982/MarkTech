@@ -10,7 +10,7 @@ namespace MarkTech
 	{
 		FileList fileList = {};
 
-		char pDirCpy[MAX_PATH] = {};
+		char pDirCpy[MAX_PATH] = "";
 
 		GetFullPathNameA(pPath, MAX_PATH, pDirCpy, NULL);
 
@@ -83,9 +83,20 @@ namespace MarkTech
 		PathAddExtensionA(pPath, pExtension);
 	}
 	
-	char* GetExtension(char* pPath)
+	char* GetExtension(const char* pFilePath)
 	{
-		return PathFindExtensionA(pPath);
+		return PathFindExtensionA(pFilePath);
+	}
+
+	char* GetFilename(const char* pFilePath)
+	{
+		return PathFindFileNameA(pFilePath);
+	}
+	
+	void ChangeExtension(char* pPath, const char* pExtension)
+	{
+		PathRemoveExtensionA(pPath);
+		PathAddExtensionA(pPath, pExtension);
 	}
 #endif
 }

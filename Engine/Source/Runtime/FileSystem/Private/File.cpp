@@ -6,9 +6,10 @@ namespace MarkTech
 #ifdef MT_PLATFORM_WINDOWS
 	File FOpen(const char* pFilepath, FileAccessType accessType)
 	{
-		{ // Create directory if it doesn't exist
-			char path[512] = "";
-			strcpy_s(path, pFilepath);
+		// Create directory if it doesn't exist
+		{ 
+			char path[MAX_PATH_LENGTH] = "";
+			GetFullPathNameA(pFilepath, MAX_PATH_LENGTH, path, NULL);
 			PathRemoveFileSpecA(path);
 			if (!PathFileExistsA(path))
 				CreateDirectoryA(path, nullptr);
@@ -49,6 +50,12 @@ namespace MarkTech
 			file.isOpened = false;
 		else
 			file.isOpened = true;
+
+		if (GetLastError() == ERROR_FILE_EXISTS && accessType == FileAccessType::WRITE)
+		{
+			DeleteFileA(pFilepath);
+			return FOpen(pFilepath, accessType);
+		}
 
 		LARGE_INTEGER size = {};
 		if (!GetFileSizeEx(file.hFile, &size))

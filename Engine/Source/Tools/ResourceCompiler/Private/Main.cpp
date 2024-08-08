@@ -1,9 +1,7 @@
 #include <File.h>
-#include <Path.h>
-#include <MemoryArena.h>
-#include <Package.h>
+#include <AssetTypes.h>
 #include <TextFile.h>
-#include <AssetTable.h>
+
 #ifdef DEBUG
 #include <crtdbg.h>
 #endif
@@ -12,25 +10,21 @@ using namespace MarkTech;
 
 #ifdef MT_PLATFORM_WINDOWS
 	HMODULE fileMod = NULL;
-	HMODULE coreMod = NULL;
 #endif
 
 PFN_FindAllFilesInPath FindAllFilesInPath = nullptr;
 PFN_FileListFree FileListFree = nullptr;
 PFN_GetExtension GetExtension = nullptr;
+PFN_GetFilename GetFilename = nullptr;
 PFN_AddExtension AddExtension = nullptr;
 PFN_AddFilename AddFilename = nullptr;
+PFN_ChangeExtension ChangeExtension = nullptr;
 
 PFN_FOpen FOpen = nullptr;
 PFN_FClose FClose = nullptr;
 PFN_FRead FRead = nullptr;
 PFN_FWrite FWrite = nullptr;
 PFN_FSeek FSeek = nullptr;
-
-PFN_InitMemoryArena InitMemoryArena = nullptr;
-PFN_AllocFromMemoryArena AllocFromMemoryArena = nullptr;
-PFN_FreeToPointer FreeToPointer = nullptr;
-PFN_KillMemoryArena KillMemoryArena = nullptr;
 
 void LinkFileSystem()
 {
@@ -45,8 +39,12 @@ void LinkFileSystem()
 	FRead = (PFN_FRead)GetProcAddress(fileMod, "FRead");
 	FSeek = (PFN_FSeek)GetProcAddress(fileMod, "FSeek");
 	AddFilename = (PFN_AddFilename)GetProcAddress(fileMod, "AddFilename");
-	GetExtension = (PFN_GetExtension)GetProcAddress(fileMod, "GetExtension");
 	AddExtension = (PFN_AddExtension)GetProcAddress(fileMod, "AddExtension");
+	GetExtension = (PFN_GetExtension)GetProcAddress(fileMod, "GetExtension");
+	GetFilename = (PFN_GetFilename)GetProcAddress(fileMod, "GetFilename");
+	FindAllFilesInPath = (PFN_FindAllFilesInPath)GetProcAddress(fileMod, "FindAllFilesInPath");
+	FileListFree = (PFN_FileListFree)GetProcAddress(fileMod, "FileListFree");
+	ChangeExtension = (PFN_ChangeExtension)GetProcAddress(fileMod, "ChangeExtension");
 #endif
 }
 
@@ -54,27 +52,6 @@ void UnlinkFileSystem()
 {
 #ifdef MT_PLATFORM_WINDOWS
 	FreeLibrary(fileMod);
-#endif
-}
-
-void LinkCore()
-{
-#ifdef MT_PLATFORM_WINDOWS
-	coreMod = LoadLibraryA("Core.dll");
-	if (coreMod == NULL)
-		return;
-
-	InitMemoryArena = (PFN_InitMemoryArena)GetProcAddress(coreMod, "InitMemoryArena");
-	AllocFromMemoryArena = (PFN_AllocFromMemoryArena)GetProcAddress(coreMod, "AllocFromMemoryArena");
-	KillMemoryArena = (PFN_KillMemoryArena)GetProcAddress(coreMod, "KillMemoryArena");
-	FreeToPointer = (PFN_FreeToPointer)GetProcAddress(coreMod, "FreeToPointer");
-#endif
-}
-
-void UnlinkCore()
-{
-#ifdef MT_PLATFORM_WINDOWS
-	FreeLibrary(coreMod);
 #endif
 }
 
@@ -109,36 +86,118 @@ int main(int argc, char* argv[])
 		}
 	}
 
+	if (!pInputPath || !pOutputPath || !pPackageName)
+		return 1;
+
 	// Initialization
-	LinkCore();
 	LinkFileSystem();
-	InitMemoryArena(MEGABYTE * 2);
 
-	// Create asset table from file
-	AssetTable table = CreateAssetTable(pInputPath);
+	// Read asset table
+	File assetTableFile = FOpen(pInputPath, FileAccessType::READ);
+	char* pAssetTableContents = (char*)malloc(assetTableFile.size + 1);
+	FRead(&assetTableFile, pAssetTableContents, assetTableFile.size);
+	FClose(&assetTableFile);
+	pAssetTableContents[assetTableFile.size] = '\0';
 
-	Package pack = {};
+	// Compile all assets
+	char* pToken = nullptr;
+	char* pNextToken = pAssetTableContents;
+	char delimiters[] = "\r\n\0";
 
-	// Read all assets from asset table
-	for (U64 i = 0; i < table.entryCount; i++)
+	while (pNextToken[0] != '\0')
 	{
-		AssetType type = EvaluateAssetType(table.pEntries[i].pPath);
-		PackageEntry entry = {};
-		entry.entryId = table.pEntries[i].id;
-		entry.entryType = type;
-		AddPackageEntry(&pack, entry);
+		pToken = strtok_s(pNextToken, delimiters, &pNextToken); // Get filepath to asset
+
+		// Compile Asset
+		AssetType assetType = EvaluateAssetType(pToken);
+		char outputFilePath[MAX_PATH_LENGTH] = "";
+		strcpy_s(outputFilePath, pOutputPath);
+		strcat_s(outputFilePath, "int\\");
+		AddFilename(outputFilePath, GetFilename(pToken));
+
+		switch (assetType)
+		{
+		case AssetType::ANSI_TEXT_FILE:
+		{
+			CompileTextFile(outputFilePath, pToken);
+		}
+		break;
+		case AssetType::TEXTURE2D:
+		{
+
+		}
+		break;
+		}
+	}
+
+	free(pAssetTableContents); // Free the asset table
+
+	// Package all compiled assets
+	char outputPackagePath[MAX_PATH_LENGTH] = "";
+	strcpy_s(outputPackagePath, pOutputPath);
+	strcat_s(outputPackagePath, pPackageName);
+	strcat_s(outputPackagePath, ".mpk");
+
+	File packageFile = FOpen(outputPackagePath, FileAccessType::WRITE); // Create new package file
+	U64 offsetToBlob = 0;
+
+	char compiledFilepath[MAX_PATH_LENGTH] = "";
+	strcpy_s(compiledFilepath, pOutputPath);
+	strcat_s(compiledFilepath, "int\\");
+
+	FileList compiledFileList = FindAllFilesInPath(compiledFilepath); // Get all the compiled assets
+	FWrite(&packageFile, (char*)&compiledFileList.listCount, sizeof(U64)); // Write the amount of compiled assets
+
+	// Calculate the offset to blob
+	offsetToBlob += sizeof(U64);
+	offsetToBlob += 18 * compiledFileList.listCount;
+	for (U32 i = 0; i < compiledFileList.listCount; i++)
+	{
+		offsetToBlob += strlen(compiledFileList.ppList[i]);
 	}
 	
-	char outputPath[512] = "";
-	strcpy_s(outputPath, pOutputPath);
-	AddFilename(outputPath, pPackageName);
-	WritePackageToFile(&pack, outputPath);
+	// Fill package entry list with compiled assets
+	for (U32 i = 0; i < compiledFileList.listCount; i++)
+	{
+		char filepath[MAX_PATH_LENGTH] = "";
+		strcpy_s(filepath, compiledFilepath);
+		strcat_s(filepath, compiledFileList.ppList[i]);
 
+		// Write asset name
+		U16 size = (U16)strlen(compiledFileList.ppList[i]);
+		FWrite(&packageFile, (char*)&size, sizeof(U16)); // Write the name length
+		FWrite(&packageFile, compiledFileList.ppList[i], size); // Write the name
 
-	KillMemoryArena();
+		// Write the size of the asset and it's offset to blob
+		File assetFile = FOpen(filepath, FileAccessType::READ);
+		FClose(&assetFile);
 
+		FWrite(&packageFile, (char*)&assetFile.size, sizeof(U64));
+		FWrite(&packageFile, (char*)&offsetToBlob, sizeof(U64));
+		offsetToBlob += assetFile.size;
+	}
+
+	// Write asset data to file (This is the 'blob' that previous comments were talking about)
+	for (U32 i = 0; i < compiledFileList.listCount; i++)
+	{
+		char filepath[MAX_PATH_LENGTH] = "";
+		strcpy_s(filepath, compiledFilepath);
+		strcat_s(filepath, compiledFileList.ppList[i]);
+
+		File file = FOpen(filepath, FileAccessType::READ);
+		char* pAssetData = (char*)malloc(file.size);
+		FRead(&file, pAssetData, file.size);
+		FClose(&file);
+
+		FWrite(&packageFile, pAssetData, file.size);
+		free(pAssetData);
+	}
+
+	FClose(&packageFile);
+	FileListFree(&compiledFileList);
+
+	// Destruction
 	UnlinkFileSystem();
-	UnlinkCore();
 
 #ifdef DEBUG
 	_CrtDumpMemoryLeaks();

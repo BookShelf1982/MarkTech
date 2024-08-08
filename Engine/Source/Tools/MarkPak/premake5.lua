@@ -7,10 +7,10 @@ project "MarkPak"
     objdir ("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")
 	
 	files { "Private/**.cpp", "Private/**.h", "Public/**.h" }
-	includedirs { "Public/", IncludeDirs["Shared"], IncludeDirs["Core"], IncludeDirs["FileSystem"] }
+	includedirs { "Public/", IncludeDirs["Shared"], IncludeDirs["FileSystem"], IncludeDirs["stb"] }
 	
 	filter "configurations:Debug"
-       defines { "DEBUG" }
+       defines { "DEBUG", "MT_ENABLE_ASSERTS" }
        symbols "On"
 		
 	filter "configurations:Release"

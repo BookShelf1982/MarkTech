@@ -7,7 +7,7 @@ project "ResourceCompiler"
     objdir ("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")
 	
 	files { "Private/**.cpp", "Private/**.h", "Public/**.h" }
-	includedirs { "Public/", IncludeDirs["Shared"], IncludeDirs["Core"], IncludeDirs["FileSystem"], IncludeDirs["MarkPak"]}
+	includedirs { "Public/", IncludeDirs["Shared"], IncludeDirs["FileSystem"], IncludeDirs["MarkPak"]}
 
 	links { "MarkPak" }
 	
