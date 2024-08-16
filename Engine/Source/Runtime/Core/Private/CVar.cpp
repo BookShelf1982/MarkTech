@@ -1,6 +1,7 @@
 #include "CVar.h"
-#include <Assert.h>
+#include "Assert.h"
 #include <string.h>
+#include <stdlib.h>
 
 namespace MarkTech
 {
@@ -50,5 +51,10 @@ namespace MarkTech
     {
         pCVars = pCVarArray;
         cvarCount = numOfCVars;
+    }
+
+    void FreeCVarArray()
+    {
+        free(pCVars);
     }
 }

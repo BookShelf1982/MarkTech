@@ -1,6 +1,7 @@
 #include <File.h>
 #include <AssetTypes.h>
-#include <TextFile.h>
+#include <AssetCompiler.h>
+#include <Package.h>
 
 #ifdef DEBUG
 #include <crtdbg.h>
@@ -109,92 +110,13 @@ int main(int argc, char* argv[])
 		pToken = strtok_s(pNextToken, delimiters, &pNextToken); // Get filepath to asset
 
 		// Compile Asset
-		AssetType assetType = EvaluateAssetType(pToken);
-		char outputFilePath[MAX_PATH_LENGTH] = "";
-		strcpy_s(outputFilePath, pOutputPath);
-		strcat_s(outputFilePath, "int\\");
-		AddFilename(outputFilePath, GetFilename(pToken));
-
-		switch (assetType)
-		{
-		case AssetType::ANSI_TEXT_FILE:
-		{
-			CompileTextFile(outputFilePath, pToken);
-		}
-		break;
-		case AssetType::TEXTURE2D:
-		{
-
-		}
-		break;
-		}
+		CompileAsset(pToken, pOutputPath);
 	}
 
 	free(pAssetTableContents); // Free the asset table
 
 	// Package all compiled assets
-	char outputPackagePath[MAX_PATH_LENGTH] = "";
-	strcpy_s(outputPackagePath, pOutputPath);
-	strcat_s(outputPackagePath, pPackageName);
-	strcat_s(outputPackagePath, ".mpk");
-
-	File packageFile = FOpen(outputPackagePath, FileAccessType::WRITE); // Create new package file
-	U64 offsetToBlob = 0;
-
-	char compiledFilepath[MAX_PATH_LENGTH] = "";
-	strcpy_s(compiledFilepath, pOutputPath);
-	strcat_s(compiledFilepath, "int\\");
-
-	FileList compiledFileList = FindAllFilesInPath(compiledFilepath); // Get all the compiled assets
-	FWrite(&packageFile, (char*)&compiledFileList.listCount, sizeof(U64)); // Write the amount of compiled assets
-
-	// Calculate the offset to blob
-	offsetToBlob += sizeof(U64);
-	offsetToBlob += 18 * compiledFileList.listCount;
-	for (U32 i = 0; i < compiledFileList.listCount; i++)
-	{
-		offsetToBlob += strlen(compiledFileList.ppList[i]);
-	}
-	
-	// Fill package entry list with compiled assets
-	for (U32 i = 0; i < compiledFileList.listCount; i++)
-	{
-		char filepath[MAX_PATH_LENGTH] = "";
-		strcpy_s(filepath, compiledFilepath);
-		strcat_s(filepath, compiledFileList.ppList[i]);
-
-		// Write asset name
-		U16 size = (U16)strlen(compiledFileList.ppList[i]);
-		FWrite(&packageFile, (char*)&size, sizeof(U16)); // Write the name length
-		FWrite(&packageFile, compiledFileList.ppList[i], size); // Write the name
-
-		// Write the size of the asset and it's offset to blob
-		File assetFile = FOpen(filepath, FileAccessType::READ);
-		FClose(&assetFile);
-
-		FWrite(&packageFile, (char*)&assetFile.size, sizeof(U64));
-		FWrite(&packageFile, (char*)&offsetToBlob, sizeof(U64));
-		offsetToBlob += assetFile.size;
-	}
-
-	// Write asset data to file (This is the 'blob' that previous comments were talking about)
-	for (U32 i = 0; i < compiledFileList.listCount; i++)
-	{
-		char filepath[MAX_PATH_LENGTH] = "";
-		strcpy_s(filepath, compiledFilepath);
-		strcat_s(filepath, compiledFileList.ppList[i]);
-
-		File file = FOpen(filepath, FileAccessType::READ);
-		char* pAssetData = (char*)malloc(file.size);
-		FRead(&file, pAssetData, file.size);
-		FClose(&file);
-
-		FWrite(&packageFile, pAssetData, file.size);
-		free(pAssetData);
-	}
-
-	FClose(&packageFile);
-	FileListFree(&compiledFileList);
+	PackageCompiledAssets(pOutputPath, pPackageName);
 
 	// Destruction
 	UnlinkFileSystem();

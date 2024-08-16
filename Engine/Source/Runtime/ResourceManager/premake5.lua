@@ -8,7 +8,7 @@ project "ResourceManager"
 	
 	files { "Private/**.cpp", "Private/**.h", "Public/**.h" }
 	includedirs { "Public/", IncludeDirs["Shared"], IncludeDirs["Core"], IncludeDirs["FileSystem"] }
-	links { "Core", "FileSystem" }
+	links { "Core" }
 	
 	filter "configurations:Debug"
        defines { "DEBUG", "MT_ENABLE_ASSERTS" }

@@ -1,7 +1,6 @@
 #include "GraphicsInterface.h"
 #include <Version.h>
 #include <Log.h>
-#include <MemoryArena.h>
 
 namespace MarkTech
 {

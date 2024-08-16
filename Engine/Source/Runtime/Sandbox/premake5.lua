@@ -13,6 +13,8 @@ project "SandboxApp"
 		IncludeDirs["Shared"],
 		IncludeDirs["Core"],
 		IncludeDirs["Graphics"],
+		IncludeDirs["ResourceManager"],
+		IncludeDirs["FileSystem"],
 		IncludeDirs["Volk"],
 		IncludeDirs["VULKAN"]
 	}
