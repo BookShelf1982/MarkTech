@@ -1,5 +1,5 @@
-project "SandboxApp"
-	kind "WindowedApp"
+project "Gameplay"
+	kind "StaticLib"
 	language "C++"
 	cppdialect "C++17"
 	
@@ -8,21 +8,15 @@ project "SandboxApp"
 	
 	files { "Private/**.cpp", "Private/**.h", "Public/**.h" }
 	
-	includedirs { 
+	includedirs {
 		"Public/",
 		IncludeDirs["Shared"],
 		IncludeDirs["Core"],
-		IncludeDirs["Graphics"],
 		IncludeDirs["ResourceManager"],
-		IncludeDirs["FileSystem"],
-		IncludeDirs["HighResTimer"],
-		IncludeDirs["Gameplay"],
-		IncludeDirs["Input"],
-		IncludeDirs["Volk"],
-		IncludeDirs["VULKAN"]
+		IncludeDirs["Graphics"],
+		IncludeDirs["FileSystem"]
 	}
-	
-	links { "Core", "Graphics", "HighResTimer", "Gameplay", "Input" }
+	links { "Core", "ResourceManager", "Graphics" }
 	
 	filter "configurations:Debug"
        defines { "DEBUG", "MT_ENABLE_ASSERTS" }

@@ -5,6 +5,9 @@
 * Author: Markos
 */
 
+#define KILOBYTE 1024
+#define MEGABYTE 1048576
+
 #ifdef _MSC_VER
 namespace MarkTech
 {

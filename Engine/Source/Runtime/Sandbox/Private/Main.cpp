@@ -1,4 +1,3 @@
-#include <PrimitiveTypes.h>
 #ifdef MT_PLATFORM_WINDOWS
 #include <Windows.h>
 #endif
@@ -12,19 +11,24 @@
 #include <Window.h>
 #include <CVar.h>
 #include <2DRenderer.h>
-#include <HashString.h>
 #include <ResourceManager.h>
 #include <StackAllocator.h>
+#include <HighResTimer.h>
+#include <GameWorld.h>
+#include <Input.h>
 
 bool gIsRunning = true;
 
 using namespace MarkTech;
 
-void WindowEventHandler(WindowEvent event)
+void WindowEventHandler(WindowEvent event, U64 param, U64 param2)
 {
 	switch (event)
 	{
-	case MarkTech::WindowEvent::WINDOW_CLOSE: { gIsRunning = false; } return;
+	case WindowEvent::WINDOW_CLOSE: { gIsRunning = false; } return;
+	case WindowEvent::WINDOW_KEYCHANGED: { UpdateKeyboardState(ConvertWin32KeycodeToMarkTechKeycode(param), param2); } return;
+	case WindowEvent::WNIDOW_MOUSEPOS: { UpdateMousePos(param, param2); } return;
+	case WindowEvent::WINDOW_MOUSEBUTTON: { UpdateMouseButtons((U8)param, param2); } return;
 	default: { } return;
 	}
 }
@@ -103,33 +107,43 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		GiveCVarArray(pCVarArray, cvarCount);
 	}
 
+	// Input System
+	InitInputSystem();
+	BindKey(Keycode::ESCAPE, 0);
+
 	// Window Creation
 	SetWindowEventHandler(WindowEventHandler);
 	Window window = MakeWindow(L"MarkTech 2024", 800, 600);
+	
+	PoolAllocator resourceEntryAlloc = CreatePoolAllocator(sizeof(ResourceEntry), 1024);
+	PoolAllocator packageEntryAlloc = CreatePoolAllocator(sizeof(PackageEntry), 128);
+	StackAllocator resourceDataAlloc = CreateStackAllocator(MEGABYTE);
+
+	InitResourceManager(&resourceEntryAlloc, &packageEntryAlloc, &resourceDataAlloc);
+
+	// GameWorld Creation
+	GameWorld gameWorld = CreateGameWorld(2048);
 
 	InitRenderer2D(); // Initialize the renderer
-	
-	PoolAllocator resourceEntryAlloc = CreatePoolAllocator(sizeof(ResourceEntry), 2048);
-	StackAllocator stackAlloc = CreateStackAllocator(1024);
-	void* ptr = AllocFromStack(&stackAlloc, 60);
-	FreeBackToStack(&stackAlloc, ptr);
-	FreeStackAllocator(&stackAlloc);
-
-	InitResourceManager(0, &resourceEntryAlloc);
-
-	LoadPackage("hello_world.mpk");
 
 	// Game Loop
 	while (gIsRunning)
 	{
 		PollWindowMessages();
+		if (GetBindState(0))
+		{
+			gIsRunning = false;
+		}
+
 		if (!gIsRunning)
 			break;
 	}
 
-	ShutdownResourceManager();
+	DestroyGameWorld(&gameWorld);
 	ShutdownRenderer2D();
+	ShutdownResourceManager();
 	KillWindow(&window);
+	ShutdownInputSystem();
 	FreeCVarArray();
 
 	UnlinkFileSystem();

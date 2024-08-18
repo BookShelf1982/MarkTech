@@ -8,10 +8,13 @@ namespace MarkTech
 {
 	enum class WindowEvent
 	{
-		WINDOW_CLOSE
+		WINDOW_CLOSE,
+		WINDOW_KEYCHANGED,
+		WNIDOW_MOUSEPOS,
+		WINDOW_MOUSEBUTTON
 	};
 
-	typedef void (*PFN_WINDOWEVENTHANDLER)(WindowEvent);
+	typedef void (*PFN_WINDOWEVENTHANDLER)(WindowEvent, U64, U64);
 
 	struct Window
 	{

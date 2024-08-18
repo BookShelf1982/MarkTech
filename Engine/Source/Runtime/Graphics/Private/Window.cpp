@@ -10,7 +10,48 @@ namespace MarkTech
 	{
 		switch (uMsg)
 		{
-		case WM_CLOSE: { if (pfnEventHandler) pfnEventHandler(WindowEvent::WINDOW_CLOSE); } break;
+		case WM_CLOSE: { if (pfnEventHandler) pfnEventHandler(WindowEvent::WINDOW_CLOSE, 0, 0); } break;
+		case WM_SYSKEYDOWN:
+		case WM_SYSKEYUP:
+		case WM_KEYDOWN:
+		case WM_KEYUP: {
+			bool keyDown, keyWasDown;
+			keyDown = ((lParam & (1 << 31)) == 0);
+			keyWasDown = ((lParam & (1 << 30)) != 0);
+			if (keyDown != keyWasDown)
+			{
+				if (pfnEventHandler) pfnEventHandler(WindowEvent::WINDOW_KEYCHANGED, wParam, keyDown);
+			}
+		} break;
+		case WM_MOUSEMOVE: {
+			if (pfnEventHandler) pfnEventHandler(WindowEvent::WNIDOW_MOUSEPOS, LOWORD(wParam), HIWORD(lParam));
+		} break;
+		case WM_LBUTTONDOWN: { if (pfnEventHandler) pfnEventHandler(WindowEvent::WINDOW_MOUSEBUTTON, 0b1, 1); } break;
+		case WM_LBUTTONUP: { if (pfnEventHandler) pfnEventHandler(WindowEvent::WINDOW_MOUSEBUTTON, 0b1, 0); } break;
+		case WM_MBUTTONDOWN: { if (pfnEventHandler) pfnEventHandler(WindowEvent::WINDOW_MOUSEBUTTON, 0b10, 1); } break;
+		case WM_MBUTTONUP: { if (pfnEventHandler) pfnEventHandler(WindowEvent::WINDOW_MOUSEBUTTON, 0b10, 0); } break;
+		case WM_RBUTTONDOWN: { if (pfnEventHandler) pfnEventHandler(WindowEvent::WINDOW_MOUSEBUTTON, 0b100, 1); } break;
+		case WM_RBUTTONUP: { if (pfnEventHandler) pfnEventHandler(WindowEvent::WINDOW_MOUSEBUTTON, 0b100, 0); } break;
+		case WM_XBUTTONDOWN: { 
+			if (GET_XBUTTON_WPARAM(wParam) == XBUTTON1)
+			{
+				if (pfnEventHandler) pfnEventHandler(WindowEvent::WINDOW_MOUSEBUTTON, 0b1000, 1);
+			}
+			else
+			{
+				if (pfnEventHandler) pfnEventHandler(WindowEvent::WINDOW_MOUSEBUTTON, 0b10000, 1);
+			}
+		} break;
+		case WM_XBUTTONUP: {
+			if (GET_XBUTTON_WPARAM(wParam) == XBUTTON1)
+			{
+				if (pfnEventHandler) pfnEventHandler(WindowEvent::WINDOW_MOUSEBUTTON, 0b1000, 0);
+			}
+			else
+			{
+				if (pfnEventHandler) pfnEventHandler(WindowEvent::WINDOW_MOUSEBUTTON, 0b10000, 0);
+			}
+		} break;
 		}
 
 		switch (uMsg)
