@@ -16,6 +16,7 @@
 #include <HighResTimer.h>
 #include <GameWorld.h>
 #include <Input.h>
+#include <Math3D.h>
 
 bool gIsRunning = true;
 
@@ -27,7 +28,7 @@ void WindowEventHandler(WindowEvent event, U64 param, U64 param2)
 	{
 	case WindowEvent::WINDOW_CLOSE: { gIsRunning = false; } return;
 	case WindowEvent::WINDOW_KEYCHANGED: { UpdateKeyboardState(ConvertWin32KeycodeToMarkTechKeycode(param), param2); } return;
-	case WindowEvent::WNIDOW_MOUSEPOS: { UpdateMousePos(param, param2); } return;
+	case WindowEvent::WNIDOW_MOUSEPOS: { UpdateMousePos((I32)param, (I32)param2); } return;
 	case WindowEvent::WINDOW_MOUSEBUTTON: { UpdateMouseButtons((U8)param, param2); } return;
 	default: { } return;
 	}
@@ -109,12 +110,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	// Input System
 	InitInputSystem();
-	BindKey(Keycode::ESCAPE, 0);
 
 	// Window Creation
 	SetWindowEventHandler(WindowEventHandler);
 	Window window = MakeWindow(L"MarkTech 2024", 800, 600);
 	
+	// Resource Manager Creation
 	PoolAllocator resourceEntryAlloc = CreatePoolAllocator(sizeof(ResourceEntry), 1024);
 	PoolAllocator packageEntryAlloc = CreatePoolAllocator(sizeof(PackageEntry), 128);
 	StackAllocator resourceDataAlloc = CreateStackAllocator(MEGABYTE);
@@ -130,11 +131,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	while (gIsRunning)
 	{
 		PollWindowMessages();
-		if (GetBindState(0))
-		{
-			gIsRunning = false;
-		}
-
 		if (!gIsRunning)
 			break;
 	}

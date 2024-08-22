@@ -63,6 +63,10 @@ namespace MarkTech
         {
         case VK_ESCAPE:
             return Keycode::ESCAPE;
+        case VK_CONTROL:
+            return Keycode::LEFT_CONTROL;
+        case 'X':
+            return Keycode::X;
         default:
             return Keycode::ZERO;
         }
