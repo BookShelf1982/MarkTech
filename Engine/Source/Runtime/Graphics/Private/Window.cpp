@@ -103,5 +103,17 @@ namespace MarkTech
 		pfnEventHandler = eventHandler;
 	}
 
+	void WindowMessage(const Window* pWindow, const wchar_t* pHeader, const wchar_t* pDesc)
+	{
+		if (pWindow)
+		{
+			MessageBox(pWindow->hWnd, pDesc, pHeader, MB_OK);
+		}
+		else
+		{
+			MessageBox(NULL, pDesc, pHeader, MB_OK | MB_ICONEXCLAMATION);
+		}
+	}
+
 #endif
 }

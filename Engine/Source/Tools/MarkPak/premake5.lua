@@ -1,5 +1,5 @@
 project "MarkPak"
-	kind "StaticLib"
+	kind "SharedLib"
 	language "C++"
 	cppdialect "C++17"
 	
@@ -8,7 +8,10 @@ project "MarkPak"
 	
 	files { "Private/**.cpp", "Private/**.h", "Public/**.h" }
 	includedirs { "Public/", IncludeDirs["Shared"], IncludeDirs["FileSystem"], IncludeDirs["stb"] }
+	links { "FileSystem" }
 	
+	defines { "MT_BUILD_DLL" }
+
 	filter "configurations:Debug"
        defines { "DEBUG", "MT_ENABLE_ASSERTS" }
        symbols "On"

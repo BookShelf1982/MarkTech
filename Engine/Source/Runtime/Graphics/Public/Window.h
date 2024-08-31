@@ -27,4 +27,5 @@ namespace MarkTech
 	void KillWindow(const Window* pWindow);
 	void PollWindowMessages();
 	void SetWindowEventHandler(PFN_WINDOWEVENTHANDLER eventHandler);
+	void WindowMessage(const Window* pWindow, const wchar_t* pHeader, const wchar_t* pDesc);
 }

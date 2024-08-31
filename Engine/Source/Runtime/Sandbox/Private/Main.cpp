@@ -17,6 +17,8 @@
 #include <GameWorld.h>
 #include <Input.h>
 #include <Math3D.h>
+#include <CmdArgs.h>
+#include <MarkPakInterface.h>
 
 bool gIsRunning = true;
 
@@ -34,79 +36,73 @@ void WindowEventHandler(WindowEvent event, U64 param, U64 param2)
 	}
 }
 
-#ifdef MT_PLATFORM_WINDOWS
-HMODULE fileMod = NULL;
-#endif
-
-PFN_FindAllFilesInPath FindAllFilesInPath = nullptr;
-PFN_FileListFree FileListFree = nullptr;
-PFN_GetExtension GetExtension = nullptr;
-PFN_GetFilename GetFilename = nullptr;
-PFN_AddExtension AddExtension = nullptr;
-PFN_AddFilename AddFilename = nullptr;
-PFN_ChangeExtension ChangeExtension = nullptr;
-
-PFN_FOpen FOpen = nullptr;
-PFN_FClose FClose = nullptr;
-PFN_FRead FRead = nullptr;
-PFN_FWrite FWrite = nullptr;
-PFN_FSeek FSeek = nullptr;
-
-void LinkFileSystem()
-{
-#ifdef MT_PLATFORM_WINDOWS
-	fileMod = LoadLibraryA("FileSystem.dll");
-	if (fileMod == NULL)
-		return;
-
-	FOpen = (PFN_FOpen)GetProcAddress(fileMod, "FOpen");
-	FClose = (PFN_FClose)GetProcAddress(fileMod, "FClose");
-	FWrite = (PFN_FWrite)GetProcAddress(fileMod, "FWrite");
-	FRead = (PFN_FRead)GetProcAddress(fileMod, "FRead");
-	FSeek = (PFN_FSeek)GetProcAddress(fileMod, "FSeek");
-	AddFilename = (PFN_AddFilename)GetProcAddress(fileMod, "AddFilename");
-	AddExtension = (PFN_AddExtension)GetProcAddress(fileMod, "AddExtension");
-	GetExtension = (PFN_GetExtension)GetProcAddress(fileMod, "GetExtension");
-	GetFilename = (PFN_GetFilename)GetProcAddress(fileMod, "GetFilename");
-	FindAllFilesInPath = (PFN_FindAllFilesInPath)GetProcAddress(fileMod, "FindAllFilesInPath");
-	FileListFree = (PFN_FileListFree)GetProcAddress(fileMod, "FileListFree");
-	ChangeExtension = (PFN_ChangeExtension)GetProcAddress(fileMod, "ChangeExtension");
-#endif
-}
-
-void UnlinkFileSystem()
-{
-#ifdef MT_PLATFORM_WINDOWS
-	FreeLibrary(fileMod);
-#endif
-}
-
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
-	LinkFileSystem();
-
 	// Command Line Args
-	bool createCVarSystem = false;
+	CommandLineArgs cmdArgs = CreateCommandLineArgs();
 
-	LPWSTR* pArglist; 
-	I32 argCount;
-	pArglist = CommandLineToArgvW(GetCommandLineW(), &argCount);
-
-	for (I32 i = 0; i < argCount; i++)
+	if (ArgCompare(&cmdArgs, 1, L"-buildpackage"))
 	{
-		if (wcscmp(pArglist[i], L"-console") == 0)
-			createCVarSystem = true;
+		// TODO: build package using MarkPak.dll
+		MarkPakPFNList pfnList = {};
+		HMODULE markPak = LoadLibraryA("MarkPak.dll");
+		if (markPak == nullptr)
+		{
+			WindowMessage(nullptr, L"MarkTech Error!", L"Failed to find MarkPak.dll in your game install!");
+			FreeCommandLineArgs(&cmdArgs);
+			return 1;
+		}
+
+		PFN_GetMarkPakFunctions func = (PFN_GetMarkPakFunctions)GetProcAddress(markPak, "GetMarkPakFunctions");
+		func(&pfnList);
+
+		char inputFile[MAX_PATH_LENGTH] = "";
+		char outputPath[MAX_PATH_LENGTH] = "";
+		char pakName[128] = "";
+
+		for (I32 i = 1; i < cmdArgs.argCount; i++)
+		{
+			if (ArgCompare(&cmdArgs, i, L"-assetlist"))
+			{
+				i++;
+				U64 charsConverted = 0;
+				wcstombs_s(&charsConverted, inputFile, cmdArgs.pArgList[i], wcslen(cmdArgs.pArgList[i]));
+				continue;
+			}
+
+			if (ArgCompare(&cmdArgs, i, L"-outputpath"))
+			{
+				i++;
+				U64 charsConverted = 0;
+				wcstombs_s(&charsConverted, outputPath, cmdArgs.pArgList[i], wcslen(cmdArgs.pArgList[i]));
+				continue;
+			}
+
+			if (ArgCompare(&cmdArgs, i, L"-pakname"))
+			{
+				i++;
+				U64 charsConverted = 0;
+				wcstombs_s(&charsConverted, pakName, cmdArgs.pArgList[i], wcslen(cmdArgs.pArgList[i]));
+				continue;
+			}
+		}
+
+		if (!(strlen(inputFile) || strlen(outputPath) || strlen(pakName)))
+		{
+			return 1;
+		}
+
+		pfnList.pfnCompileAndPackageAssets(inputFile, outputPath, pakName);
+
+		FreeLibrary(markPak);
+		FreeCommandLineArgs(&cmdArgs);
+#ifdef DEBUG
+		_CrtDumpMemoryLeaks();
+#endif
+		return 0;
 	}
 
-	LocalFree(pArglist);
-
-	// CVar Creation
-	if (createCVarSystem)
-	{
-		const U32 cvarCount = 1024;
-		CVarF32* pCVarArray = (CVarF32*)malloc(cvarCount * sizeof(CVarF32));
-		GiveCVarArray(pCVarArray, cvarCount);
-	}
+	FreeCommandLineArgs(&cmdArgs);
 
 	// Input System
 	InitInputSystem();
@@ -140,9 +136,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	ShutdownResourceManager();
 	KillWindow(&window);
 	ShutdownInputSystem();
-	FreeCVarArray();
-
-	UnlinkFileSystem();
 
 #ifdef DEBUG
 	_CrtDumpMemoryLeaks();

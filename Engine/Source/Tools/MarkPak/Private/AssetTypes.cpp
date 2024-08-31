@@ -25,7 +25,6 @@ namespace MarkTech
 
     static U64 extensionTypeRelationsSize = sizeof(extensionTypeRelations) / sizeof(ExtensionTypeUnion);
 
-
     AssetType EvaluateAssetType(const char* pPath)
     {
         char* extension = GetExtension(pPath);

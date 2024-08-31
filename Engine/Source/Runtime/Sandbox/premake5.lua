@@ -19,10 +19,11 @@ project "SandboxApp"
 		IncludeDirs["Gameplay"],
 		IncludeDirs["Input"],
 		IncludeDirs["Volk"],
-		IncludeDirs["VULKAN"]
+		IncludeDirs["VULKAN"],
+		IncludeDirs["MarkPak"]
 	}
 	
-	links { "Core", "Graphics", "HighResTimer", "Gameplay", "Input" }
+	links { "Core", "Graphics", "HighResTimer", "Gameplay", "Input", "FileSystem" }
 	
 	filter "configurations:Debug"
        defines { "DEBUG", "MT_ENABLE_ASSERTS" }

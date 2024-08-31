@@ -8,4 +8,38 @@
 
 namespace MarkTech
 {
+	struct QueueFamilyIndices
+	{
+		U32 graphicsQueue;
+		U32 transferQueue;
+	};
+
+	struct GraphicsContext
+	{
+		VkInstance instance;
+		VkDevice device;
+		QueueFamilyIndices indices;
+	};
+
+	struct AppInfo
+	{
+		const char* pAppName;
+		U16 majorVersion;
+		U16 minorVersion;
+		U16 patchVersion;
+	};
+
+	enum GraphicsContextFlags : U8
+	{
+		GRAPHICS_CONTEXT_FLAGS_USE_WINDOW = 0x02
+	};
+
+	struct GraphicsContextCreateInfo
+	{
+		AppInfo appInfo;
+		U8 flags;
+	};
+
+	GraphicsContext CreateGraphicsContext(const GraphicsContextCreateInfo* pInfo);
+	void DestroyGraphicsContext(GraphicsContext* pContrxt);
 }

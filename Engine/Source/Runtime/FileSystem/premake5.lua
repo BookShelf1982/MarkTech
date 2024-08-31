@@ -1,5 +1,5 @@
 project "FileSystem"
-	kind "SharedLib"
+	kind "StaticLib"
 	language "C++"
 	cppdialect "C++17"
 	
@@ -8,8 +8,6 @@ project "FileSystem"
 	
 	files { "Private/**.cpp", "Private/**.h", "Public/**.h" }
 	includedirs { "Public/", IncludeDirs["Shared"] }
-	
-	defines { "MT_FILESYSTEMLIB", "MT_BUILD_DLL" }
 
 	filter "configurations:Debug"
        defines { "DEBUG" }
