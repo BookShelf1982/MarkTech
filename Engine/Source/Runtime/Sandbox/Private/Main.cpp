@@ -121,7 +121,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	// GameWorld Creation
 	GameWorld gameWorld = CreateGameWorld(2048);
 
-	InitRenderer2D(); // Initialize the renderer
+	Renderer2D renderer = InitRenderer2D(); // Initialize the renderer
 
 	// Game Loop
 	while (gIsRunning)
@@ -132,7 +132,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	}
 
 	DestroyGameWorld(&gameWorld);
-	ShutdownRenderer2D();
+	ShutdownRenderer2D(&renderer);
 	ShutdownResourceManager();
 	KillWindow(&window);
 	ShutdownInputSystem();

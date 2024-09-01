@@ -3,6 +3,11 @@
 
 namespace MarkTech
 {
-	bool InitRenderer2D();
-	void ShutdownRenderer2D();
+	struct Renderer2D
+	{
+		GraphicsContext context;
+	};
+
+	Renderer2D InitRenderer2D();
+	void ShutdownRenderer2D(Renderer2D* pRenderer);
 }

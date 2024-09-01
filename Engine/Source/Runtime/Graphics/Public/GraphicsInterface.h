@@ -19,6 +19,7 @@ namespace MarkTech
 		VkInstance instance;
 		VkDevice device;
 		QueueFamilyIndices indices;
+		VkDebugUtilsMessengerEXT messenger;
 	};
 
 	struct AppInfo
@@ -31,7 +32,8 @@ namespace MarkTech
 
 	enum GraphicsContextFlags : U8
 	{
-		GRAPHICS_CONTEXT_FLAGS_USE_WINDOW = 0x02
+		GRAPHICS_CONTEXT_FLAGS_USE_WINDOW = 0x02,
+		GRAPHICS_CONTEXT_FLAGS_DEBUG_MESSAGES = 0x04
 	};
 
 	struct GraphicsContextCreateInfo

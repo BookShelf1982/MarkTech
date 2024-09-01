@@ -2,10 +2,25 @@
 #include <Version.h>
 #include <Log.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 namespace MarkTech
 {
 #define MAX_GRAPHICS_DEVICES 4
+
+	VkBool32 DebugMessagengerCallback(
+		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, 
+		VkDebugUtilsMessageTypeFlagsEXT messageTypes, 
+		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, 
+		void* pUserData)
+	{
+#ifdef MT_PLATFORM_WINDOWS
+		char buffer[1024] = "";
+		sprintf(buffer, "%s\n", pCallbackData->pMessage);
+		OutputDebugStringA(buffer); 
+#endif
+		return VK_FALSE;
+	}
 
 	VkPhysicalDevice ChooseBestDevice(VkInstance instance)
 	{
@@ -47,16 +62,34 @@ namespace MarkTech
 		VkQueueFamilyProperties queueProps[8] = {};
 		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &maxProps, queueProps);
 
+		bool foundGraphics = false;
+		bool foundTransfer = false;
+		U32 queuesLeft = 0;
 		for (U32 i = 0; i < maxProps; i++)
 		{
-			if (queueProps[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+			if (foundGraphics && foundTransfer)
 			{
-				indices.graphicsQueue = i;
+				break;
 			}
 
-			if (queueProps[i].queueFlags & VK_QUEUE_TRANSFER_BIT)
+			queuesLeft = queueProps[i].queueCount;
+
+			if (queueProps[i].queueFlags & VK_QUEUE_GRAPHICS_BIT && !foundGraphics)
+			{
+				indices.graphicsQueue = i;
+				foundGraphics = true;
+				queuesLeft--;
+				if (queuesLeft == 0)
+					continue;
+			}
+
+			if (queueProps[i].queueFlags & VK_QUEUE_TRANSFER_BIT && !foundTransfer)
 			{
 				indices.transferQueue = i;
+				foundTransfer = true;
+				queuesLeft--;
+				if (queuesLeft == 0)
+					continue;
 			}
 		}
 
@@ -83,6 +116,9 @@ namespace MarkTech
 		U32 extensionCount = 0;
 		char* extensions[8] = {};
 
+		U32 layerCount = 0;
+		char* layers[8] = {};
+
 		if (pInfo->flags & GRAPHICS_CONTEXT_FLAGS_USE_WINDOW)
 		{
 			extensions[extensionCount] = VK_KHR_SURFACE_EXTENSION_NAME;
@@ -93,8 +129,19 @@ namespace MarkTech
 #endif
 		}
 
+		if (pInfo->flags & GRAPHICS_CONTEXT_FLAGS_DEBUG_MESSAGES)
+		{
+			extensions[extensionCount] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+			extensionCount++;
+
+			layers[layerCount] = "VK_LAYER_KHRONOS_validation";
+			layerCount++;
+		}
+
 		instanceInfo.ppEnabledExtensionNames = extensions;
 		instanceInfo.enabledExtensionCount = extensionCount;
+		instanceInfo.ppEnabledLayerNames = layers;
+		instanceInfo.enabledLayerCount = layerCount;
 
 		volkInitialize();
 
@@ -104,6 +151,22 @@ namespace MarkTech
 		}
 
 		volkLoadInstance(context.instance);
+
+		if (pInfo->flags & GRAPHICS_CONTEXT_FLAGS_DEBUG_MESSAGES)
+		{
+			VkDebugUtilsMessengerCreateInfoEXT debugInfo = {};
+			debugInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+			debugInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;;
+			debugInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;;
+			debugInfo.pfnUserCallback = DebugMessagengerCallback;
+			if (vkCreateDebugUtilsMessengerEXT(context.instance, &debugInfo, nullptr, &context.messenger) != VK_SUCCESS)
+			{
+				vkDestroyInstance(context.instance, nullptr);
+				volkFinalize();
+				context.instance = VK_NULL_HANDLE;
+				return context;
+			}
+		}
 
 		// Device Creation
 		VkPhysicalDevice physicalDevice = ChooseBestDevice(context.instance); // Get best device
@@ -155,5 +218,6 @@ namespace MarkTech
 	{
 		vkDestroyDevice(pContext->device, nullptr);
 		vkDestroyInstance(pContext->instance, nullptr);
+		volkFinalize();
 	}
 }
