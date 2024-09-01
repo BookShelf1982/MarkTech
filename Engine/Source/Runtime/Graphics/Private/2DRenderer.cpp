@@ -2,27 +2,24 @@
 
 namespace MarkTech
 {
-    Renderer2D InitRenderer2D()
-    {
-        Renderer2D renderer = {};
+	Renderer2D InitRenderer2D(const Window* pWindow)
+	{
+		Renderer2D renderer = {};
 
-        GraphicsContextCreateInfo info = {};
-        info.appInfo.pAppName = "SandboxApp";
-        info.appInfo.majorVersion = 1;
-        info.appInfo.minorVersion = 0;
-        info.appInfo.patchVersion = 0;
-        info.flags = GRAPHICS_CONTEXT_FLAGS_USE_WINDOW;
+		GraphicsContextCreateInfo info = {};
+		info.appInfo.pAppName = "SandboxApp";
+		info.appInfo.majorVersion = 1;
+		info.appInfo.minorVersion = 0;
+		info.appInfo.patchVersion = 0;
 #ifdef DEBUG
-        info.flags |= GRAPHICS_CONTEXT_FLAGS_DEBUG_MESSAGES;
+		info.flags = GRAPHICS_CONTEXT_FLAGS_DEBUG_MESSAGES;
 #endif
+		renderer.context = CreateGraphicsContext(&info);
+		return renderer;
+	}
 
-        renderer.context = CreateGraphicsContext(&info);
-
-        return renderer;
-    }
-
-    void ShutdownRenderer2D(Renderer2D* pRenderer)
-    {
-        DestroyGraphicsContext(&pRenderer->context);
-    }
+	void ShutdownRenderer2D(Renderer2D* pRenderer)
+	{
+		DestroyGraphicsContext(&pRenderer->context);
+	}
 }

@@ -121,7 +121,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	// GameWorld Creation
 	GameWorld gameWorld = CreateGameWorld(2048);
 
-	Renderer2D renderer = InitRenderer2D(); // Initialize the renderer
+	Renderer2D renderer = InitRenderer2D(&window); // Initialize the renderer
 
 	// Game Loop
 	while (gIsRunning)

@@ -16,10 +16,31 @@ namespace MarkTech
 	{
 #ifdef MT_PLATFORM_WINDOWS
 		char buffer[1024] = "";
-		sprintf(buffer, "%s\n", pCallbackData->pMessage);
+		sprintf_s(buffer, "%s\n", pCallbackData->pMessage);
 		OutputDebugStringA(buffer); 
 #endif
 		return VK_FALSE;
+	}
+
+	SwapchainDetails GetSwapchainDetails(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
+	{
+		SwapchainDetails details = {};
+		U32 formatCount = 32;
+		U32 modeCount = 6;
+		vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, details.formats);
+		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &details.caps);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &modeCount, details.modes);
+		return details;
+	}
+
+	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(VkSurfaceFormatKHR* pFormats, U32 formatCount) 
+	{
+		for (U32 i = 0; i < formatCount; i++) 
+		{
+			if (pFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB && pFormats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+				return pFormats[i];
+		}
+		return pFormats[0];
 	}
 
 	VkPhysicalDevice ChooseBestDevice(VkInstance instance)
@@ -62,34 +83,13 @@ namespace MarkTech
 		VkQueueFamilyProperties queueProps[8] = {};
 		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &maxProps, queueProps);
 
-		bool foundGraphics = false;
-		bool foundTransfer = false;
 		U32 queuesLeft = 0;
 		for (U32 i = 0; i < maxProps; i++)
 		{
-			if (foundGraphics && foundTransfer)
-			{
-				break;
-			}
-
-			queuesLeft = queueProps[i].queueCount;
-
-			if (queueProps[i].queueFlags & VK_QUEUE_GRAPHICS_BIT && !foundGraphics)
+			if (queueProps[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
 			{
 				indices.graphicsQueue = i;
-				foundGraphics = true;
-				queuesLeft--;
-				if (queuesLeft == 0)
-					continue;
-			}
-
-			if (queueProps[i].queueFlags & VK_QUEUE_TRANSFER_BIT && !foundTransfer)
-			{
-				indices.transferQueue = i;
-				foundTransfer = true;
-				queuesLeft--;
-				if (queuesLeft == 0)
-					continue;
+				break;
 			}
 		}
 
@@ -170,7 +170,6 @@ namespace MarkTech
 
 		// Device Creation
 		VkPhysicalDevice physicalDevice = ChooseBestDevice(context.instance); // Get best device
-
 		QueueFamilyIndices familyIndices = GetQueueFamilyIndex(physicalDevice);
 
 		float defaultPrioity = 1.0f;
@@ -180,13 +179,7 @@ namespace MarkTech
 		graphicsInfo.queueCount = 1;
 		graphicsInfo.queueFamilyIndex = familyIndices.graphicsQueue;
 
-		VkDeviceQueueCreateInfo transferInfo = {};
-		transferInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		transferInfo.pQueuePriorities = &defaultPrioity;
-		transferInfo.queueCount = 1;
-		transferInfo.queueFamilyIndex = familyIndices.transferQueue;
-
-		VkDeviceQueueCreateInfo queueInfos[2] = { graphicsInfo, transferInfo };
+		VkDeviceQueueCreateInfo queueInfos[1] = { graphicsInfo };
 
 		// We are reusing the extensions and extensionCount variables from earlier
 		extensionCount = 0;
@@ -211,13 +204,71 @@ namespace MarkTech
 			return context;
 		}
 
+		vkGetDeviceQueue(context.device, familyIndices.graphicsQueue, 0, &context.graphicsQueue);
 		return context;
 	}
 
 	void DestroyGraphicsContext(GraphicsContext* pContext)
 	{
 		vkDestroyDevice(pContext->device, nullptr);
+		vkDestroyDebugUtilsMessengerEXT(pContext->instance, pContext->messenger, nullptr);
 		vkDestroyInstance(pContext->instance, nullptr);
 		volkFinalize();
+	}
+
+	Swapchain CreateSwapchain(const GraphicsContext* pContext, const Window* pWindow)
+	{
+		Swapchain swapchain = {};
+#ifdef MT_PLATFORM_WINDOWS
+		VkWin32SurfaceCreateInfoKHR surfaceInfo = {};
+		surfaceInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+		surfaceInfo.hinstance = GetModuleHandleA(NULL);
+		surfaceInfo.hwnd = pWindow->hWnd;
+		if (vkCreateWin32SurfaceKHR(pContext->instance, &surfaceInfo, nullptr, &swapchain.windowSurface) != VK_SUCCESS)
+		{
+			return swapchain;
+		}
+#endif
+		VkBool32 hasSupport = VK_FALSE;
+		vkGetPhysicalDeviceSurfaceSupportKHR(pContext->physicalDevice, pContext->indices.graphicsQueue, swapchain.windowSurface, &hasSupport);
+		if (!hasSupport)
+		{
+			vkDestroySurfaceKHR(pContext->instance, swapchain.windowSurface, nullptr);
+			swapchain.swapchain = VK_NULL_HANDLE;
+			return swapchain;
+		}
+
+		SwapchainDetails details = GetSwapchainDetails(pContext->physicalDevice, swapchain.windowSurface);
+		VkSurfaceFormatKHR format = ChooseSwapSurfaceFormat(details.formats, sizeof(details.formats));
+
+		VkSwapchainCreateInfoKHR swapchainInfo = {};
+		swapchainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+		swapchainInfo.surface = swapchain.windowSurface;
+		swapchainInfo.minImageCount = MT_MAX_SWAPCHAIN_IMAGES;
+		swapchainInfo.imageFormat = format.format;
+		swapchainInfo.imageColorSpace = format.colorSpace;
+		swapchainInfo.imageArrayLayers = 1;
+		swapchainInfo.imageExtent = details.caps.currentExtent;
+		swapchainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		swapchainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		swapchainInfo.pQueueFamilyIndices = &pContext->indices.graphicsQueue;
+		swapchainInfo.queueFamilyIndexCount = 1;
+		swapchainInfo.preTransform = details.caps.currentTransform;
+		swapchainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+		swapchainInfo.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+		swapchainInfo.clipped = VK_TRUE;
+
+		if (vkCreateSwapchainKHR(pContext->device, &swapchainInfo, nullptr, &swapchain.swapchain) != VK_SUCCESS)
+		{
+			return swapchain;
+		}
+
+		return swapchain;
+	}
+
+	void DestroySwapchain(const GraphicsContext* pContext, Swapchain* pSwapchain)
+	{
+		vkDestroySwapchainKHR(pContext->device, pSwapchain->swapchain, nullptr);
+		vkDestroySurfaceKHR(pContext->instance, pSwapchain->windowSurface, nullptr);
 	}
 }

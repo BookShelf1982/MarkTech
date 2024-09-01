@@ -1,25 +1,41 @@
 #pragma once
 #include <PrimitiveTypes.h>
 #ifdef MT_PLATFORM_WINDOWS
-#include <Windows.h>
 #define VK_USE_PLATFORM_WIN32_KHR
 #endif
+#include "Window.h"
 #include <volk.h>
 
 namespace MarkTech
 {
+#define MT_MAX_SWAPCHAIN_IMAGES 2
+	struct SwapchainDetails
+	{
+		VkSurfaceCapabilitiesKHR caps;
+		VkSurfaceFormatKHR formats[32];
+		VkPresentModeKHR modes[6];
+	};
+
 	struct QueueFamilyIndices
 	{
 		U32 graphicsQueue;
-		U32 transferQueue;
 	};
 
 	struct GraphicsContext
 	{
 		VkInstance instance;
 		VkDevice device;
+		VkPhysicalDevice physicalDevice;
 		QueueFamilyIndices indices;
 		VkDebugUtilsMessengerEXT messenger;
+		VkQueue graphicsQueue;
+	};
+
+	struct Swapchain
+	{
+		VkSurfaceKHR windowSurface;
+		VkSwapchainKHR swapchain;
+		VkImageView swapchainImageViews[MT_MAX_SWAPCHAIN_IMAGES];
 	};
 
 	struct AppInfo
@@ -43,5 +59,8 @@ namespace MarkTech
 	};
 
 	GraphicsContext CreateGraphicsContext(const GraphicsContextCreateInfo* pInfo);
-	void DestroyGraphicsContext(GraphicsContext* pContrxt);
+	void DestroyGraphicsContext(GraphicsContext* pContext);
+
+	Swapchain CreateSwapchain(const GraphicsContext* pContext, const Window* pWindow);
+	void DestroySwapchain(const GraphicsContext* pContext, Swapchain* pSwapchain);
 }

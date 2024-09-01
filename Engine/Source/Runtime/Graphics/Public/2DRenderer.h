@@ -1,5 +1,6 @@
 #pragma once
 #include "GraphicsInterface.h"
+#include "Window.h"
 
 namespace MarkTech
 {
@@ -8,6 +9,6 @@ namespace MarkTech
 		GraphicsContext context;
 	};
 
-	Renderer2D InitRenderer2D();
+	Renderer2D InitRenderer2D(const Window* pWindow);
 	void ShutdownRenderer2D(Renderer2D* pRenderer);
 }
