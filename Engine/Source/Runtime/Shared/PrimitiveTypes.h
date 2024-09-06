@@ -8,6 +8,11 @@
 #define KILOBYTE 1024
 #define MEGABYTE 1048576
 
+#define U8_MAX 0xffui8
+#define U16_MAX 0xfffui16
+#define U32_MAX 0xffffui32
+#define U64_MAX 0xfffffui64
+
 #ifdef _MSC_VER
 namespace MarkTech
 {

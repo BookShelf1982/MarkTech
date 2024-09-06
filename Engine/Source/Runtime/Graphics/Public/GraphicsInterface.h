@@ -9,6 +9,8 @@
 namespace MarkTech
 {
 #define MT_MAX_SWAPCHAIN_IMAGES 2
+#define MT_MAX_SEMAPHORES 16
+#define MT_MAX_FENCES 16
 	struct SwapchainDetails
 	{
 		VkSurfaceCapabilitiesKHR caps;
@@ -33,9 +35,31 @@ namespace MarkTech
 
 	struct Swapchain
 	{
+		U32 framebufferIndex;
+		VkExtent2D framebufferExtent;
 		VkSurfaceKHR windowSurface;
 		VkSwapchainKHR swapchain;
+		U32 swapchainImageCount;
+		VkImage swapchainImages[MT_MAX_SWAPCHAIN_IMAGES];
 		VkImageView swapchainImageViews[MT_MAX_SWAPCHAIN_IMAGES];
+		VkFramebuffer framebuffers[MT_MAX_SWAPCHAIN_IMAGES];
+		VkRenderPass renderpass;
+	};
+
+	struct Pipeline
+	{
+		VkPipeline pipeline;
+		VkPipelineLayout pipelineLayput;
+	};
+
+	struct CommandBufferPool
+	{
+		VkCommandPool commandPool;
+	};
+
+	struct CommandBuffer
+	{
+		VkCommandBuffer commandBuffer;
 	};
 
 	struct AppInfo
@@ -58,9 +82,48 @@ namespace MarkTech
 		U8 flags;
 	};
 
+	struct GraphicsFence
+	{
+		VkFence fence;
+	};
+
+	struct GraphicsSemaphore
+	{
+		VkSemaphore semaphore;
+	};
+
 	GraphicsContext CreateGraphicsContext(const GraphicsContextCreateInfo* pInfo);
 	void DestroyGraphicsContext(GraphicsContext* pContext);
 
+	GraphicsSemaphore CreateGraphicsSemaphore(const GraphicsContext* pContext);
+	void DestroyGraphicsSemaphore(const GraphicsContext* pContext, GraphicsSemaphore* pSemaphore);
+
+	GraphicsFence CreateGraphicsFence(const GraphicsContext* pContext, bool signaled);
+	void DestroyGraphicsFence(const GraphicsContext* pContext, GraphicsFence* pFence);
+	void WaitForFences(const GraphicsContext* pContext, GraphicsFence* pFences, U32 fenceCount);
+	void ResetFences(const GraphicsContext* pContext, GraphicsFence* pFences, U32 fenceCount);
+
 	Swapchain CreateSwapchain(const GraphicsContext* pContext, const Window* pWindow);
 	void DestroySwapchain(const GraphicsContext* pContext, Swapchain* pSwapchain);
+	void AquireNextSwapchainImage(const GraphicsContext* pContext, Swapchain* pSwapchain, GraphicsSemaphore* pSignalSemaphore, GraphicsFence* pSignalFence);
+	void PresentSwapchainImage(const GraphicsContext* pContext, Swapchain* pSwapchain, GraphicsSemaphore* pWaitSemaphores, U32 waitSemaphoreCount);
+
+	CommandBufferPool CreateCommandBufferPool(const GraphicsContext* pContext);
+	void DestroyCommandBufferPool(const GraphicsContext* pContext, CommandBufferPool* pPool);
+	void ResetCommandBufferPool(const GraphicsContext* pContext, CommandBufferPool* pPool);
+
+	CommandBuffer AllocateCommandBuffer(const GraphicsContext* pContext, const CommandBufferPool* pPool);
+	void ResetCommandBuffer(CommandBuffer* pCmdBuffer);
+	void FreeCommandBuffer(const GraphicsContext* pContext, CommandBuffer* pCmdBuffer, const CommandBufferPool* pPool);
+	void BeginCommandBufferRecording(CommandBuffer* pCmdBuffer);
+	void EndCommandBufferRecording(CommandBuffer* pCmdBuffer);
+	void SubmitCommandBuffer(
+		const GraphicsContext* pContext, 
+		CommandBuffer* pCmdBuffer, 
+		GraphicsSemaphore* pSignalSemaphores, U32 signalSemaphore, 
+		GraphicsSemaphore* pWaitSemaphores, U32 waitSemaphoreCount,
+		GraphicsFence* pFence);
+
+	void CmdBindSwapchainFramebuffer(CommandBuffer* pCmdBuffer, const Swapchain* pSwapchain);
+	void CmdEndFramebuffer(CommandBuffer* pCmdBuffer);
 }

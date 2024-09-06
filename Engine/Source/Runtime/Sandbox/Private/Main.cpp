@@ -129,6 +129,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		PollWindowMessages();
 		if (!gIsRunning)
 			break;
+		RenderFrame(&renderer);
 	}
 
 	DestroyGameWorld(&gameWorld);

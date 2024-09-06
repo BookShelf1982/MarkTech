@@ -169,8 +169,8 @@ namespace MarkTech
 		}
 
 		// Device Creation
-		VkPhysicalDevice physicalDevice = ChooseBestDevice(context.instance); // Get best device
-		QueueFamilyIndices familyIndices = GetQueueFamilyIndex(physicalDevice);
+		context.physicalDevice = ChooseBestDevice(context.instance); // Get best device
+		QueueFamilyIndices familyIndices = GetQueueFamilyIndex(context.physicalDevice);
 
 		float defaultPrioity = 1.0f;
 		VkDeviceQueueCreateInfo graphicsInfo = {};
@@ -196,7 +196,7 @@ namespace MarkTech
 		deviceInfo.pQueueCreateInfos = queueInfos;
 		deviceInfo.queueCreateInfoCount = sizeof(queueInfos) / sizeof(VkDeviceQueueCreateInfo);
 
-		if (vkCreateDevice(physicalDevice, &deviceInfo, nullptr, &context.device) != VK_SUCCESS)
+		if (vkCreateDevice(context.physicalDevice, &deviceInfo, nullptr, &context.device) != VK_SUCCESS)
 		{
 			vkDestroyInstance(context.instance, nullptr);
 			volkFinalize();
@@ -214,6 +214,55 @@ namespace MarkTech
 		vkDestroyDebugUtilsMessengerEXT(pContext->instance, pContext->messenger, nullptr);
 		vkDestroyInstance(pContext->instance, nullptr);
 		volkFinalize();
+	}
+
+	GraphicsSemaphore CreateGraphicsSemaphore(const GraphicsContext* pContext)
+	{
+		GraphicsSemaphore semaphore = {};
+		VkSemaphoreCreateInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		vkCreateSemaphore(pContext->device, &info, nullptr, &semaphore.semaphore);
+		return semaphore;
+	}
+
+	void DestroyGraphicsSemaphore(const GraphicsContext* pContext, GraphicsSemaphore* pSemaphore)
+	{
+		vkDestroySemaphore(pContext->device, pSemaphore->semaphore, nullptr);
+	}
+
+	GraphicsFence CreateGraphicsFence(const GraphicsContext* pContext, bool signaled)
+	{
+		GraphicsFence fence = {};
+		VkFenceCreateInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		if (signaled)
+			info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+		vkCreateFence(pContext->device, &info, nullptr, &fence.fence);
+		return fence;
+	}
+
+	void DestroyGraphicsFence(const GraphicsContext* pContext, GraphicsFence* pFence)
+	{
+		vkDestroyFence(pContext->device, pFence->fence, nullptr);
+	}
+
+	void WaitForFences(const GraphicsContext* pContext, GraphicsFence* pFences, U32 fenceCount)
+	{
+		VkFence fences[MT_MAX_FENCES] = {};
+		for (U32 i = 0; i < fenceCount; i++)
+			fences[i] = pFences[i].fence;
+
+		vkWaitForFences(pContext->device, fenceCount, fences, VK_TRUE, U64_MAX);
+	}
+
+	void ResetFences(const GraphicsContext* pContext, GraphicsFence* pFences, U32 fenceCount)
+	{
+		VkFence fences[MT_MAX_FENCES] = {};
+		for (U32 i = 0; i < fenceCount; i++)
+			fences[i] = pFences[i].fence;
+
+		vkResetFences(pContext->device, fenceCount, fences);
 	}
 
 	Swapchain CreateSwapchain(const GraphicsContext* pContext, const Window* pWindow)
@@ -241,6 +290,8 @@ namespace MarkTech
 		SwapchainDetails details = GetSwapchainDetails(pContext->physicalDevice, swapchain.windowSurface);
 		VkSurfaceFormatKHR format = ChooseSwapSurfaceFormat(details.formats, sizeof(details.formats));
 
+		swapchain.framebufferExtent = details.caps.currentExtent;
+
 		VkSwapchainCreateInfoKHR swapchainInfo = {};
 		swapchainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 		swapchainInfo.surface = swapchain.windowSurface;
@@ -263,12 +314,231 @@ namespace MarkTech
 			return swapchain;
 		}
 
+		vkGetSwapchainImagesKHR(pContext->device, swapchain.swapchain, &swapchain.swapchainImageCount, nullptr);
+		vkGetSwapchainImagesKHR(pContext->device, swapchain.swapchain, &swapchain.swapchainImageCount, swapchain.swapchainImages);
+
+		for (U32 i = 0; i < swapchain.swapchainImageCount; i++)
+		{
+			VkImageViewCreateInfo imageViewInfo = {};
+			imageViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			imageViewInfo.format = format.format;
+			imageViewInfo.image = swapchain.swapchainImages[i];
+			imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			imageViewInfo.subresourceRange.baseMipLevel = 0;
+			imageViewInfo.subresourceRange.baseArrayLayer = 0;
+			imageViewInfo.subresourceRange.levelCount = 1;
+			imageViewInfo.subresourceRange.layerCount = 1;
+			imageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			imageViewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+			imageViewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+			imageViewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+			imageViewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+			vkCreateImageView(pContext->device, &imageViewInfo, nullptr, &swapchain.swapchainImageViews[i]);
+		}
+
+		VkAttachmentDescription colorAttatch = {};
+		colorAttatch.format = format.format;
+		colorAttatch.samples = VK_SAMPLE_COUNT_1_BIT;
+		colorAttatch.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		colorAttatch.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		colorAttatch.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		colorAttatch.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		colorAttatch.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		colorAttatch.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+		VkAttachmentReference colorRef = {};
+		colorRef.attachment = 0;
+		colorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		VkSubpassDescription colorSubpassDesc = {};
+		colorSubpassDesc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		colorSubpassDesc.colorAttachmentCount = 1;
+		colorSubpassDesc.pColorAttachments = &colorRef;
+
+		VkRenderPassCreateInfo renderpassInfo = {};
+		renderpassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+		renderpassInfo.pAttachments = &colorAttatch;
+		renderpassInfo.attachmentCount = 1;
+		renderpassInfo.pSubpasses = &colorSubpassDesc;
+		renderpassInfo.subpassCount = 1;
+
+		vkCreateRenderPass(pContext->device, &renderpassInfo, nullptr, &swapchain.renderpass);
+		
+		for (U32 i = 0; i < swapchain.swapchainImageCount; i++)
+		{
+			VkFramebufferCreateInfo framebufferInfo = {};
+			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+			framebufferInfo.renderPass = swapchain.renderpass;
+			framebufferInfo.pAttachments = &swapchain.swapchainImageViews[i];
+			framebufferInfo.attachmentCount = 1;
+			framebufferInfo.width = details.caps.currentExtent.width;
+			framebufferInfo.height = details.caps.currentExtent.height;
+			framebufferInfo.layers = 1;
+
+			vkCreateFramebuffer(pContext->device, &framebufferInfo, nullptr, &swapchain.framebuffers[i]);
+		}
+
 		return swapchain;
 	}
 
 	void DestroySwapchain(const GraphicsContext* pContext, Swapchain* pSwapchain)
 	{
+		for (U32 i = 0; i < pSwapchain->swapchainImageCount; i++)
+			vkDestroyFramebuffer(pContext->device, pSwapchain->framebuffers[i], nullptr);
+
+		vkDestroyRenderPass(pContext->device, pSwapchain->renderpass, nullptr);
+
+		for (U32 i = 0; i < pSwapchain->swapchainImageCount; i++)
+			vkDestroyImageView(pContext->device, pSwapchain->swapchainImageViews[i], nullptr);
+		
 		vkDestroySwapchainKHR(pContext->device, pSwapchain->swapchain, nullptr);
 		vkDestroySurfaceKHR(pContext->instance, pSwapchain->windowSurface, nullptr);
+	}
+
+	void AquireNextSwapchainImage(const GraphicsContext* pContext, Swapchain* pSwapchain, GraphicsSemaphore* pSignalSemaphore, GraphicsFence* pSignalFence)
+	{
+		VkFence fence = pSignalFence ? pSignalFence->fence : VK_NULL_HANDLE;
+		VkSemaphore semaphore = pSignalSemaphore ? pSignalSemaphore->semaphore : VK_NULL_HANDLE;
+		vkAcquireNextImageKHR(pContext->device, pSwapchain->swapchain, U64_MAX, semaphore, fence, &pSwapchain->framebufferIndex);
+	}
+
+	void PresentSwapchainImage(const GraphicsContext* pContext, Swapchain* pSwapchain, GraphicsSemaphore* pWaitSemaphores, U32 waitSemaphoreCount)
+	{
+		VkPresentInfoKHR info = {};
+		info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+		info.pImageIndices = &pSwapchain->framebufferIndex;
+		info.pSwapchains = &pSwapchain->swapchain;
+		info.swapchainCount = 1;
+
+		if (pWaitSemaphores)
+		{
+			VkSemaphore semaphores[MT_MAX_SEMAPHORES] = {};
+			info.pWaitSemaphores = semaphores;
+			info.waitSemaphoreCount = waitSemaphoreCount;
+
+			for (U32 i = 0; i < waitSemaphoreCount; i++)
+			{
+				semaphores[i] = pWaitSemaphores[i].semaphore;
+			}
+			vkQueuePresentKHR(pContext->graphicsQueue, &info);
+			return;
+		}
+
+		vkQueuePresentKHR(pContext->graphicsQueue, &info);
+	}
+
+	CommandBufferPool CreateCommandBufferPool(const GraphicsContext* pContext)
+	{
+		CommandBufferPool pool = {};
+		VkCommandPoolCreateInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		info.queueFamilyIndex = pContext->indices.graphicsQueue;
+		info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		vkCreateCommandPool(pContext->device, &info, nullptr, &pool.commandPool);
+		return pool;
+	}
+
+	void DestroyCommandBufferPool(const GraphicsContext* pContext, CommandBufferPool* pPool)
+	{
+		vkDestroyCommandPool(pContext->device, pPool->commandPool, nullptr);
+	}
+
+	void ResetCommandBufferPool(const GraphicsContext* pContext, CommandBufferPool* pPool)
+	{
+		vkResetCommandPool(pContext->device, pPool->commandPool, 0);
+	}	
+	
+	CommandBuffer AllocateCommandBuffer(const GraphicsContext* pContext, const CommandBufferPool* pPool)
+	{
+		CommandBuffer buffer = {};
+
+		VkCommandBufferAllocateInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		info.commandBufferCount = 1;
+		info.commandPool = pPool->commandPool;
+		info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		vkAllocateCommandBuffers(pContext->device, &info, &buffer.commandBuffer);
+
+		return buffer;
+	}
+
+	void ResetCommandBuffer(CommandBuffer* pCmdBuffer)
+	{
+		vkResetCommandBuffer(pCmdBuffer->commandBuffer, 0);
+	}
+
+	void FreeCommandBuffer(const GraphicsContext* pContext, CommandBuffer* pCmdBuffer, const CommandBufferPool* pPool)
+	{
+		vkFreeCommandBuffers(pContext->device, pPool->commandPool, 1, &pCmdBuffer->commandBuffer);
+	}
+
+	void BeginCommandBufferRecording(CommandBuffer* pCmdBuffer)
+	{
+		VkCommandBufferBeginInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		vkBeginCommandBuffer(pCmdBuffer->commandBuffer, &info);
+	}
+
+	void EndCommandBufferRecording(CommandBuffer* pCmdBuffer)
+	{
+		vkEndCommandBuffer(pCmdBuffer->commandBuffer);
+	}
+
+	void SubmitCommandBuffer(const GraphicsContext* pContext,
+		CommandBuffer* pCmdBuffer,
+		GraphicsSemaphore* pSignalSemaphores, U32 signalSemaphoreCount,
+		GraphicsSemaphore* pWaitSemaphores, U32 waitSemaphoreCount,
+		GraphicsFence* pFence)
+	{
+		VkSubmitInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		info.pCommandBuffers = &pCmdBuffer->commandBuffer;
+		info.commandBufferCount = 1;
+
+		VkFence fence = pFence ? pFence->fence : VK_NULL_HANDLE;
+		if (pSignalSemaphores || pWaitSemaphores)
+		{
+			VkSemaphore signalSemaphores[MT_MAX_SEMAPHORES] = {};
+			VkSemaphore waitSemaphores[MT_MAX_SEMAPHORES] = {};
+			info.pSignalSemaphores = signalSemaphores;
+			info.signalSemaphoreCount = signalSemaphoreCount;
+			info.pWaitSemaphores = waitSemaphores;
+			info.waitSemaphoreCount = waitSemaphoreCount;
+			VkPipelineStageFlags mask = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+			info.pWaitDstStageMask = &mask;
+
+			for (U32 i = 0; i < waitSemaphoreCount; i++)
+				waitSemaphores[i] = pWaitSemaphores[i].semaphore;
+
+			for (U32 i = 0; i < signalSemaphoreCount; i++)
+				signalSemaphores[i] = pWaitSemaphores[i].semaphore;
+
+			
+			vkQueueSubmit(pContext->graphicsQueue, 1, &info, fence);
+			return;
+		}
+
+		vkQueueSubmit(pContext->graphicsQueue, 1, &info, fence);
+	}
+
+	void CmdBindSwapchainFramebuffer(CommandBuffer* pCmdBuffer, const Swapchain* pSwapchain)
+	{
+		VkRenderPassBeginInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		info.clearValueCount = 1;
+		VkClearValue value = {};
+		info.pClearValues = &value;
+		info.framebuffer = pSwapchain->framebuffers[pSwapchain->framebufferIndex];
+		info.renderPass = pSwapchain->renderpass;
+		info.renderArea.extent = pSwapchain->framebufferExtent;
+		info.renderArea.offset = { 0, 0 };
+
+		vkCmdBeginRenderPass(pCmdBuffer->commandBuffer, &info, VK_SUBPASS_CONTENTS_INLINE);
+	}
+
+	void CmdEndFramebuffer(CommandBuffer* pCmdBuffer)
+	{
+		vkCmdEndRenderPass(pCmdBuffer->commandBuffer);
 	}
 }
