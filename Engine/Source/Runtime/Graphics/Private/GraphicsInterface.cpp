@@ -356,12 +356,22 @@ namespace MarkTech
 		colorSubpassDesc.colorAttachmentCount = 1;
 		colorSubpassDesc.pColorAttachments = &colorRef;
 
+		VkSubpassDependency dependSubpass = {};
+		dependSubpass.srcSubpass = VK_SUBPASS_EXTERNAL;
+		dependSubpass.dstSubpass = 0;
+		dependSubpass.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependSubpass.srcAccessMask = 0;
+		dependSubpass.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependSubpass.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
 		VkRenderPassCreateInfo renderpassInfo = {};
 		renderpassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 		renderpassInfo.pAttachments = &colorAttatch;
 		renderpassInfo.attachmentCount = 1;
 		renderpassInfo.pSubpasses = &colorSubpassDesc;
 		renderpassInfo.subpassCount = 1;
+		renderpassInfo.pDependencies = &dependSubpass;
+		renderpassInfo.dependencyCount = 1;
 
 		vkCreateRenderPass(pContext->device, &renderpassInfo, nullptr, &swapchain.renderpass);
 		
@@ -428,6 +438,131 @@ namespace MarkTech
 		vkQueuePresentKHR(pContext->graphicsQueue, &info);
 	}
 
+	ShaderModule CreateShaderModule(const GraphicsContext* pContext, const ShaderCreateInfo* pInfo)
+	{
+		ShaderModule shader = {};
+		VkShaderModuleCreateInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+		info.codeSize = pInfo->sizeInBytes;
+		info.pCode = pInfo->pCode;
+		vkCreateShaderModule(pContext->device, &info, nullptr, &shader.shader);
+		return shader;
+	}
+
+	void DestroyShaderModule(const GraphicsContext* pContext, ShaderModule* pShader)
+	{
+		vkDestroyShaderModule(pContext->device, pShader->shader, nullptr);
+	}
+
+	GraphicsPipeline CreateGraphicsPipeline(const GraphicsContext* pContext, const GraphicsPipelineCreateInfo* pInfo)
+	{
+		//////////////////////////////////////////////////
+		/// TODO: use pInfo to configue pipeline creation
+		//////////////////////////////////////////////////
+
+		GraphicsPipeline pipeline = {};
+
+		VkPipelineShaderStageCreateInfo shaders[MT_MAX_PIPELINE_SHADERS] = {};
+		for (U32 i = 0; i < pInfo->shaderCount; i++)
+		{
+			VkShaderStageFlagBits shaderStage = VK_SHADER_STAGE_COMPUTE_BIT;
+			switch (pInfo->pShaders[i].stage)
+			{
+			case SHADER_STAGES_FRAGMENT:
+				shaderStage = VK_SHADER_STAGE_FRAGMENT_BIT;
+				break;
+			case SHADER_STAGES_VERTEX:
+				shaderStage = VK_SHADER_STAGE_VERTEX_BIT;
+				break;
+			}
+
+			shaders[i].module = pInfo->pShaders[i].shader.shader;
+			shaders[i].pName = pInfo->pShaders[i].pEntrypoint;
+			shaders[i].stage = shaderStage;
+		}
+
+		VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
+		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+		if (vkCreatePipelineLayout(pContext->device, &pipelineLayoutInfo, nullptr, &pipeline.pipelineLayout) != VK_SUCCESS)
+			return pipeline;
+
+		VkDynamicState state[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+		VkPipelineDynamicStateCreateInfo dynamicStateInfo = {};
+		dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+		dynamicStateInfo.pDynamicStates = state;
+		dynamicStateInfo.dynamicStateCount = 2;
+
+		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
+		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+
+		VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo = {};
+		inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+		inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+		VkPipelineViewportStateCreateInfo viewportStateInfo = {};
+		viewportStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+		viewportStateInfo.viewportCount = 1;
+		viewportStateInfo.scissorCount = 1;
+
+		VkPipelineRasterizationStateCreateInfo rasterizerInfo = {};
+		rasterizerInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+		rasterizerInfo.polygonMode = VK_POLYGON_MODE_FILL;
+		rasterizerInfo.lineWidth = 1.0f;
+		rasterizerInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+		rasterizerInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+
+		VkPipelineMultisampleStateCreateInfo multisamplingInfo = {};
+		multisamplingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+		multisamplingInfo.sampleShadingEnable = VK_FALSE;
+		multisamplingInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+		multisamplingInfo.minSampleShading = 1.0f; // Optional
+		multisamplingInfo.pSampleMask = nullptr; // Optional
+		multisamplingInfo.alphaToCoverageEnable = VK_FALSE; // Optional
+		multisamplingInfo.alphaToOneEnable = VK_FALSE; // Optional
+
+		VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
+		colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+		colorBlendAttachment.blendEnable = VK_TRUE;
+		colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+		colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+		colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+		colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+		VkPipelineColorBlendStateCreateInfo colorBlending = {};
+		colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+		colorBlending.logicOpEnable = VK_FALSE;
+		colorBlending.attachmentCount = 1;
+		colorBlending.pAttachments = &colorBlendAttachment;
+
+		VkGraphicsPipelineCreateInfo pipelineInfo = {};
+		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		pipelineInfo.layout = pipeline.pipelineLayout;
+		pipelineInfo.pStages = shaders;
+		pipelineInfo.stageCount = pInfo->shaderCount;
+		pipelineInfo.pColorBlendState = &colorBlending;
+		pipelineInfo.pDynamicState = &dynamicStateInfo;
+		pipelineInfo.pInputAssemblyState = &inputAssemblyInfo;
+		pipelineInfo.pMultisampleState = &multisamplingInfo;
+		pipelineInfo.pRasterizationState = &rasterizerInfo;
+		pipelineInfo.pVertexInputState = &vertexInputInfo;
+
+		if (vkCreateGraphicsPipelines(pContext->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline.pipeline) == VK_SUCCESS)
+			return pipeline;
+
+		pipeline.pipelineLayout = VK_NULL_HANDLE;
+		vkDestroyPipelineLayout(pContext->device, pipeline.pipelineLayout, nullptr);
+
+		return pipeline;
+	}
+
+	void DestroyGraphicsPipeline(const GraphicsContext* pContext, GraphicsPipeline* pPipeline)
+	{
+		vkDestroyPipeline(pContext->device, pPipeline->pipeline, nullptr);
+		vkDestroyPipelineLayout(pContext->device, pPipeline->pipelineLayout, nullptr);
+	}
+
 	CommandBufferPool CreateCommandBufferPool(const GraphicsContext* pContext)
 	{
 		CommandBufferPool pool = {};
@@ -452,14 +587,12 @@ namespace MarkTech
 	CommandBuffer AllocateCommandBuffer(const GraphicsContext* pContext, const CommandBufferPool* pPool)
 	{
 		CommandBuffer buffer = {};
-
 		VkCommandBufferAllocateInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		info.commandBufferCount = 1;
 		info.commandPool = pPool->commandPool;
 		info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		vkAllocateCommandBuffers(pContext->device, &info, &buffer.commandBuffer);
-
 		return buffer;
 	}
 
@@ -505,15 +638,17 @@ namespace MarkTech
 			info.signalSemaphoreCount = signalSemaphoreCount;
 			info.pWaitSemaphores = waitSemaphores;
 			info.waitSemaphoreCount = waitSemaphoreCount;
-			VkPipelineStageFlags mask = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
-			info.pWaitDstStageMask = &mask;
+			///////////////////////////////////////////////
+			/// TODO: Make pWaitDstStageMask a paramater
+			///////////////////////////////////////////////
+			//VkPipelineStageFlags mask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			//info.pWaitDstStageMask = &mask;
 
 			for (U32 i = 0; i < waitSemaphoreCount; i++)
 				waitSemaphores[i] = pWaitSemaphores[i].semaphore;
 
 			for (U32 i = 0; i < signalSemaphoreCount; i++)
 				signalSemaphores[i] = pWaitSemaphores[i].semaphore;
-
 			
 			vkQueueSubmit(pContext->graphicsQueue, 1, &info, fence);
 			return;

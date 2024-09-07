@@ -31,6 +31,7 @@ namespace MarkTech
 		ResetFences(&pRenderer->context, &pRenderer->frameInFlight, 1);
 		AquireNextSwapchainImage(&pRenderer->context, &pRenderer->swapchain, &pRenderer->imageAvalible, nullptr);
 
+		ResetCommandBuffer(&pRenderer->commandBuffer);
 		BeginCommandBufferRecording(&pRenderer->commandBuffer);
 		CmdBindSwapchainFramebuffer(&pRenderer->commandBuffer, &pRenderer->swapchain);
 		CmdEndFramebuffer(&pRenderer->commandBuffer);

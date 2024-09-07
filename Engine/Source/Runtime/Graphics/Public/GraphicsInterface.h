@@ -11,6 +11,7 @@ namespace MarkTech
 #define MT_MAX_SWAPCHAIN_IMAGES 2
 #define MT_MAX_SEMAPHORES 16
 #define MT_MAX_FENCES 16
+#define MT_MAX_PIPELINE_SHADERS 8
 	struct SwapchainDetails
 	{
 		VkSurfaceCapabilitiesKHR caps;
@@ -46,10 +47,40 @@ namespace MarkTech
 		VkRenderPass renderpass;
 	};
 
-	struct Pipeline
+	enum ShaderStage : U8
+	{
+		SHADER_STAGES_VERTEX = 0x02,
+		SHADER_STAGES_FRAGMENT = 0x04
+	};
+
+	struct ShaderCreateInfo
+	{
+		U32* pCode;
+		U64 sizeInBytes;
+	};
+
+	struct ShaderModule
+	{
+		VkShaderModule shader;
+	};
+
+	struct ShaderStageInfo
+	{
+		ShaderModule shader;
+		const char* pEntrypoint;
+		ShaderStage stage;
+	};
+
+	struct GraphicsPipelineCreateInfo
+	{
+		ShaderStageInfo* pShaders;
+		U32 shaderCount;
+	};
+
+	struct GraphicsPipeline
 	{
 		VkPipeline pipeline;
-		VkPipelineLayout pipelineLayput;
+		VkPipelineLayout pipelineLayout;
 	};
 
 	struct CommandBufferPool
@@ -107,6 +138,12 @@ namespace MarkTech
 	void DestroySwapchain(const GraphicsContext* pContext, Swapchain* pSwapchain);
 	void AquireNextSwapchainImage(const GraphicsContext* pContext, Swapchain* pSwapchain, GraphicsSemaphore* pSignalSemaphore, GraphicsFence* pSignalFence);
 	void PresentSwapchainImage(const GraphicsContext* pContext, Swapchain* pSwapchain, GraphicsSemaphore* pWaitSemaphores, U32 waitSemaphoreCount);
+
+	ShaderModule CreateShaderModule(const GraphicsContext* pContext, const ShaderCreateInfo* pInfo);
+	void DestroyShaderModule(const GraphicsContext* pContext, ShaderModule* pShader);
+
+	GraphicsPipeline CreateGraphicsPipeline(const GraphicsContext* pContext, const GraphicsPipelineCreateInfo* pInfo);
+	void DestroyGraphicsPipeline(const GraphicsContext* pContext, GraphicsPipeline* pPipeline);
 
 	CommandBufferPool CreateCommandBufferPool(const GraphicsContext* pContext);
 	void DestroyCommandBufferPool(const GraphicsContext* pContext, CommandBufferPool* pPool);
