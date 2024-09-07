@@ -26,7 +26,7 @@ namespace MarkTech
 
 	bool LoadPackage(const char* pFilepath);
 	void LoadResource(U32 resourceId);
-	void* GetResourcePtr(U32 resourceId);
+	ResourceEntry* GetResourceEntry(U32 resourceId);
 	void UnloadAllResources();
 	void ReadFromPackage(U32 packageIndex, U64 offsetToBlob, void* pBuffer, U64 resourceSize);
 	void InitResourceManager(PoolAllocator* pEntryAllocator, PoolAllocator* pPackageEntryAllocator, StackAllocator* pResourceAllocator);

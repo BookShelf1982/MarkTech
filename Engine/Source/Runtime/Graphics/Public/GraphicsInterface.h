@@ -34,6 +34,11 @@ namespace MarkTech
 		VkQueue graphicsQueue;
 	};
 
+	struct RenderPass
+	{
+		VkRenderPass renderpass;
+	};
+
 	struct Swapchain
 	{
 		U32 framebufferIndex;
@@ -44,7 +49,7 @@ namespace MarkTech
 		VkImage swapchainImages[MT_MAX_SWAPCHAIN_IMAGES];
 		VkImageView swapchainImageViews[MT_MAX_SWAPCHAIN_IMAGES];
 		VkFramebuffer framebuffers[MT_MAX_SWAPCHAIN_IMAGES];
-		VkRenderPass renderpass;
+		VkRenderPass renderPass;
 	};
 
 	enum ShaderStage : U8
@@ -75,6 +80,7 @@ namespace MarkTech
 	{
 		ShaderStageInfo* pShaders;
 		U32 shaderCount;
+		RenderPass renderPass;
 	};
 
 	struct GraphicsPipeline
@@ -123,6 +129,13 @@ namespace MarkTech
 		VkSemaphore semaphore;
 	};
 
+	struct ViewportScissor
+	{
+		F32 x, y, width, height;
+		U32 extentX, extentY;
+		I32 offsetX, offsetY;
+	};
+
 	GraphicsContext CreateGraphicsContext(const GraphicsContextCreateInfo* pInfo);
 	void DestroyGraphicsContext(GraphicsContext* pContext);
 
@@ -163,4 +176,7 @@ namespace MarkTech
 
 	void CmdBindSwapchainFramebuffer(CommandBuffer* pCmdBuffer, const Swapchain* pSwapchain);
 	void CmdEndFramebuffer(CommandBuffer* pCmdBuffer);
+	void CmdBindPipeline(CommandBuffer* pCmdBuffer, const GraphicsPipeline* pPipeline);
+	void CmdDraw(CommandBuffer* pCmdBuffer, U32 offset, U32 length);
+	void CmdSetViewportScissor(CommandBuffer* pCmdBuffer, const ViewportScissor* pViewportScissor);
 }

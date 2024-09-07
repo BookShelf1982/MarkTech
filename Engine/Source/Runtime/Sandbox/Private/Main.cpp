@@ -117,11 +117,19 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	StackAllocator resourceDataAlloc = CreateStackAllocator(MEGABYTE);
 
 	InitResourceManager(&resourceEntryAlloc, &packageEntryAlloc, &resourceDataAlloc);
+	LoadPackage("pak_with_shaders.mpk");
+	LoadResource(409959939);
+	LoadResource(2191277796);
 
 	// GameWorld Creation
 	GameWorld gameWorld = CreateGameWorld(2048);
 
 	Renderer2D renderer = InitRenderer2D(&window); // Initialize the renderer
+	ResourceEntry* shaderEntry = GetResourceEntry(409959939);
+	LoadShader(&renderer, (U32*)shaderEntry->pData, shaderEntry->resourceSize);
+	shaderEntry = GetResourceEntry(2191277796);
+	LoadShader(&renderer, (U32*)shaderEntry->pData, shaderEntry->resourceSize);
+	CreatePipeline(&renderer);
 
 	// Game Loop
 	while (gIsRunning)

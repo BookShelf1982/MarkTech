@@ -3,6 +3,7 @@
 #include <File.h>
 #include <string.h>
 #include <random>
+#include "TypeEvaluation.h"
 
 namespace MarkTech
 {
@@ -44,7 +45,7 @@ namespace MarkTech
 			}
 
 			// Write the type and size of the asset and it's offset to blob
-			AssetType assetType = EvaluateAssetType(compiledFileList.ppList[i]);
+			AssetType assetType = EvaluateCompiledAssetType(compiledFileList.ppList[i]);
 			File assetFile = FOpen(filepath, FileAccessType::READ);
 			FClose(&assetFile);
 

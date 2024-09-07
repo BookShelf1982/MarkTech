@@ -32,6 +32,11 @@ namespace MarkTech
 		memset(pAllocator->pMemory, 0, (pPrevPtr - pAllocator->pCursor));
 	}
 
+	void ClearStack(StackAllocator* pAllocator)
+	{
+		memset(pAllocator->pMemory, 0, pAllocator->allocatedSize);
+	}
+
 	void FreeStackAllocator(StackAllocator* pAllocator)
 	{
 		free(pAllocator->pMemory);

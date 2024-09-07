@@ -1,5 +1,5 @@
 #include "AssetCompiler.h"
-#include "AssetTypes.h"
+#include <TypeEvaluation.h>
 
 #include <Path.h>
 #include <string.h>
@@ -8,7 +8,7 @@ namespace MarkTech
 {
 	void CompileAsset(const char* pFilepath, const char* pOutputPath)
 	{
-		AssetType assetType = EvaluateAssetType(pFilepath);
+		AssetType assetType = EvaluateCompiledAssetType(pFilepath);
 		char outputFilePath[MAX_PATH_LENGTH] = "";
 		strcpy_s(outputFilePath, pOutputPath);
 		strcat_s(outputFilePath, "int\\");
@@ -21,7 +21,7 @@ namespace MarkTech
 			CompileTextFile(outputFilePath, pFilepath);
 		}
 		return;
-		case AssetType::TEXTURE2D:
+		case AssetType::SHADER:
 		{
 
 		}

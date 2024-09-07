@@ -98,6 +98,8 @@ namespace MarkTech
 
 	GraphicsContext CreateGraphicsContext(const GraphicsContextCreateInfo* pInfo)
 	{
+		VkResult result = volkInitialize();
+
 		GraphicsContext context = {};
 
 		// Instance Creation
@@ -107,7 +109,7 @@ namespace MarkTech
 		appInfo.applicationVersion = VK_MAKE_VERSION(pInfo->appInfo.majorVersion, pInfo->appInfo.minorVersion, pInfo->appInfo.patchVersion);
 		appInfo.pEngineName = "MarkTech";
 		appInfo.engineVersion = VK_MAKE_VERSION(MT_MAJOR_VERSION, MT_MINOR_VERSION, MT_PATCH_VERSION);
-		appInfo.apiVersion = VK_VERSION_1_2;
+		appInfo.apiVersion = VK_VERSION_1_3;
 
 		VkInstanceCreateInfo instanceInfo = {};
 		instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -118,6 +120,9 @@ namespace MarkTech
 
 		U32 layerCount = 0;
 		char* layers[8] = {};
+
+		extensions[extensionCount] = VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME;
+		extensionCount++;
 
 		if (pInfo->flags & GRAPHICS_CONTEXT_FLAGS_USE_WINDOW)
 		{
@@ -143,9 +148,8 @@ namespace MarkTech
 		instanceInfo.ppEnabledLayerNames = layers;
 		instanceInfo.enabledLayerCount = layerCount;
 
-		volkInitialize();
-
-		if (vkCreateInstance(&instanceInfo, nullptr, &context.instance) != VK_SUCCESS)
+		result = vkCreateInstance(&instanceInfo, nullptr, &context.instance);
+		if (result != VK_SUCCESS)
 		{
 			return context;
 		}
@@ -211,7 +215,9 @@ namespace MarkTech
 	void DestroyGraphicsContext(GraphicsContext* pContext)
 	{
 		vkDestroyDevice(pContext->device, nullptr);
+#ifdef DEBUG
 		vkDestroyDebugUtilsMessengerEXT(pContext->instance, pContext->messenger, nullptr);
+#endif
 		vkDestroyInstance(pContext->instance, nullptr);
 		volkFinalize();
 	}
@@ -253,7 +259,7 @@ namespace MarkTech
 		for (U32 i = 0; i < fenceCount; i++)
 			fences[i] = pFences[i].fence;
 
-		vkWaitForFences(pContext->device, fenceCount, fences, VK_TRUE, U64_MAX);
+		vkWaitForFences(pContext->device, fenceCount, fences, VK_TRUE, UINT64_MAX);
 	}
 
 	void ResetFences(const GraphicsContext* pContext, GraphicsFence* pFences, U32 fenceCount)
@@ -373,13 +379,13 @@ namespace MarkTech
 		renderpassInfo.pDependencies = &dependSubpass;
 		renderpassInfo.dependencyCount = 1;
 
-		vkCreateRenderPass(pContext->device, &renderpassInfo, nullptr, &swapchain.renderpass);
+		vkCreateRenderPass(pContext->device, &renderpassInfo, nullptr, &swapchain.renderPass);
 		
 		for (U32 i = 0; i < swapchain.swapchainImageCount; i++)
 		{
 			VkFramebufferCreateInfo framebufferInfo = {};
 			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			framebufferInfo.renderPass = swapchain.renderpass;
+			framebufferInfo.renderPass = swapchain.renderPass;
 			framebufferInfo.pAttachments = &swapchain.swapchainImageViews[i];
 			framebufferInfo.attachmentCount = 1;
 			framebufferInfo.width = details.caps.currentExtent.width;
@@ -397,7 +403,7 @@ namespace MarkTech
 		for (U32 i = 0; i < pSwapchain->swapchainImageCount; i++)
 			vkDestroyFramebuffer(pContext->device, pSwapchain->framebuffers[i], nullptr);
 
-		vkDestroyRenderPass(pContext->device, pSwapchain->renderpass, nullptr);
+		vkDestroyRenderPass(pContext->device, pSwapchain->renderPass, nullptr);
 
 		for (U32 i = 0; i < pSwapchain->swapchainImageCount; i++)
 			vkDestroyImageView(pContext->device, pSwapchain->swapchainImageViews[i], nullptr);
@@ -476,6 +482,7 @@ namespace MarkTech
 				break;
 			}
 
+			shaders[i].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			shaders[i].module = pInfo->pShaders[i].shader.shader;
 			shaders[i].pName = pInfo->pShaders[i].pEntrypoint;
 			shaders[i].stage = shaderStage;
@@ -509,7 +516,7 @@ namespace MarkTech
 		rasterizerInfo.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizerInfo.lineWidth = 1.0f;
 		rasterizerInfo.cullMode = VK_CULL_MODE_BACK_BIT;
-		rasterizerInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+		rasterizerInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
 		VkPipelineMultisampleStateCreateInfo multisamplingInfo = {};
 		multisamplingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
@@ -547,6 +554,9 @@ namespace MarkTech
 		pipelineInfo.pMultisampleState = &multisamplingInfo;
 		pipelineInfo.pRasterizationState = &rasterizerInfo;
 		pipelineInfo.pVertexInputState = &vertexInputInfo;
+		pipelineInfo.pViewportState = &viewportStateInfo;
+		pipelineInfo.renderPass = pInfo->renderPass.renderpass;
+		pipelineInfo.subpass = 0;
 
 		if (vkCreateGraphicsPipelines(pContext->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline.pipeline) == VK_SUCCESS)
 			return pipeline;
@@ -641,14 +651,14 @@ namespace MarkTech
 			///////////////////////////////////////////////
 			/// TODO: Make pWaitDstStageMask a paramater
 			///////////////////////////////////////////////
-			//VkPipelineStageFlags mask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			//info.pWaitDstStageMask = &mask;
+			VkPipelineStageFlags mask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			info.pWaitDstStageMask = &mask;
 
 			for (U32 i = 0; i < waitSemaphoreCount; i++)
 				waitSemaphores[i] = pWaitSemaphores[i].semaphore;
 
 			for (U32 i = 0; i < signalSemaphoreCount; i++)
-				signalSemaphores[i] = pWaitSemaphores[i].semaphore;
+				signalSemaphores[i] = pSignalSemaphores[i].semaphore;
 			
 			vkQueueSubmit(pContext->graphicsQueue, 1, &info, fence);
 			return;
@@ -665,7 +675,7 @@ namespace MarkTech
 		VkClearValue value = {};
 		info.pClearValues = &value;
 		info.framebuffer = pSwapchain->framebuffers[pSwapchain->framebufferIndex];
-		info.renderPass = pSwapchain->renderpass;
+		info.renderPass = pSwapchain->renderPass;
 		info.renderArea.extent = pSwapchain->framebufferExtent;
 		info.renderArea.offset = { 0, 0 };
 
@@ -675,5 +685,34 @@ namespace MarkTech
 	void CmdEndFramebuffer(CommandBuffer* pCmdBuffer)
 	{
 		vkCmdEndRenderPass(pCmdBuffer->commandBuffer);
+	}
+
+	void CmdBindPipeline(CommandBuffer* pCmdBuffer, const GraphicsPipeline* pPipeline)
+	{
+		vkCmdBindPipeline(pCmdBuffer->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipeline->pipeline);
+	}
+
+	void CmdDraw(CommandBuffer* pCmdBuffer, U32 offset, U32 length)
+	{
+		vkCmdDraw(pCmdBuffer->commandBuffer, length, 1, offset, 0);
+	}
+
+	void CmdSetViewportScissor(CommandBuffer* pCmdBuffer, const ViewportScissor* pViewportScissor)
+	{
+		VkViewport viewport = {};
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+		viewport.height = pViewportScissor->height;
+		viewport.width = pViewportScissor->width;
+		viewport.x = pViewportScissor->x;
+		viewport.y = pViewportScissor->y;
+		
+		VkRect2D rect = {};
+		rect.offset = { pViewportScissor->offsetX, pViewportScissor->offsetY };
+		rect.extent.width = pViewportScissor->extentX;
+		rect.extent.height = pViewportScissor->extentY;
+
+		vkCmdSetViewport(pCmdBuffer->commandBuffer, 0, 1, &viewport);
+		vkCmdSetScissor(pCmdBuffer->commandBuffer, 0, 1, &rect);
 	}
 }

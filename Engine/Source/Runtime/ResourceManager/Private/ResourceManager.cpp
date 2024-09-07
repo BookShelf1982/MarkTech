@@ -39,7 +39,7 @@ namespace MarkTech
 				ResourceEntry* pLastEntry = gpFirstResourceEntry;
 				while (pLastEntry->pNext != nullptr)
 				{
-					pLastEntry->pNext = pLastEntry;
+					pLastEntry = pLastEntry->pNext;
 				}
 
 				pLastEntry->pNext = pEntry;
@@ -86,7 +86,7 @@ namespace MarkTech
 		}
 	}
 
-	void* GetResourcePtr(U32 resourceId)
+	ResourceEntry* GetResourceEntry(U32 resourceId)
 	{
 		ResourceEntry* pEntry = gpFirstResourceEntry;
 		while (pEntry != nullptr) // loop through resources
@@ -94,13 +94,18 @@ namespace MarkTech
 			if (pEntry->resourceId == resourceId)
 			{
 				// return resource ptr
-				return pEntry->pData;
+				return pEntry;
 			}
 
 			pEntry = pEntry->pNext;
 		}
 
 		return nullptr;
+	}
+
+	void UnloadAllResources()
+	{
+		ClearStack(gpResourceDataAlloc);
 	}
 
 	void ReadFromPackage(U32 packageIndex, U64 offsetToBlob, void* pBuffer, U64 resourceSize)

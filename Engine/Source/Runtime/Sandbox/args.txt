@@ -1,0 +1,1 @@
+-buildpackage -assetlist C:\MarkTech\BUILD\list.mat -outputpath C:\MarkTech\BUILD\out\ -pakname pak_with_shaders

@@ -6,8 +6,7 @@ namespace MarkTech
 	enum class AssetType : U16
 	{
 		ANSI_TEXT_FILE,
-		TEXTURE2D
+		TEXTURE2D,
+		SHADER
 	};
-
-	AssetType EvaluateAssetType(const char* pPath);
 }
