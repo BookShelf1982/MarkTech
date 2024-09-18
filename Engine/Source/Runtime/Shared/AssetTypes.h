@@ -3,10 +3,11 @@
 
 namespace MarkTech
 {
-	enum class AssetType : U16
+	enum class AssetType : U32
 	{
 		ANSI_TEXT_FILE,
 		TEXTURE2D,
-		SHADER
+		SHADER,
+		EFFECTS
 	};
 }

@@ -24,6 +24,12 @@ namespace MarkTech
 		PackageEntry* pNext;
 	};
 
+	struct StringTableEntry
+	{
+		char assetName[128];
+		U32 assetId;
+	};
+
 	bool LoadPackage(const char* pFilepath);
 	void LoadResource(U32 resourceId);
 	ResourceEntry* GetResourceEntry(U32 resourceId);

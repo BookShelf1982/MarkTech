@@ -36,6 +36,66 @@ void WindowEventHandler(WindowEvent event, U64 param, U64 param2)
 	}
 }
 
+void BuildPackage(const CommandLineArgs* pArgs)
+{
+	MarkPakPFNList pfnList = {};
+
+#ifdef MT_PLATFORM_WINDOWS
+	HMODULE markPak = LoadLibraryA("MarkPak.dll");
+	if (markPak == nullptr)
+	{
+		WindowMessage(nullptr, L"MarkTech Error!", L"Failed to find MarkPak.dll in your game install!");
+		return;
+	}
+#endif
+
+	PFN_GetMarkPakFunctions func = (PFN_GetMarkPakFunctions)GetProcAddress(markPak, "GetMarkPakFunctions");
+	func(&pfnList);
+
+	char inputFile[MAX_PATH_LENGTH] = "";
+	char outputPath[MAX_PATH_LENGTH] = "";
+	char pakName[128] = "";
+	U8 flags = 0;
+
+	for (I32 i = 1; i < pArgs->argCount; i++)
+	{
+		if (ArgCompare(pArgs, i, L"-assetlist"))
+		{
+			i++;
+			U64 charsConverted = 0;
+			wcstombs_s(&charsConverted, inputFile, pArgs->pArgList[i], wcslen(pArgs->pArgList[i]));
+			continue;
+		}
+
+		if (ArgCompare(pArgs, i, L"-outputpath"))
+		{
+			i++;
+			U64 charsConverted = 0;
+			wcstombs_s(&charsConverted, outputPath, pArgs->pArgList[i], wcslen(pArgs->pArgList[i]));
+			continue;
+		}
+
+		if (ArgCompare(pArgs, i, L"-pakname"))
+		{
+			i++;
+			U64 charsConverted = 0;
+			wcstombs_s(&charsConverted, pakName, pArgs->pArgList[i], wcslen(pArgs->pArgList[i]));
+			continue;
+		}
+	}
+
+	if (!(strlen(inputFile) || strlen(outputPath) || strlen(pakName)))
+	{
+		return;
+	}
+
+	pfnList.pfnCompileAndPackageAssets(inputFile, outputPath, pakName);
+
+#ifdef MT_PLATFORM_WINDOWS
+	FreeLibrary(markPak);
+#endif
+}
+
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
 	// Command Line Args
@@ -43,58 +103,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	if (ArgCompare(&cmdArgs, 1, L"-buildpackage"))
 	{
-		// TODO: build package using MarkPak.dll
-		MarkPakPFNList pfnList = {};
-		HMODULE markPak = LoadLibraryA("MarkPak.dll");
-		if (markPak == nullptr)
-		{
-			WindowMessage(nullptr, L"MarkTech Error!", L"Failed to find MarkPak.dll in your game install!");
-			FreeCommandLineArgs(&cmdArgs);
-			return 1;
-		}
-
-		PFN_GetMarkPakFunctions func = (PFN_GetMarkPakFunctions)GetProcAddress(markPak, "GetMarkPakFunctions");
-		func(&pfnList);
-
-		char inputFile[MAX_PATH_LENGTH] = "";
-		char outputPath[MAX_PATH_LENGTH] = "";
-		char pakName[128] = "";
-
-		for (I32 i = 1; i < cmdArgs.argCount; i++)
-		{
-			if (ArgCompare(&cmdArgs, i, L"-assetlist"))
-			{
-				i++;
-				U64 charsConverted = 0;
-				wcstombs_s(&charsConverted, inputFile, cmdArgs.pArgList[i], wcslen(cmdArgs.pArgList[i]));
-				continue;
-			}
-
-			if (ArgCompare(&cmdArgs, i, L"-outputpath"))
-			{
-				i++;
-				U64 charsConverted = 0;
-				wcstombs_s(&charsConverted, outputPath, cmdArgs.pArgList[i], wcslen(cmdArgs.pArgList[i]));
-				continue;
-			}
-
-			if (ArgCompare(&cmdArgs, i, L"-pakname"))
-			{
-				i++;
-				U64 charsConverted = 0;
-				wcstombs_s(&charsConverted, pakName, cmdArgs.pArgList[i], wcslen(cmdArgs.pArgList[i]));
-				continue;
-			}
-		}
-
-		if (!(strlen(inputFile) || strlen(outputPath) || strlen(pakName)))
-		{
-			return 1;
-		}
-
-		pfnList.pfnCompileAndPackageAssets(inputFile, outputPath, pakName);
-
-		FreeLibrary(markPak);
+		BuildPackage(&cmdArgs);
 		FreeCommandLineArgs(&cmdArgs);
 #ifdef DEBUG
 		_CrtDumpMemoryLeaks();
@@ -110,7 +119,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	// Window Creation
 	SetWindowEventHandler(WindowEventHandler);
 	Window window = MakeWindow(L"MarkTech 2024", 800, 600);
-	
+
 	// Resource Manager Creation
 	PoolAllocator resourceEntryAlloc = CreatePoolAllocator(sizeof(ResourceEntry), 1024);
 	PoolAllocator packageEntryAlloc = CreatePoolAllocator(sizeof(PackageEntry), 128);

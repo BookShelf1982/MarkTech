@@ -6,6 +6,7 @@ namespace MarkTech
 	PoolAllocator* gpResourceEntryAlloc = nullptr;
 	PoolAllocator* gpPackageEntryAlloc = nullptr;
 	StackAllocator* gpResourceDataAlloc = nullptr;
+	PoolAllocator gStringTableAlloc = {};
 	ResourceEntry* gpFirstResourceEntry = nullptr;
 	PackageEntry* gpFirstPackageEntry = nullptr;
 	U16 gPackageCount = 0;
@@ -17,7 +18,20 @@ namespace MarkTech
 			return false;
 
 		U64 entryCount = 0;
+		U32 packageFlags = 0;
 		FRead(&file, (char*)&entryCount, sizeof(U64));
+		FRead(&file, (char*)&packageFlags, sizeof(U32));
+		
+		// if package flags has the string table flag then read string table
+		if (packageFlags & 0x01)
+		{
+			U64 stringCount = 0;
+			FRead(&file, (char*)&stringCount, sizeof(U64)); // Read the amount of string table entries
+			for (U64 i = 0; i < stringCount; i++)
+			{
+
+			}
+		}
 
 		for (U32 i = 0; i < entryCount; i++)
 		{

@@ -7,12 +7,28 @@ namespace MarkTech
 	File FOpen(const char* pFilepath, FileAccessType accessType)
 	{
 		// Create directory if it doesn't exist
-		{ 
-			char path[MAX_PATH_LENGTH] = "";
-			GetFullPathNameA(pFilepath, MAX_PATH_LENGTH, path, NULL);
-			PathRemoveFileSpecA(path);
-			if (!PathFileExistsA(path))
-				CreateDirectoryA(path, nullptr);
+		{
+			char filepath[MAX_PATH_LENGTH] = "";
+			strcpy_s(filepath, pFilepath);
+			char folder[MAX_PATH_LENGTH] = "";
+			char* end;
+
+			end = strchr(filepath, '\\');
+
+			while (end != NULL)
+			{
+				strncpy_s(folder, filepath, end - filepath + 1);
+				if (!CreateDirectoryA(folder, NULL))
+				{
+					DWORD err = GetLastError();
+
+					if (err != ERROR_ALREADY_EXISTS)
+					{
+						// do whatever handling you'd like
+					}
+				}
+				end = strchr(++end, L'\\');
+			}
 		}
 
 		File file = {};

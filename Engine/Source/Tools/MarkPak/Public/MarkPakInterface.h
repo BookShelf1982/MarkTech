@@ -1,16 +1,23 @@
 #pragma once
 #include <DLLUTLS.h>
+#include <PrimitiveTypes.h>
 
-typedef void (*PFN_CompileAsset)(const char* pFilepath, const char* pOutputPath);
-typedef void (*PFN_PackageCompiledAssets)(const char* pOutputPath, const char* pPackageName);
 typedef void (*PFN_CompileAndPackageAssets)(const char* pInputFilepath, const char* pOutputPath, const char* pPackageName);
+typedef void* (*PFN_CreatePoolAllocator)(MarkTech::U64 blockSize, MarkTech::U64 blockCount);
+typedef void* (*PFN_AllocFromPool)(void* pAllocator);
+typedef void (*PFN_FreeToPool)(void* pAllocator, void* ptr);
+typedef void (*PFN_FreePoolAllocator)(void* pAllocator);
 
 struct MarkPakPFNList
 {
-	PFN_CompileAsset pfnCompileAsset;
-	PFN_PackageCompiledAssets pfnPackageCompiledAssets;
 	PFN_CompileAndPackageAssets pfnCompileAndPackageAssets;
+	PFN_CreatePoolAllocator pfnCreatePoolAllocator;
+	PFN_AllocFromPool pfnAllocFromPool;
+	PFN_FreeToPool pfnFreeToPool;
+	PFN_FreePoolAllocator pfnFreePoolAllocator;
 };
+
+extern MarkPakPFNList gpfnList;
 
 typedef void (*PFN_GetMarkPakFunctions)(MarkPakPFNList* pPfnList);
 

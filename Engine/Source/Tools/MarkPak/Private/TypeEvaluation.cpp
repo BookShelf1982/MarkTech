@@ -13,7 +13,8 @@ namespace MarkTech
     static ExtensionTypeUnion compiledExtensionTypes[] = {
         {".txt", AssetType::ANSI_TEXT_FILE},
         {".tex", AssetType::TEXTURE2D},
-        {".spv", AssetType::SHADER}
+        {".spv", AssetType::SHADER},
+        {".mfx", AssetType::EFFECTS}
     };
 
     static U64 compiledExtensionTypesSize = sizeof(compiledExtensionTypes) / sizeof(ExtensionTypeUnion);
@@ -22,10 +23,29 @@ namespace MarkTech
         {".txt", AssetType::ANSI_TEXT_FILE},
         {".png", AssetType::TEXTURE2D},
         {".jpg", AssetType::TEXTURE2D},
+        {".mfx", AssetType::EFFECTS},
+        {".spv", AssetType::SHADER},
     };
 
     static U64 extensionTypeRelationsSize = sizeof(extensionTypeRelations) / sizeof(ExtensionTypeUnion);
 
+    char* GetAssetTypeExtension(AssetType type)
+    {
+        for (U64 i = 0; i < extensionTypeRelationsSize; i++)
+        {
+            if (type == extensionTypeRelations[i].assetType)
+                return extensionTypeRelations[i].extension;
+        }
+    }
+
+    char* GetCompiledAssetTypeExtension(AssetType type)
+    {
+        for (U64 i = 0; i < compiledExtensionTypesSize; i++)
+        {
+            if (type == compiledExtensionTypes[i].assetType)
+                return compiledExtensionTypes[i].extension;
+        }
+    }
 
     AssetType EvaluateAssetType(const char* pPath)
     {

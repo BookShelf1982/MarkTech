@@ -28,6 +28,7 @@ project "SandboxApp"
 	filter "configurations:Debug"
        defines { "DEBUG", "MT_ENABLE_ASSERTS" }
        symbols "On"
+	   debugdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
 		
 	filter "configurations:Release"
 		defines { "NDEBUG" }

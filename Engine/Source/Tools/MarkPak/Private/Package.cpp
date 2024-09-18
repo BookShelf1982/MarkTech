@@ -1,66 +1,82 @@
 #include "Package.h"
-
-#include <File.h>
-#include <string.h>
-#include <random>
 #include "TypeEvaluation.h"
+#include <File.h>
+
+#include <stdio.h>
 
 namespace MarkTech
 {
-	void PackageCompiledAssets(const char* pOutputPath, const char* pPackageName)
+	PackageResult PackageCompiledAssets(const PackageCompiledAssetsCreateInfo* pInfo)
 	{
-		// Package all compiled assets
-		char outputPackagePath[MAX_PATH_LENGTH] = "";
-		strcpy_s(outputPackagePath, pOutputPath);
-		strcat_s(outputPackagePath, pPackageName);
-		strcat_s(outputPackagePath, ".mpk");
+		// Write file
+		char outputFilepath[MAX_PATH_LENGTH] = "";
+		strcpy_s(outputFilepath, pInfo->pOutputPath);
+		strcat_s(outputFilepath, pInfo->pPackageName);
+		strcat_s(outputFilepath, ".mpk");
+		File packageFile = FOpen(outputFilepath, FileAccessType::WRITE);
+		if (!packageFile.isOpened)
+			return PR_FILE_ERROR;
 
-		File packageFile = FOpen(outputPackagePath, FileAccessType::WRITE); // Create new package file
 		U64 offsetToBlob = 0;
 
-		char compiledFilepath[MAX_PATH_LENGTH] = "";
-		strcpy_s(compiledFilepath, pOutputPath);
-		strcat_s(compiledFilepath, "int\\");
-
-		FileList compiledFileList = FindAllFilesInPath(compiledFilepath); // Get all the compiled assets
-		FWrite(&packageFile, (char*)&compiledFileList.listCount, sizeof(U64)); // Write the amount of compiled assets
-
-		// Calculate the offset to blob
-		offsetToBlob += sizeof(U64);
-		offsetToBlob += (20 + sizeof(AssetType)) * compiledFileList.listCount;
-
-		// Fill package entry list with compiled assets
-		for (U32 i = 0; i < compiledFileList.listCount; i++)
+		// Write package metadata
+		// If pSignature exists then write signature
+		if (pInfo->packageMetadata.signature)
 		{
-			char filepath[MAX_PATH_LENGTH] = "";
-			strcpy_s(filepath, compiledFilepath);
-			strcat_s(filepath, compiledFileList.ppList[i]);
-
-			// Write asset id
-			{
-				std::random_device rd;
-				std::uniform_int_distribution<U32> dist;
-				U32 id = dist(rd); // generate random number
-				FWrite(&packageFile, (char*)&id, sizeof(U32)); // write id
-			}
-
-			// Write the type and size of the asset and it's offset to blob
-			AssetType assetType = EvaluateCompiledAssetType(compiledFileList.ppList[i]);
-			File assetFile = FOpen(filepath, FileAccessType::READ);
-			FClose(&assetFile);
-
-			FWrite(&packageFile, (char*)&assetType, sizeof(AssetType));
-			FWrite(&packageFile, (char*)&assetFile.size, sizeof(U64));
-			FWrite(&packageFile, (char*)&offsetToBlob, sizeof(U64));
-			offsetToBlob += assetFile.size;
+			U8 stringLength = (U8)strlen((const char*)pInfo->packageMetadata.signature);
+			FWrite(&packageFile, (char*)&stringLength, sizeof(U8));
+			FWrite(&packageFile, (char*)pInfo->packageMetadata.signature, stringLength);
+			offsetToBlob += (1 + stringLength);
+		}
+		else
+		{
+			U8 stringLength = 0;
+			FWrite(&packageFile, (char*)&stringLength, sizeof(U8));
+			offsetToBlob += 1;
 		}
 
-		// Write asset data to file (This is the 'blob' that previous comments were talking about)
-		for (U32 i = 0; i < compiledFileList.listCount; i++)
+		// Write the number of assets
+		FWrite(&packageFile, (char*)&pInfo->pAssetTable->entryCount, sizeof(U64));
+		// Write the bitflags
+		FWrite(&packageFile, (char*)&pInfo->packageFlags, sizeof(U32));
+
+		// If packageFlags has PACKAGE_FLAGS_STRINGTABLE then write string table
+		FWrite(&packageFile, (char*)&pInfo->pAssetTable->entryCount, sizeof(U32)); // write the amount of elements in string table
+		offsetToBlob += 16;
+		for (U64 i = 0; i < pInfo->pAssetTable->entryCount; i++)
+		{
+			char filename[128] = "";
+			strcpy_s(filename, GetFilename(pInfo->pAssetTable->pEntries[i].assetFilepath));
+			ChangeExtension(filename, GetCompiledAssetTypeExtension(pInfo->pAssetTable->pEntries[i].type));
+			// Write the asset id
+			FWrite(&packageFile, (char*)&pInfo->pAssetTable->pEntries[i].assetId, sizeof(U32));
+			// Write the asset name
+			U8 stringLength = (U8)strlen((const char*)filename);
+			FWrite(&packageFile, (char*)&stringLength, sizeof(U8));
+			FWrite(&packageFile, (char*)filename, stringLength);
+			offsetToBlob += (1U + stringLength) + 4;
+		}
+
+		// Write the package entries
+		for (U64 i = 0; i < pInfo->pAssetTable->entryCount; i++)
+		{
+			FWrite(&packageFile, (char*)&pInfo->pAssetTable->pEntries[i].assetId, sizeof(U32)); // asset id
+			FWrite(&packageFile, (char*)&pInfo->pAssetTable->pEntries[i].type, sizeof(AssetType)); // asset type
+			FWrite(&packageFile, (char*)&pInfo->pAssetTable->pEntries[i].assetSize, sizeof(U64)); // asset size
+			FWrite(&packageFile, (char*)&offsetToBlob, sizeof(U64)); // offset to blob/asset data
+			offsetToBlob += 16;
+		}
+
+		// Write the asset data
+		for (U32 i = 0; i < pInfo->pAssetTable->entryCount; i++)
 		{
 			char filepath[MAX_PATH_LENGTH] = "";
-			strcpy_s(filepath, compiledFilepath);
-			strcat_s(filepath, compiledFileList.ppList[i]);
+			char strNumber[16] = "";
+			strcpy_s(filepath, pInfo->pOutputPath);
+			strcat_s(filepath, "int\\");
+			sprintf_s(strNumber, "%u", pInfo->pAssetTable->pEntries[i].assetId);
+			strcat_s(filepath, strNumber);
+			strcat_s(filepath, GetCompiledAssetTypeExtension(pInfo->pAssetTable->pEntries[i].type));
 
 			File file = FOpen(filepath, FileAccessType::READ);
 			char* pAssetData = (char*)malloc(file.size);
@@ -72,6 +88,7 @@ namespace MarkTech
 		}
 
 		FClose(&packageFile);
-		FileListFree(&compiledFileList);
+
+		return PR_SUCCESS;
 	}
 }

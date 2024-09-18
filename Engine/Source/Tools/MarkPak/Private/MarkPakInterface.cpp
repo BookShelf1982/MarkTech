@@ -1,43 +1,36 @@
 #include "MarkPakInterface.h"
-#include <AssetCompiler.h>
-#include <Package.h>
-#include <File.h>
+#include "AssetTable.h"
+#include "AssetCompiler.h"
+#include "Package.h"
 
-void CompileAndPackageAssets(const char* pInputFilepath, const char* pOutputPath, const char* pPackageName)
+#include <string.h>
+MarkPakPFNList gpfnList = {};
+
+namespace MarkTech
 {
-	using namespace MarkTech;
-	// Read asset table
-	File assetTableFile = FOpen(pInputFilepath, FileAccessType::READ);
-	if (!assetTableFile.isOpened)
-		return;
-
-	char* pAssetTableContents = (char*)malloc(assetTableFile.size + 1);
-	FRead(&assetTableFile, pAssetTableContents, assetTableFile.size);
-	FClose(&assetTableFile);
-	pAssetTableContents[assetTableFile.size] = '\0';
-
-	// Compile all assets
-	char* pToken = nullptr;
-	char* pNextToken = pAssetTableContents;
-	char delimiters[] = "\r\n\0";
-
-	while (pNextToken[0] != '\0')
+	void CompileAndPackageAssets(const char* pFileList, const char* pOutputPath, const char* pPakName)
 	{
-		pToken = strtok_s(pNextToken, delimiters, &pNextToken); // Get filepath to asset
+		// Get asset table from asset list file
+		AssetTable table = CreateAssetTableFromAssetList(pFileList);
+		// Compile assets
+		CompileAsset(&table, pOutputPath);
 
-		// Compile Asset
-		CompileAsset(pToken, pOutputPath);
+		// Package compiled assets
+		PackageCompiledAssetsCreateInfo info = {};
+		info.pOutputPath = pOutputPath;
+		info.pPackageName = pPakName;
+		info.packageFlags = PACKAGE_FLAGS_STRINGTABLE;
+		info.pAssetTable = &table;
+		strcpy_s(info.packageMetadata.signature, "MarkTech-VeggieTales-McBingus");
+		PackageCompiledAssets(&info);
+
+		// Destroy objects
+		FreeAssetTable(&table);
 	}
-
-	free(pAssetTableContents); // Free the asset table
-
-	// Package all compiled assets
-	PackageCompiledAssets(pOutputPath, pPackageName);
 }
 
 void GetMarkPakFunctions(MarkPakPFNList* pPfnList)
 {
-	pPfnList->pfnCompileAsset = MarkTech::CompileAsset;
-	pPfnList->pfnPackageCompiledAssets = MarkTech::PackageCompiledAssets;
-	pPfnList->pfnCompileAndPackageAssets = CompileAndPackageAssets;
+	pPfnList->pfnCompileAndPackageAssets = MarkTech::CompileAndPackageAssets;
+	gpfnList = *pPfnList;
 }
