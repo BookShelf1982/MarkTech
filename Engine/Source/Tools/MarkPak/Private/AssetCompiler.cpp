@@ -34,7 +34,7 @@ namespace MarkTech
 		FClose(&outFile);
 		
 		free(pData);
-		pEntry->assetSize = outFile.size;
+		pEntry->assetSize = file.size;
 		return CR_SUCCESS;
 	}
 
@@ -67,7 +67,7 @@ namespace MarkTech
 		FClose(&outFile);
 
 		free(pData);
-		pEntry->assetSize = outFile.size;
+		pEntry->assetSize = file.size;
 		return CR_SUCCESS;
 	}
 

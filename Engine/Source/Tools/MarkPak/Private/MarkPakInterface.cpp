@@ -8,10 +8,11 @@ MarkPakPFNList gpfnList = {};
 
 namespace MarkTech
 {
-	void CompileAndPackageAssets(const char* pFileList, const char* pOutputPath, const char* pPakName)
+	void CompileAndPackageAssets(const char* pFileList, const char* pOutputPath, const char* pPakName, const char* pSignature, U32 flags)
 	{
 		// Get asset table from asset list file
 		AssetTable table = CreateAssetTableFromAssetList(pFileList);
+		
 		// Compile assets
 		CompileAsset(&table, pOutputPath);
 
@@ -19,9 +20,9 @@ namespace MarkTech
 		PackageCompiledAssetsCreateInfo info = {};
 		info.pOutputPath = pOutputPath;
 		info.pPackageName = pPakName;
-		info.packageFlags = PACKAGE_FLAGS_STRINGTABLE;
+		info.packageFlags = flags;
 		info.pAssetTable = &table;
-		strcpy_s(info.packageMetadata.signature, "MarkTech-VeggieTales-McBingus");
+		strcpy_s(info.packageMetadata.signature, pSignature);
 		PackageCompiledAssets(&info);
 
 		// Destroy objects

@@ -2,7 +2,7 @@
 #include <DLLUTLS.h>
 #include <PrimitiveTypes.h>
 
-typedef void (*PFN_CompileAndPackageAssets)(const char* pInputFilepath, const char* pOutputPath, const char* pPackageName);
+typedef void (*PFN_CompileAndPackageAssets)(const char* pFileList, const char* pOutputPath, const char* pPakName, const char * pSignature, MarkTech::U32 flags);
 typedef void* (*PFN_CreatePoolAllocator)(MarkTech::U64 blockSize, MarkTech::U64 blockCount);
 typedef void* (*PFN_AllocFromPool)(void* pAllocator);
 typedef void (*PFN_FreeToPool)(void* pAllocator, void* ptr);

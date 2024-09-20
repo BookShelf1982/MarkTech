@@ -5,10 +5,11 @@ namespace MarkTech
 {
 	PoolAllocator* gpResourceEntryAlloc = nullptr;
 	PoolAllocator* gpPackageEntryAlloc = nullptr;
+	PoolAllocator* gpStringTableAlloc = nullptr;
 	StackAllocator* gpResourceDataAlloc = nullptr;
-	PoolAllocator gStringTableAlloc = {};
 	ResourceEntry* gpFirstResourceEntry = nullptr;
 	PackageEntry* gpFirstPackageEntry = nullptr;
+	StringTableEntry* gpFirstStringTableEntry = nullptr;
 	U16 gPackageCount = 0;
 
 	bool LoadPackage(const char* pFilepath)
@@ -19,17 +20,45 @@ namespace MarkTech
 
 		U64 entryCount = 0;
 		U32 packageFlags = 0;
+		// Skip package signature
+		U8 signatureLen = 0;
+		FRead(&file, (char*)&signatureLen, 1);
+		if (signatureLen != 0)
+			FSeek(&file, signatureLen, SeekOrigin::CURRENT);
+
 		FRead(&file, (char*)&entryCount, sizeof(U64));
 		FRead(&file, (char*)&packageFlags, sizeof(U32));
-		
+
 		// if package flags has the string table flag then read string table
 		if (packageFlags & 0x01)
 		{
 			U64 stringCount = 0;
-			FRead(&file, (char*)&stringCount, sizeof(U64)); // Read the amount of string table entries
+			FRead(&file, (char*)&stringCount, sizeof(U32)); // Read the amount of string table entries
 			for (U64 i = 0; i < stringCount; i++)
 			{
+				// Read entries
+				StringTableEntry* pEntry = (StringTableEntry*)AllocFromPool(gpStringTableAlloc);
+				pEntry->pNext = nullptr;
 
+				FRead(&file, (char*)&pEntry->assetId, sizeof(U32));
+				U8 strLen = 0;
+				FRead(&file, (char*)&strLen, sizeof(U8));
+				FRead(&file, (char*)pEntry->assetName, strLen);
+				pEntry->assetName[strLen] = 0;
+
+				// add to list
+				if (!gpFirstStringTableEntry)
+					gpFirstStringTableEntry = pEntry;
+				else
+				{
+					StringTableEntry* pLastEntry = gpFirstStringTableEntry;
+					while (pLastEntry->pNext != nullptr)
+					{
+						pLastEntry = pLastEntry->pNext;
+					}
+
+					pLastEntry->pNext = pEntry;
+				}
 			}
 		}
 
@@ -94,6 +123,7 @@ namespace MarkTech
 				// Load resource from package
 				pEntry->pData = AllocFromStack(gpResourceDataAlloc, pEntry->resourceSize);
 				ReadFromPackage(pEntry->packageId, pEntry->offsetToBlob, pEntry->pData, pEntry->resourceSize);
+				return;
 			}
 
 			pEntry = pEntry->pNext;
@@ -137,11 +167,30 @@ namespace MarkTech
 		}
 	}
 
-	void InitResourceManager(PoolAllocator* pEntryAllocator, PoolAllocator* pPackageEntryAllocator, StackAllocator* pResourceAllocator)
+	U32 GetIdWithString(const char* pStr)
+	{
+		StringTableEntry* pEntry = gpFirstStringTableEntry;
+		while (pEntry != nullptr)
+		{
+			if (strcmp(pStr, pEntry->assetName) == 0)
+				return pEntry->assetId;
+
+			pEntry = pEntry->pNext;
+		}
+		return 0;
+	}
+
+	void InitResourceManager(
+		PoolAllocator* pEntryAllocator, 
+		PoolAllocator* pPackageEntryAllocator, 
+		PoolAllocator* pStringTableEntryAllocator, 
+		StackAllocator* pResourceAllocator
+	)
 	{
 		gpResourceEntryAlloc = pEntryAllocator;
 		gpPackageEntryAlloc = pPackageEntryAllocator;
 		gpResourceDataAlloc = pResourceAllocator;
+		gpStringTableAlloc = pStringTableEntryAllocator;
 	}
 
 	void ShutdownResourceManager()
@@ -154,6 +203,7 @@ namespace MarkTech
 			pEntry = pEntry->pNext;
 		}
 
+		FreePoolAllocator(gpStringTableAlloc);
 		FreePoolAllocator(gpResourceEntryAlloc);
 		FreePoolAllocator(gpPackageEntryAlloc);
 		FreeStackAllocator(gpResourceDataAlloc);

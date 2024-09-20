@@ -28,6 +28,7 @@ namespace MarkTech
 	{
 		char assetName[128];
 		U32 assetId;
+		StringTableEntry* pNext;
 	};
 
 	bool LoadPackage(const char* pFilepath);
@@ -35,6 +36,12 @@ namespace MarkTech
 	ResourceEntry* GetResourceEntry(U32 resourceId);
 	void UnloadAllResources();
 	void ReadFromPackage(U32 packageIndex, U64 offsetToBlob, void* pBuffer, U64 resourceSize);
-	void InitResourceManager(PoolAllocator* pEntryAllocator, PoolAllocator* pPackageEntryAllocator, StackAllocator* pResourceAllocator);
+	U32 GetIdWithString(const char* pStr);
+	void InitResourceManager(
+		PoolAllocator* pEntryAllocator,
+		PoolAllocator* pPackageEntryAllocator,
+		PoolAllocator* pStringTableEntryAllocator,
+		StackAllocator* pResourceAllocator
+	);
 	void ShutdownResourceManager();
 }

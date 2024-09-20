@@ -54,8 +54,9 @@ void BuildPackage(const CommandLineArgs* pArgs)
 
 	char inputFile[MAX_PATH_LENGTH] = "";
 	char outputPath[MAX_PATH_LENGTH] = "";
+	char signature[32] = "";
 	char pakName[128] = "";
-	U8 flags = 0;
+	U32 flags = 0;
 
 	for (I32 i = 1; i < pArgs->argCount; i++)
 	{
@@ -64,7 +65,7 @@ void BuildPackage(const CommandLineArgs* pArgs)
 			i++;
 			U64 charsConverted = 0;
 			wcstombs_s(&charsConverted, inputFile, pArgs->pArgList[i], wcslen(pArgs->pArgList[i]));
-			continue;
+			i++;
 		}
 
 		if (ArgCompare(pArgs, i, L"-outputpath"))
@@ -72,7 +73,7 @@ void BuildPackage(const CommandLineArgs* pArgs)
 			i++;
 			U64 charsConverted = 0;
 			wcstombs_s(&charsConverted, outputPath, pArgs->pArgList[i], wcslen(pArgs->pArgList[i]));
-			continue;
+			i++;
 		}
 
 		if (ArgCompare(pArgs, i, L"-pakname"))
@@ -80,7 +81,23 @@ void BuildPackage(const CommandLineArgs* pArgs)
 			i++;
 			U64 charsConverted = 0;
 			wcstombs_s(&charsConverted, pakName, pArgs->pArgList[i], wcslen(pArgs->pArgList[i]));
-			continue;
+			i++;
+		}
+
+		if (ArgCompare(pArgs, i, L"-s"))
+		{
+			i++;
+			U64 charsConverted = 0;
+			wcstombs_s(&charsConverted, signature, pArgs->pArgList[i], wcslen(pArgs->pArgList[i]));
+			i++;
+		}
+		
+		if (ArgCompare(pArgs, i, L"-d"))
+		{
+			i++;
+			U64 charsConverted = 0;
+			flags = 0x01;
+			i++;
 		}
 	}
 
@@ -89,7 +106,7 @@ void BuildPackage(const CommandLineArgs* pArgs)
 		return;
 	}
 
-	pfnList.pfnCompileAndPackageAssets(inputFile, outputPath, pakName);
+	pfnList.pfnCompileAndPackageAssets(inputFile, outputPath, pakName, signature, flags);
 
 #ifdef MT_PLATFORM_WINDOWS
 	FreeLibrary(markPak);
@@ -123,21 +140,27 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	// Resource Manager Creation
 	PoolAllocator resourceEntryAlloc = CreatePoolAllocator(sizeof(ResourceEntry), 1024);
 	PoolAllocator packageEntryAlloc = CreatePoolAllocator(sizeof(PackageEntry), 128);
+	PoolAllocator stringTableEntryAlloc = CreatePoolAllocator(sizeof(StringTableEntry), 256);
 	StackAllocator resourceDataAlloc = CreateStackAllocator(MEGABYTE);
 
-	InitResourceManager(&resourceEntryAlloc, &packageEntryAlloc, &resourceDataAlloc);
-	LoadPackage("pak_with_shaders.mpk");
-	LoadResource(409959939);
-	LoadResource(2191277796);
+	InitResourceManager(&resourceEntryAlloc, &packageEntryAlloc, &stringTableEntryAlloc, &resourceDataAlloc);
+	LoadPackage("content01.mpk");
+	U32 vertId = GetIdWithString("vert.spv");
+	U32 fragId = GetIdWithString("frag.spv");
+	U32 textId = GetIdWithString("text.txt");
+	LoadResource(textId);
+	LoadResource(vertId);
+	LoadResource(fragId);
+	ResourceEntry* pEntry = GetResourceEntry(textId);
 
 	// GameWorld Creation
 	GameWorld gameWorld = CreateGameWorld(2048);
 
 	Renderer2D renderer = InitRenderer2D(&window); // Initialize the renderer
-	ResourceEntry* shaderEntry = GetResourceEntry(409959939);
-	LoadShader(&renderer, (U32*)shaderEntry->pData, shaderEntry->resourceSize);
-	shaderEntry = GetResourceEntry(2191277796);
-	LoadShader(&renderer, (U32*)shaderEntry->pData, shaderEntry->resourceSize);
+	ResourceEntry* pShaderEntry = GetResourceEntry(vertId);
+	LoadShader(&renderer, (U32*)pShaderEntry->pData, pShaderEntry->resourceSize);
+	pShaderEntry = GetResourceEntry(fragId);
+	LoadShader(&renderer, (U32*)pShaderEntry->pData, pShaderEntry->resourceSize);
 	CreatePipeline(&renderer);
 
 	// Game Loop
