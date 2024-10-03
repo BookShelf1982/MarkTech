@@ -1,7 +1,7 @@
 #ifdef MT_PLATFORM_WINDOWS
 #include <Windows.h>
 #endif
-#ifdef  DEBUG
+#ifdef DEBUG
 #include <crtdbg.h>
 #endif
 
@@ -19,8 +19,13 @@
 #include <Math3D.h>
 #include <CmdArgs.h>
 #include <MarkPakInterface.h>
+#include <Thread.h>
+#include <ThreadSync.h>
 
 bool gIsRunning = true;
+MarkTech::Mutex gIsRunningMutex = {};
+const MarkTech::U32 tickRate = 15;
+static void* gpGameWorld = nullptr;
 
 using namespace MarkTech;
 
@@ -28,7 +33,12 @@ void WindowEventHandler(WindowEvent event, U64 param, U64 param2)
 {
 	switch (event)
 	{
-	case WindowEvent::WINDOW_CLOSE: { gIsRunning = false; } return;
+	case WindowEvent::WINDOW_CLOSE: 
+	{
+		LockMutex(&gIsRunningMutex);
+		gIsRunning = false; 
+		UnlockMutex(&gIsRunningMutex);
+	} return;
 	case WindowEvent::WINDOW_KEYCHANGED: { UpdateKeyboardState(ConvertWin32KeycodeToMarkTechKeycode(param), param2); } return;
 	case WindowEvent::WNIDOW_MOUSEPOS: { UpdateMousePos((I32)param, (I32)param2); } return;
 	case WindowEvent::WINDOW_MOUSEBUTTON: { UpdateMouseButtons((U8)param, param2); } return;
@@ -113,6 +123,31 @@ void BuildPackage(const CommandLineArgs* pArgs)
 #endif
 }
 
+I32 TickLoop()
+{
+	while (true)
+	{
+		LockMutex(&gIsRunningMutex);
+		const bool isRunning = gIsRunning;
+		UnlockMutex(&gIsRunningMutex);
+		if (!isRunning)
+			break;
+
+		U64 startTime = GetCurrentTimestamp();
+
+		TickGameWorld((GameWorld*)gpGameWorld);
+
+		U64 endTime = GetCurrentTimestamp();
+
+		U64 timeDiff = endTime - startTime;
+		U64 timeDuration = (U64)((F64)timeDiff * 1000.0 / (F64)GetCPUFrequency());
+		if (timeDuration < tickRate)
+			PutThreadToSleep((U32)(tickRate - timeDuration));
+	}
+
+	return 0;
+}
+
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
 	// Command Line Args
@@ -143,38 +178,52 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	PoolAllocator stringTableEntryAlloc = CreatePoolAllocator(sizeof(StringTableEntry), 256);
 	StackAllocator resourceDataAlloc = CreateStackAllocator(MEGABYTE);
 
-	InitResourceManager(&resourceEntryAlloc, &packageEntryAlloc, &stringTableEntryAlloc, &resourceDataAlloc);
-	LoadPackage("content01.mpk");
-	U32 vertId = GetIdWithString("vert.spv");
-	U32 fragId = GetIdWithString("frag.spv");
-	U32 textId = GetIdWithString("text.txt");
-	LoadResource(textId);
-	LoadResource(vertId);
-	LoadResource(fragId);
-	ResourceEntry* pEntry = GetResourceEntry(textId);
+	ResourceManagerInfo resourceManagerInfo = {};
+	resourceManagerInfo.pEntryAllocator = &resourceEntryAlloc;
+	resourceManagerInfo.pPackageEntryAllocator = &packageEntryAlloc;
+	resourceManagerInfo.pResourceAllocator = &resourceDataAlloc;
+	resourceManagerInfo.pStringTableEntryAllocator = &stringTableEntryAlloc;
+
+	ResourceManager resourceManager = CreateResourceManager(&resourceManagerInfo);
+	LoadPackage(&resourceManager, "content01.mpk");
+	U32 vertId = GetIdWithString(&resourceManager, "vert.spv");
+	U32 fragId = GetIdWithString(&resourceManager, "frag.spv");
+	LoadResource(&resourceManager, vertId);
+	LoadResource(&resourceManager, fragId);
 
 	// GameWorld Creation
 	GameWorld gameWorld = CreateGameWorld(2048);
+	gpGameWorld = &gameWorld;
 
 	Renderer2D renderer = InitRenderer2D(&window); // Initialize the renderer
-	ResourceEntry* pShaderEntry = GetResourceEntry(vertId);
+	ResourceEntry* pShaderEntry = GetResourceEntry(&resourceManager, vertId);
 	LoadShader(&renderer, (U32*)pShaderEntry->pData, pShaderEntry->resourceSize);
-	pShaderEntry = GetResourceEntry(fragId);
+	pShaderEntry = GetResourceEntry(&resourceManager, fragId);
 	LoadShader(&renderer, (U32*)pShaderEntry->pData, pShaderEntry->resourceSize);
 	CreatePipeline(&renderer);
 
-	// Game Loop
-	while (gIsRunning)
+	gIsRunningMutex = MakeMutex();
+	Thread tickLoop = MakeThread(TickLoop);
+
+	// Render Loop
+	while (true)
 	{
 		PollWindowMessages();
-		if (!gIsRunning)
+
+		LockMutex(&gIsRunningMutex);
+		const bool isRunning = gIsRunning;
+		UnlockMutex(&gIsRunningMutex);
+
+		if (!isRunning)
 			break;
+
 		RenderFrame(&renderer);
 	}
 
+	DestroyMutex(&gIsRunningMutex);
 	DestroyGameWorld(&gameWorld);
 	ShutdownRenderer2D(&renderer);
-	ShutdownResourceManager();
+	ShutdownResourceManager(&resourceManager);
 	KillWindow(&window);
 	ShutdownInputSystem();
 

@@ -3,6 +3,6 @@
 
 namespace MarkTech
 {
-	I64 GetCurrentTimestamp();
-	I64 GetCPUFrequency();
+	U64 GetCurrentTimestamp();
+	U64 GetCPUFrequency();
 }

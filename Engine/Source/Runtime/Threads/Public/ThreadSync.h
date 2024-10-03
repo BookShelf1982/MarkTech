@@ -8,13 +8,14 @@
 namespace MarkTech
 {
 #ifdef MT_PLATFORM_WINDOWS
-	struct Thread
+	struct Mutex
 	{
-		HANDLE hThread;
+		HANDLE hMutex;
 	};
 
-	Thread MakeThread(void* pStartAddress);
+	Mutex MakeMutex();
+	void LockMutex(Mutex* pMutex);
+	void UnlockMutex(Mutex* pMutex);
+	void DestroyMutex(Mutex* pMutex);
 #endif
-
-	void PutThreadToSleep(U32 miliseconds);
 }

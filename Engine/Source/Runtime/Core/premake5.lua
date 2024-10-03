@@ -10,7 +10,7 @@ project "Core"
 	includedirs { "Public/", IncludeDirs["Shared"] }
 	
 	defines { "MT_CORELIB" }
-	
+
 	filter "configurations:Debug"
        defines { "DEBUG", "MT_ENABLE_ASSERTS" }
        symbols "On"

@@ -74,7 +74,7 @@ namespace MarkTech
 	{
 		__m128 v1 = _mm_set_ps(0.0f, a.z, a.y, a.x);
 		__m128 v2 = _mm_set_ps(0.0f, b.z, b.y, b.x);
-		__m128 result = _mm_dp_ps(v1, v2, 0b01111111);
+		__m128 result = _mm_dp_ps(v1, v2, 0x7F);
 		alignas(16) float memory[4] = {};
 		_mm_store_ps(memory, result);
 		return memory[0];

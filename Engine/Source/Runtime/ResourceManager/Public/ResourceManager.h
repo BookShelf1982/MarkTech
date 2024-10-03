@@ -31,17 +31,32 @@ namespace MarkTech
 		StringTableEntry* pNext;
 	};
 
-	bool LoadPackage(const char* pFilepath);
-	void LoadResource(U32 resourceId);
-	ResourceEntry* GetResourceEntry(U32 resourceId);
-	void UnloadAllResources();
-	void ReadFromPackage(U32 packageIndex, U64 offsetToBlob, void* pBuffer, U64 resourceSize);
-	U32 GetIdWithString(const char* pStr);
-	void InitResourceManager(
-		PoolAllocator* pEntryAllocator,
-		PoolAllocator* pPackageEntryAllocator,
-		PoolAllocator* pStringTableEntryAllocator,
-		StackAllocator* pResourceAllocator
-	);
-	void ShutdownResourceManager();
+	struct ResourceManagerInfo
+	{
+		PoolAllocator* pEntryAllocator;
+		PoolAllocator* pPackageEntryAllocator;
+		PoolAllocator* pStringTableEntryAllocator;
+		StackAllocator* pResourceAllocator;	
+	};
+
+	struct ResourceManager
+	{
+		PoolAllocator* pResourceEntryAlloc;
+		PoolAllocator* pPackageEntryAlloc;
+		PoolAllocator* pStringTableAlloc;
+		StackAllocator* pResourceDataAlloc;
+		ResourceEntry* pFirstResourceEntry;
+		PackageEntry* pFirstPackageEntry;
+		StringTableEntry* pFirstStringTableEntry;
+		U16 packageCount;
+	};
+
+	bool LoadPackage(ResourceManager* pManager, const char* pFilepath);
+	void LoadResource(ResourceManager* pManager, U32 resourceId);
+	ResourceEntry* GetResourceEntry(ResourceManager* pManager, U32 resourceId);
+	void UnloadAllResources(ResourceManager* pManager);
+	void ReadFromPackage(ResourceManager* pManager, U32 packageIndex, U64 offsetToBlob, void* pBuffer, U64 resourceSize);
+	U32 GetIdWithString(ResourceManager* pManager, const char* pStr);
+	ResourceManager CreateResourceManager(const ResourceManagerInfo* pInfo);
+	void ShutdownResourceManager(ResourceManager* pManager);
 }

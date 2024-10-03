@@ -3,16 +3,7 @@
 
 namespace MarkTech
 {
-	PoolAllocator* gpResourceEntryAlloc = nullptr;
-	PoolAllocator* gpPackageEntryAlloc = nullptr;
-	PoolAllocator* gpStringTableAlloc = nullptr;
-	StackAllocator* gpResourceDataAlloc = nullptr;
-	ResourceEntry* gpFirstResourceEntry = nullptr;
-	PackageEntry* gpFirstPackageEntry = nullptr;
-	StringTableEntry* gpFirstStringTableEntry = nullptr;
-	U16 gPackageCount = 0;
-
-	bool LoadPackage(const char* pFilepath)
+	bool LoadPackage(ResourceManager* pManager, const char* pFilepath)
 	{
 		File file = FOpen(pFilepath, FileAccessType::READ);
 		if (!file.isOpened)
@@ -37,7 +28,7 @@ namespace MarkTech
 			for (U64 i = 0; i < stringCount; i++)
 			{
 				// Read entries
-				StringTableEntry* pEntry = (StringTableEntry*)AllocFromPool(gpStringTableAlloc);
+				StringTableEntry* pEntry = (StringTableEntry*)AllocFromPool(pManager->pStringTableAlloc);
 				pEntry->pNext = nullptr;
 
 				FRead(&file, (char*)&pEntry->assetId, sizeof(U32));
@@ -47,11 +38,11 @@ namespace MarkTech
 				pEntry->assetName[strLen] = 0;
 
 				// add to list
-				if (!gpFirstStringTableEntry)
-					gpFirstStringTableEntry = pEntry;
+				if (!pManager->pFirstStringTableEntry)
+					pManager->pFirstStringTableEntry = pEntry;
 				else
 				{
-					StringTableEntry* pLastEntry = gpFirstStringTableEntry;
+					StringTableEntry* pLastEntry = pManager->pFirstStringTableEntry;
 					while (pLastEntry->pNext != nullptr)
 					{
 						pLastEntry = pLastEntry->pNext;
@@ -64,22 +55,22 @@ namespace MarkTech
 
 		for (U32 i = 0; i < entryCount; i++)
 		{
-			ResourceEntry* pEntry = (ResourceEntry*)AllocFromPool(gpResourceEntryAlloc);
+			ResourceEntry* pEntry = (ResourceEntry*)AllocFromPool(pManager->pResourceEntryAlloc);
 			pEntry->pNext = nullptr;
 			pEntry->pData = nullptr;
 			
 			FRead(&file, (char*)&pEntry->resourceId, sizeof(U32)); // read resource id
-			pEntry->packageId = gPackageCount;
+			pEntry->packageId = pManager->packageCount;
 			FRead(&file, (char*)&pEntry->resourceType, sizeof(AssetType)); // read the resource type
 			FRead(&file, (char*)&pEntry->resourceSize, sizeof(U64)); // read the resource size
 			FRead(&file, (char*)&pEntry->offsetToBlob, sizeof(U64)); // read offset to blob
 
 			// add to list
-			if (!gpFirstResourceEntry)
-				gpFirstResourceEntry = pEntry;
+			if (!pManager->pFirstResourceEntry)
+				pManager->pFirstResourceEntry = pEntry;
 			else
 			{
-				ResourceEntry* pLastEntry = gpFirstResourceEntry;
+				ResourceEntry* pLastEntry = pManager->pFirstResourceEntry;
 				while (pLastEntry->pNext != nullptr)
 				{
 					pLastEntry = pLastEntry->pNext;
@@ -90,15 +81,15 @@ namespace MarkTech
 		}
 
 		// add to list
-		PackageEntry* pEntry = (PackageEntry*)AllocFromPool(gpPackageEntryAlloc);
+		PackageEntry* pEntry = (PackageEntry*)AllocFromPool(pManager->pPackageEntryAlloc);
 		pEntry->packageFile = file;
 		pEntry->pNext = nullptr;
 
-		if (!gpFirstPackageEntry)
-			gpFirstPackageEntry = pEntry;
+		if (!pManager->pFirstPackageEntry)
+			pManager->pFirstPackageEntry = pEntry;
 		else
 		{
-			PackageEntry* pLastEntry = gpFirstPackageEntry;
+			PackageEntry* pLastEntry = pManager->pFirstPackageEntry;
 			while (pLastEntry->pNext != nullptr)
 			{
 				pLastEntry->pNext = pLastEntry;
@@ -107,22 +98,22 @@ namespace MarkTech
 			pLastEntry->pNext = pEntry;
 		}
 
-		gPackageCount++; // increment the package counter
+		pManager->packageCount++; // increment the package counter
 
 		return true;
 	}
 
-	void LoadResource(U32 resourceId)
+	void LoadResource(ResourceManager* pManager, U32 resourceId)
 	{
 		// loop through the list of loaded assets
-		ResourceEntry* pEntry = gpFirstResourceEntry;
+		ResourceEntry* pEntry = pManager->pFirstResourceEntry;
 		while (pEntry != nullptr)
 		{
 			if (pEntry->resourceId == resourceId)
 			{
 				// Load resource from package
-				pEntry->pData = AllocFromStack(gpResourceDataAlloc, pEntry->resourceSize);
-				ReadFromPackage(pEntry->packageId, pEntry->offsetToBlob, pEntry->pData, pEntry->resourceSize);
+				pEntry->pData = AllocFromStack(pManager->pResourceDataAlloc, pEntry->resourceSize);
+				ReadFromPackage(pManager, pEntry->packageId, pEntry->offsetToBlob, pEntry->pData, pEntry->resourceSize);
 				return;
 			}
 
@@ -130,9 +121,9 @@ namespace MarkTech
 		}
 	}
 
-	ResourceEntry* GetResourceEntry(U32 resourceId)
+	ResourceEntry* GetResourceEntry(ResourceManager* pManager, U32 resourceId)
 	{
-		ResourceEntry* pEntry = gpFirstResourceEntry;
+		ResourceEntry* pEntry = pManager->pFirstResourceEntry;
 		while (pEntry != nullptr) // loop through resources
 		{
 			if (pEntry->resourceId == resourceId)
@@ -147,15 +138,15 @@ namespace MarkTech
 		return nullptr;
 	}
 
-	void UnloadAllResources()
+	void UnloadAllResources(ResourceManager* pManager)
 	{
-		ClearStack(gpResourceDataAlloc);
+		ClearStack(pManager->pResourceDataAlloc);
 	}
 
-	void ReadFromPackage(U32 packageIndex, U64 offsetToBlob, void* pBuffer, U64 resourceSize)
+	void ReadFromPackage(ResourceManager* pManager, U32 packageIndex, U64 offsetToBlob, void* pBuffer, U64 resourceSize)
 	{
-		PackageEntry* pEntry = gpFirstPackageEntry;
-		for (U32 i = 0; i < gPackageCount; i++)
+		PackageEntry* pEntry = pManager->pFirstPackageEntry;
+		for (U32 i = 0; i < pManager->packageCount; i++)
 		{
 			if (i == packageIndex)
 			{
@@ -167,9 +158,9 @@ namespace MarkTech
 		}
 	}
 
-	U32 GetIdWithString(const char* pStr)
+	U32 GetIdWithString(ResourceManager* pManager, const char* pStr)
 	{
-		StringTableEntry* pEntry = gpFirstStringTableEntry;
+		StringTableEntry* pEntry = pManager->pFirstStringTableEntry;
 		while (pEntry != nullptr)
 		{
 			if (strcmp(pStr, pEntry->assetName) == 0)
@@ -180,33 +171,30 @@ namespace MarkTech
 		return 0;
 	}
 
-	void InitResourceManager(
-		PoolAllocator* pEntryAllocator, 
-		PoolAllocator* pPackageEntryAllocator, 
-		PoolAllocator* pStringTableEntryAllocator, 
-		StackAllocator* pResourceAllocator
-	)
+	ResourceManager CreateResourceManager(const ResourceManagerInfo* info)
 	{
-		gpResourceEntryAlloc = pEntryAllocator;
-		gpPackageEntryAlloc = pPackageEntryAllocator;
-		gpResourceDataAlloc = pResourceAllocator;
-		gpStringTableAlloc = pStringTableEntryAllocator;
+		ResourceManager manager = {};
+		manager.pPackageEntryAlloc = info->pPackageEntryAllocator;
+		manager.pResourceDataAlloc = info->pResourceAllocator;
+		manager.pResourceEntryAlloc = info->pEntryAllocator;
+		manager.pStringTableAlloc = info->pStringTableEntryAllocator;
+		return manager;
 	}
 
-	void ShutdownResourceManager()
+	void ShutdownResourceManager(ResourceManager* pManager)
 	{
 		// Close all package files
-		PackageEntry* pEntry = gpFirstPackageEntry;
+		PackageEntry* pEntry = pManager->pFirstPackageEntry;
 		while (pEntry != nullptr)
 		{
 			FClose(&pEntry->packageFile);
 			pEntry = pEntry->pNext;
 		}
 
-		FreePoolAllocator(gpStringTableAlloc);
-		FreePoolAllocator(gpResourceEntryAlloc);
-		FreePoolAllocator(gpPackageEntryAlloc);
-		FreeStackAllocator(gpResourceDataAlloc);
+		FreePoolAllocator(pManager->pStringTableAlloc);
+		FreePoolAllocator(pManager->pResourceEntryAlloc);
+		FreePoolAllocator(pManager->pPackageEntryAlloc);
+		FreeStackAllocator(pManager->pResourceDataAlloc);
 	}
 
 }
