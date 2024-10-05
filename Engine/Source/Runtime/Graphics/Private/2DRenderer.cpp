@@ -19,9 +19,17 @@ namespace MarkTech
 		renderer.swapchain = CreateSwapchain(&renderer.context, pWindow);
 		renderer.cmdPool = CreateCommandBufferPool(&renderer.context);
 		renderer.commandBuffer = AllocateCommandBuffer(&renderer.context, &renderer.cmdPool);
-		renderer.finishedRendering = CreateGraphicsSemaphore(&renderer.context);
-		renderer.imageAvalible = CreateGraphicsSemaphore(&renderer.context);
-		renderer.frameInFlight = CreateGraphicsFence(&renderer.context, true);
+
+		renderer.bufferAllocator = AllocateDeviceAllocator(&renderer.context, MEGABYTE, ALLOCATION_TYPE_DEVICE);
+		renderer.tempAllocator = AllocateDeviceAllocator(&renderer.context, 64 * KILOBYTE, ALLOCATION_TYPE_APPLICATION);
+		
+		GraphicsBufferCreateInfo bufferInfo = {};
+		bufferInfo.dataSize = 1024;
+		bufferInfo.pAlloc = &renderer.tempAllocator;
+		bufferInfo.pData = nullptr;
+		bufferInfo.usage = BUFFER_USAGE_VERTEX_BUFFER;
+		GraphicsBuffer buffer = CreateGraphicsBuffer(&renderer.context, &bufferInfo);
+		DestroyGraphicsBuffer(&renderer.context, &buffer);
 
 		return renderer;
 	}
@@ -34,7 +42,7 @@ namespace MarkTech
 		};
 
 		GraphicsPipelineCreateInfo pipelineInfo = {};
-		pipelineInfo.renderPass.renderpass = pRenderer->swapchain.renderPass;
+		pipelineInfo.renderPass.renderPass = pRenderer->swapchain.renderPass;
 		pipelineInfo.pShaders = shaders;
 		pipelineInfo.shaderCount = 2;
 		pRenderer->pipeline = CreateGraphicsPipeline(&pRenderer->context, &pipelineInfo);
@@ -51,9 +59,7 @@ namespace MarkTech
 
 	void RenderFrame(Renderer2D* pRenderer)
 	{
-		WaitForFences(&pRenderer->context, &pRenderer->frameInFlight, 1);
-		ResetFences(&pRenderer->context, &pRenderer->frameInFlight, 1);
-		AquireNextSwapchainImage(&pRenderer->context, &pRenderer->swapchain, &pRenderer->imageAvalible, nullptr);
+		AquireNextSwapchainImage(&pRenderer->context, &pRenderer->swapchain);
 
 		ResetCommandBuffer(&pRenderer->commandBuffer);
 		BeginCommandBufferRecording(&pRenderer->commandBuffer);
@@ -72,21 +78,20 @@ namespace MarkTech
 		CmdDraw(&pRenderer->commandBuffer, 0, 3);
 		CmdEndFramebuffer(&pRenderer->commandBuffer);
 		EndCommandBufferRecording(&pRenderer->commandBuffer);
-		SubmitCommandBuffer(&pRenderer->context, &pRenderer->commandBuffer, &pRenderer->finishedRendering, 1, &pRenderer->imageAvalible, 1, &pRenderer->frameInFlight);
+		SubmitCommandBufferForSwapchain(&pRenderer->context, &pRenderer->commandBuffer, &pRenderer->swapchain);
 
-		PresentSwapchainImage(&pRenderer->context, &pRenderer->swapchain, &pRenderer->finishedRendering, 1);
+		PresentSwapchainImage(&pRenderer->context, &pRenderer->swapchain);
 	}
 
 	void ShutdownRenderer2D(Renderer2D* pRenderer)
 	{
 		vkDeviceWaitIdle(pRenderer->context.device);
+		FreeDeviceAllocator(&pRenderer->context, &pRenderer->tempAllocator);
+		FreeDeviceAllocator(&pRenderer->context, &pRenderer->bufferAllocator);
 
 		for (U32 i = 0; i < pRenderer->loadedShaders; i++)
 			DestroyShaderModule(&pRenderer->context, &pRenderer->shaders[i]);
 
-		DestroyGraphicsSemaphore(&pRenderer->context, &pRenderer->finishedRendering);
-		DestroyGraphicsSemaphore(&pRenderer->context, &pRenderer->imageAvalible);
-		DestroyGraphicsFence(&pRenderer->context, &pRenderer->frameInFlight);
 		DestroyGraphicsPipeline(&pRenderer->context, &pRenderer->pipeline);
 		FreeCommandBuffer(&pRenderer->context, &pRenderer->commandBuffer, &pRenderer->cmdPool);
 		DestroyCommandBufferPool(&pRenderer->context, &pRenderer->cmdPool);

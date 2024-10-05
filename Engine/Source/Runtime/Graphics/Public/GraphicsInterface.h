@@ -5,6 +5,7 @@
 #endif
 #include "Window.h"
 #include <volk.h>
+#include <PoolAllocator.h>
 
 namespace MarkTech
 {
@@ -36,7 +37,7 @@ namespace MarkTech
 
 	struct RenderPass
 	{
-		VkRenderPass renderpass;
+		VkRenderPass renderPass;
 	};
 
 	struct Swapchain
@@ -50,6 +51,9 @@ namespace MarkTech
 		VkImageView swapchainImageViews[MT_MAX_SWAPCHAIN_IMAGES];
 		VkFramebuffer framebuffers[MT_MAX_SWAPCHAIN_IMAGES];
 		VkRenderPass renderPass;
+		VkFence frameInFlight;
+		VkSemaphore imageAvalible;
+		VkSemaphore finishedRendering;
 	};
 
 	enum ShaderStage : U8
@@ -99,6 +103,48 @@ namespace MarkTech
 		VkCommandBuffer commandBuffer;
 	};
 
+	struct FreeMemory
+	{
+		VkDeviceAddress offset;
+		VkDeviceSize size;
+		FreeMemory* pNext;
+	};
+
+	struct DeviceAllocator
+	{
+		VkDeviceMemory deviceAllocation;
+		FreeMemory* pFreeBlocks;
+		PoolAllocator pool;
+	};
+
+	enum AllocationType
+	{
+		ALLOCATION_TYPE_DEVICE,
+		ALLOCATION_TYPE_APPLICATION
+	};
+
+	enum BufferUsage
+	{
+		BUFFER_USAGE_VERTEX_BUFFER = 0x1,
+		BUFFER_USAGE_INDEX_BUFFER = 0x2,
+		BUFFER_USAGE_UNIFORM_BUFFER = 0x4
+	};
+
+	struct GraphicsBufferCreateInfo
+	{
+		void* pData;
+		U64 dataSize;
+		BufferUsage usage;
+		DeviceAllocator* pAlloc;
+	};
+
+	struct GraphicsBuffer
+	{
+		VkBuffer buffer;
+		VkDeviceAddress offset;
+		DeviceAllocator* pAlloc;
+	};
+
 	struct AppInfo
 	{
 		const char* pAppName;
@@ -119,7 +165,7 @@ namespace MarkTech
 		U8 flags;
 	};
 
-	struct GraphicsFence
+	/*struct GraphicsFence
 	{
 		VkFence fence;
 	};
@@ -127,7 +173,7 @@ namespace MarkTech
 	struct GraphicsSemaphore
 	{
 		VkSemaphore semaphore;
-	};
+	};*/
 
 	struct ViewportScissor
 	{
@@ -139,24 +185,30 @@ namespace MarkTech
 	GraphicsContext CreateGraphicsContext(const GraphicsContextCreateInfo* pInfo);
 	void DestroyGraphicsContext(GraphicsContext* pContext);
 
-	GraphicsSemaphore CreateGraphicsSemaphore(const GraphicsContext* pContext);
+	/*GraphicsSemaphore CreateGraphicsSemaphore(const GraphicsContext* pContext);
 	void DestroyGraphicsSemaphore(const GraphicsContext* pContext, GraphicsSemaphore* pSemaphore);
 
 	GraphicsFence CreateGraphicsFence(const GraphicsContext* pContext, bool signaled);
 	void DestroyGraphicsFence(const GraphicsContext* pContext, GraphicsFence* pFence);
 	void WaitForFences(const GraphicsContext* pContext, GraphicsFence* pFences, U32 fenceCount);
-	void ResetFences(const GraphicsContext* pContext, GraphicsFence* pFences, U32 fenceCount);
+	void ResetFences(const GraphicsContext* pContext, GraphicsFence* pFences, U32 fenceCount);*/
 
 	Swapchain CreateSwapchain(const GraphicsContext* pContext, const Window* pWindow);
 	void DestroySwapchain(const GraphicsContext* pContext, Swapchain* pSwapchain);
-	void AquireNextSwapchainImage(const GraphicsContext* pContext, Swapchain* pSwapchain, GraphicsSemaphore* pSignalSemaphore, GraphicsFence* pSignalFence);
-	void PresentSwapchainImage(const GraphicsContext* pContext, Swapchain* pSwapchain, GraphicsSemaphore* pWaitSemaphores, U32 waitSemaphoreCount);
+	void AquireNextSwapchainImage(const GraphicsContext* pContext, Swapchain* pSwapchain);
+	void PresentSwapchainImage(const GraphicsContext* pContext, Swapchain* pSwapchain);
 
 	ShaderModule CreateShaderModule(const GraphicsContext* pContext, const ShaderCreateInfo* pInfo);
 	void DestroyShaderModule(const GraphicsContext* pContext, ShaderModule* pShader);
 
 	GraphicsPipeline CreateGraphicsPipeline(const GraphicsContext* pContext, const GraphicsPipelineCreateInfo* pInfo);
 	void DestroyGraphicsPipeline(const GraphicsContext* pContext, GraphicsPipeline* pPipeline);
+
+	DeviceAllocator AllocateDeviceAllocator(const GraphicsContext* pContext, U64 allocSize, AllocationType type);
+	void FreeDeviceAllocator(const GraphicsContext* pContext, DeviceAllocator* pAlloc);
+
+	GraphicsBuffer CreateGraphicsBuffer(const GraphicsContext* pContext, const GraphicsBufferCreateInfo* pInfo);
+	void DestroyGraphicsBuffer(const GraphicsContext* pContext, GraphicsBuffer* pBuffer);
 
 	CommandBufferPool CreateCommandBufferPool(const GraphicsContext* pContext);
 	void DestroyCommandBufferPool(const GraphicsContext* pContext, CommandBufferPool* pPool);
@@ -167,12 +219,9 @@ namespace MarkTech
 	void FreeCommandBuffer(const GraphicsContext* pContext, CommandBuffer* pCmdBuffer, const CommandBufferPool* pPool);
 	void BeginCommandBufferRecording(CommandBuffer* pCmdBuffer);
 	void EndCommandBufferRecording(CommandBuffer* pCmdBuffer);
-	void SubmitCommandBuffer(
-		const GraphicsContext* pContext, 
-		CommandBuffer* pCmdBuffer, 
-		GraphicsSemaphore* pSignalSemaphores, U32 signalSemaphore, 
-		GraphicsSemaphore* pWaitSemaphores, U32 waitSemaphoreCount,
-		GraphicsFence* pFence);
+
+	void SubmitCommandBufferForSwapchain(const GraphicsContext* pContext, CommandBuffer* pCmdBuffer, Swapchain* pSwapchain);
+	void SubmitCommandBuffer(const GraphicsContext* pContext, CommandBuffer* pCmdBuffer);
 
 	void CmdBindSwapchainFramebuffer(CommandBuffer* pCmdBuffer, const Swapchain* pSwapchain);
 	void CmdEndFramebuffer(CommandBuffer* pCmdBuffer);

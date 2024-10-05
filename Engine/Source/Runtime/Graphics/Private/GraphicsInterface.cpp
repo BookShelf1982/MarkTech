@@ -8,6 +8,7 @@ namespace MarkTech
 {
 #define MAX_GRAPHICS_DEVICES 4
 
+	/// VULKAN HELPER FUNCTIONS
 	VkBool32 DebugMessagengerCallback(
 		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, 
 		VkDebugUtilsMessageTypeFlagsEXT messageTypes, 
@@ -96,6 +97,21 @@ namespace MarkTech
 		return indices;
 	}
 
+	U32 FindMemoryTypeIndex(U32 typeFilter, VkPhysicalDevice physicalDevice, VkMemoryPropertyFlags properties) 
+	{
+		VkPhysicalDeviceMemoryProperties memoryProps;
+		vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProps);
+
+		for (uint32_t i = 0; i < memoryProps.memoryTypeCount; i++) 
+		{
+			if ((typeFilter & (1 << i)) && (memoryProps.memoryTypes[i].propertyFlags & properties) == properties) 
+				return i;
+		}
+
+		return 0;
+	}
+
+	// API FUNCTIONS
 	GraphicsContext CreateGraphicsContext(const GraphicsContextCreateInfo* pInfo)
 	{
 		VkResult result = volkInitialize();
@@ -222,7 +238,7 @@ namespace MarkTech
 		volkFinalize();
 	}
 
-	GraphicsSemaphore CreateGraphicsSemaphore(const GraphicsContext* pContext)
+	/*GraphicsSemaphore CreateGraphicsSemaphore(const GraphicsContext* pContext)
 	{
 		GraphicsSemaphore semaphore = {};
 		VkSemaphoreCreateInfo info = {};
@@ -269,7 +285,7 @@ namespace MarkTech
 			fences[i] = pFences[i].fence;
 
 		vkResetFences(pContext->device, fenceCount, fences);
-	}
+	}*/
 
 	Swapchain CreateSwapchain(const GraphicsContext* pContext, const Window* pWindow)
 	{
@@ -395,11 +411,27 @@ namespace MarkTech
 			vkCreateFramebuffer(pContext->device, &framebufferInfo, nullptr, &swapchain.framebuffers[i]);
 		}
 
+		VkSemaphoreCreateInfo semaphoreInfo = {};
+		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+		vkCreateSemaphore(pContext->device, &semaphoreInfo, nullptr, &swapchain.finishedRendering);
+		vkCreateSemaphore(pContext->device, &semaphoreInfo, nullptr, &swapchain.imageAvalible);
+
+		VkFenceCreateInfo fenceInfo = {};
+		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+		vkCreateFence(pContext->device, &fenceInfo, nullptr, &swapchain.frameInFlight);
+
 		return swapchain;
 	}
 
 	void DestroySwapchain(const GraphicsContext* pContext, Swapchain* pSwapchain)
 	{
+		vkDestroyFence(pContext->device, pSwapchain->frameInFlight, nullptr);
+		vkDestroySemaphore(pContext->device, pSwapchain->finishedRendering, nullptr);
+		vkDestroySemaphore(pContext->device, pSwapchain->imageAvalible, nullptr);
+
 		for (U32 i = 0; i < pSwapchain->swapchainImageCount; i++)
 			vkDestroyFramebuffer(pContext->device, pSwapchain->framebuffers[i], nullptr);
 
@@ -412,14 +444,14 @@ namespace MarkTech
 		vkDestroySurfaceKHR(pContext->instance, pSwapchain->windowSurface, nullptr);
 	}
 
-	void AquireNextSwapchainImage(const GraphicsContext* pContext, Swapchain* pSwapchain, GraphicsSemaphore* pSignalSemaphore, GraphicsFence* pSignalFence)
+	void AquireNextSwapchainImage(const GraphicsContext* pContext, Swapchain* pSwapchain)
 	{
-		VkFence fence = pSignalFence ? pSignalFence->fence : VK_NULL_HANDLE;
-		VkSemaphore semaphore = pSignalSemaphore ? pSignalSemaphore->semaphore : VK_NULL_HANDLE;
-		vkAcquireNextImageKHR(pContext->device, pSwapchain->swapchain, U64_MAX, semaphore, fence, &pSwapchain->framebufferIndex);
+		vkWaitForFences(pContext->device, 1, &pSwapchain->frameInFlight, VK_TRUE, U64_MAX);
+		vkResetFences(pContext->device, 1, &pSwapchain->frameInFlight);
+		vkAcquireNextImageKHR(pContext->device, pSwapchain->swapchain, U64_MAX, pSwapchain->imageAvalible, VK_NULL_HANDLE, &pSwapchain->framebufferIndex);
 	}
 
-	void PresentSwapchainImage(const GraphicsContext* pContext, Swapchain* pSwapchain, GraphicsSemaphore* pWaitSemaphores, U32 waitSemaphoreCount)
+	void PresentSwapchainImage(const GraphicsContext* pContext, Swapchain* pSwapchain)
 	{
 		VkPresentInfoKHR info = {};
 		info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -427,19 +459,8 @@ namespace MarkTech
 		info.pSwapchains = &pSwapchain->swapchain;
 		info.swapchainCount = 1;
 
-		if (pWaitSemaphores)
-		{
-			VkSemaphore semaphores[MT_MAX_SEMAPHORES] = {};
-			info.pWaitSemaphores = semaphores;
-			info.waitSemaphoreCount = waitSemaphoreCount;
-
-			for (U32 i = 0; i < waitSemaphoreCount; i++)
-			{
-				semaphores[i] = pWaitSemaphores[i].semaphore;
-			}
-			vkQueuePresentKHR(pContext->graphicsQueue, &info);
-			return;
-		}
+		info.pWaitSemaphores = &pSwapchain->finishedRendering;
+		info.waitSemaphoreCount = 1;
 
 		vkQueuePresentKHR(pContext->graphicsQueue, &info);
 	}
@@ -555,7 +576,7 @@ namespace MarkTech
 		pipelineInfo.pRasterizationState = &rasterizerInfo;
 		pipelineInfo.pVertexInputState = &vertexInputInfo;
 		pipelineInfo.pViewportState = &viewportStateInfo;
-		pipelineInfo.renderPass = pInfo->renderPass.renderpass;
+		pipelineInfo.renderPass = pInfo->renderPass.renderPass;
 		pipelineInfo.subpass = 0;
 
 		if (vkCreateGraphicsPipelines(pContext->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline.pipeline) == VK_SUCCESS)
@@ -571,6 +592,160 @@ namespace MarkTech
 	{
 		vkDestroyPipeline(pContext->device, pPipeline->pipeline, nullptr);
 		vkDestroyPipelineLayout(pContext->device, pPipeline->pipelineLayout, nullptr);
+	}
+
+	DeviceAllocator AllocateDeviceAllocator(const GraphicsContext* pContext, U64 allocSize, AllocationType type)
+	{
+		DeviceAllocator alloc = {};
+		alloc.pool = CreatePoolAllocator(sizeof(FreeMemory), 256);
+
+		VkPhysicalDeviceMemoryProperties memProps;
+		vkGetPhysicalDeviceMemoryProperties(pContext->physicalDevice, &memProps);
+
+		VkMemoryPropertyFlags requiredProperties = 0;
+		switch (type)
+		{
+		case ALLOCATION_TYPE_DEVICE:
+			requiredProperties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+			break;
+		case ALLOCATION_TYPE_APPLICATION:
+			requiredProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+			break;
+		}
+
+		U32 memIndex = 0;
+		U64 heapSize = 0;
+		for (U32 i = 0; i < memProps.memoryTypeCount; i++)
+		{
+			if (memProps.memoryTypes[i].propertyFlags & requiredProperties
+				&& heapSize < memProps.memoryHeaps[memProps.memoryTypes[i].heapIndex].size)
+			{
+				memIndex = i;
+				heapSize = memProps.memoryHeaps[memProps.memoryTypes[i].heapIndex].size;
+			}
+		}
+
+		VkMemoryAllocateInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		info.allocationSize = allocSize;
+		info.memoryTypeIndex = memIndex;
+
+		vkAllocateMemory(pContext->device, &info, nullptr, &alloc.deviceAllocation);
+
+		alloc.pFreeBlocks = (FreeMemory*)AllocFromPool(&alloc.pool);
+		alloc.pFreeBlocks->pNext = nullptr;
+		alloc.pFreeBlocks->size = allocSize;
+		alloc.pFreeBlocks->offset = 0;
+
+		return alloc;
+	}
+
+	void FreeDeviceAllocator(const GraphicsContext* pContext, DeviceAllocator* pAlloc)
+	{
+		vkFreeMemory(pContext->device, pAlloc->deviceAllocation, nullptr);
+		FreePoolAllocator(&pAlloc->pool);
+	}
+
+	void BindBufferToMemory(const GraphicsContext* pContext, DeviceAllocator* pAlloc, VkBuffer buffer, U64* pOffset)
+	{
+		VkMemoryRequirements memRequirements;
+		vkGetBufferMemoryRequirements(pContext->device, buffer, &memRequirements);
+		
+		// Find smallest block that can still fit the buffer into
+		FreeMemory* pBlock = pAlloc->pFreeBlocks;
+		FreeMemory* pBestFit = nullptr;
+		while (pBlock != nullptr)
+		{
+			if (pBlock->size == memRequirements.size)
+			{
+				pBestFit = pBlock;
+				break;
+			}
+
+			if (pBlock->size > memRequirements.size)
+			{
+				if (pBestFit)
+				{
+					if (pBestFit->size > pBlock->size)
+						pBestFit = pBlock;
+				}
+				else
+				{
+					pBestFit = pBlock;
+				}
+			}
+
+			pBlock = pBlock->pNext;
+		}
+
+		// Split block if it has surplus memory
+		if (pBestFit->size > memRequirements.size)
+		{
+			// Split block
+			FreeMemory* pSplit = (FreeMemory*)AllocFromPool(&pAlloc->pool);
+			pSplit->size = pBestFit->size - memRequirements.size;
+			pSplit->offset = memRequirements.size;
+			pSplit->pNext = nullptr;
+			pAlloc->pFreeBlocks = pSplit;
+		}
+
+		vkBindBufferMemory(pContext->device, buffer, pAlloc->deviceAllocation, pBestFit->offset);
+		*pOffset = pBestFit->offset;
+		FreeToPool(&pAlloc->pool, pBestFit);
+	}
+
+	void FreeBufferMemory(const GraphicsContext* pContext, DeviceAllocator* pAlloc, VkBuffer buffer, U64 offset)
+	{
+		VkMemoryRequirements memRequirements;
+		vkGetBufferMemoryRequirements(pContext->device, buffer, &memRequirements);
+		
+		// Add a free block to the block list
+		FreeMemory* pLastBlock = pAlloc->pFreeBlocks;
+		while (pLastBlock->pNext != nullptr)
+		{
+			pLastBlock = pLastBlock->pNext;
+		}
+
+		FreeMemory* pNewFreeBlock = (FreeMemory*)AllocFromPool(&pAlloc->pool);
+		pNewFreeBlock->pNext = nullptr;
+		pNewFreeBlock->offset = offset;
+		pNewFreeBlock->size = memRequirements.size;
+
+		pLastBlock->pNext = pNewFreeBlock;
+	}
+
+	GraphicsBuffer CreateGraphicsBuffer(const GraphicsContext* pContext, const GraphicsBufferCreateInfo* pInfo)
+	{
+		GraphicsBuffer buffer = {};
+
+		VkBufferUsageFlags bufferUsage = 0;
+		if (pInfo->usage & BUFFER_USAGE_VERTEX_BUFFER)
+			bufferUsage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+		if (pInfo->usage & BUFFER_USAGE_INDEX_BUFFER)
+			bufferUsage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+		if (pInfo->usage & BUFFER_USAGE_UNIFORM_BUFFER)
+			bufferUsage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+
+		VkBufferCreateInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		info.size = pInfo->dataSize;
+		info.pQueueFamilyIndices = &pContext->indices.graphicsQueue;
+		info.queueFamilyIndexCount = 1;
+		info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		info.usage = bufferUsage;
+
+		vkCreateBuffer(pContext->device, &info, nullptr, &buffer.buffer);
+
+		BindBufferToMemory(pContext, pInfo->pAlloc, buffer.buffer, &buffer.offset);
+
+		buffer.pAlloc = pInfo->pAlloc;
+		return buffer;
+	}
+
+	void DestroyGraphicsBuffer(const GraphicsContext* pContext, GraphicsBuffer* pBuffer)
+	{
+		FreeBufferMemory(pContext, pBuffer->pAlloc, pBuffer->buffer, pBuffer->offset);
+		vkDestroyBuffer(pContext->device, pBuffer->buffer, nullptr);
 	}
 
 	CommandBufferPool CreateCommandBufferPool(const GraphicsContext* pContext)
@@ -628,43 +803,41 @@ namespace MarkTech
 		vkEndCommandBuffer(pCmdBuffer->commandBuffer);
 	}
 
-	void SubmitCommandBuffer(const GraphicsContext* pContext,
-		CommandBuffer* pCmdBuffer,
-		GraphicsSemaphore* pSignalSemaphores, U32 signalSemaphoreCount,
-		GraphicsSemaphore* pWaitSemaphores, U32 waitSemaphoreCount,
-		GraphicsFence* pFence)
+	void SubmitCommandBufferForSwapchain(const GraphicsContext* pContext, CommandBuffer* pCmdBuffer, Swapchain* pSwapchain)
 	{
 		VkSubmitInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		info.pCommandBuffers = &pCmdBuffer->commandBuffer;
 		info.commandBufferCount = 1;
 
-		VkFence fence = pFence ? pFence->fence : VK_NULL_HANDLE;
-		if (pSignalSemaphores || pWaitSemaphores)
-		{
-			VkSemaphore signalSemaphores[MT_MAX_SEMAPHORES] = {};
-			VkSemaphore waitSemaphores[MT_MAX_SEMAPHORES] = {};
-			info.pSignalSemaphores = signalSemaphores;
-			info.signalSemaphoreCount = signalSemaphoreCount;
-			info.pWaitSemaphores = waitSemaphores;
-			info.waitSemaphoreCount = waitSemaphoreCount;
-			///////////////////////////////////////////////
-			/// TODO: Make pWaitDstStageMask a paramater
-			///////////////////////////////////////////////
-			VkPipelineStageFlags mask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			info.pWaitDstStageMask = &mask;
+		info.pSignalSemaphores = &pSwapchain->finishedRendering;
+		info.signalSemaphoreCount = 1;
+		info.pWaitSemaphores = &pSwapchain->imageAvalible;
+		info.waitSemaphoreCount = 1;
 
-			for (U32 i = 0; i < waitSemaphoreCount; i++)
-				waitSemaphores[i] = pWaitSemaphores[i].semaphore;
+		VkPipelineStageFlags mask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		info.pWaitDstStageMask = &mask;
 
-			for (U32 i = 0; i < signalSemaphoreCount; i++)
-				signalSemaphores[i] = pSignalSemaphores[i].semaphore;
-			
-			vkQueueSubmit(pContext->graphicsQueue, 1, &info, fence);
-			return;
-		}
+		vkQueueSubmit(pContext->graphicsQueue, 1, &info, pSwapchain->frameInFlight);
+	}
 
-		vkQueueSubmit(pContext->graphicsQueue, 1, &info, fence);
+	void SubmitCommandBuffer(const GraphicsContext* pContext, CommandBuffer* pCmdBuffer)
+	{
+		VkFenceCreateInfo fenceInfo = {};
+		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		
+		VkFence waitForFinish;
+		vkCreateFence(pContext->device, &fenceInfo, nullptr, &waitForFinish);
+
+		VkSubmitInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		info.pCommandBuffers = &pCmdBuffer->commandBuffer;
+		info.commandBufferCount = 1;
+
+		vkQueueSubmit(pContext->graphicsQueue, 1, &info, waitForFinish);
+
+		vkWaitForFences(pContext->device, 1, &waitForFinish, VK_TRUE, U64_MAX);
+		vkDestroyFence(pContext->device, waitForFinish, nullptr);
 	}
 
 	void CmdBindSwapchainFramebuffer(CommandBuffer* pCmdBuffer, const Swapchain* pSwapchain)

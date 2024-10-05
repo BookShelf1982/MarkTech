@@ -9,3 +9,4 @@ ResourceCompiler/ThirdParty/FBXSDK/
 *.sln
 *.vcxproj
 *.filters
+*Makefile

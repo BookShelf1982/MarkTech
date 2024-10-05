@@ -12,12 +12,11 @@ namespace MarkTech
 		Swapchain swapchain;
 		CommandBufferPool cmdPool;
 		CommandBuffer commandBuffer;
-		GraphicsFence frameInFlight;
-		GraphicsSemaphore imageAvalible;
-		GraphicsSemaphore finishedRendering;
 		GraphicsPipeline pipeline;
 		ShaderModule shaders[MT_MAX_SHADERS];
 		U32 loadedShaders;
+		DeviceAllocator bufferAllocator;
+		DeviceAllocator tempAllocator;
 	};
 
 	void LoadShader(Renderer2D* pRenderer, U32* pCode, U64 codeSizeInBytes);
