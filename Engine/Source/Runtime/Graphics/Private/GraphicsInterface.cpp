@@ -523,6 +523,48 @@ namespace MarkTech
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
+		VkVertexInputBindingDescription bindings[2] = {};
+		VkVertexInputAttributeDescription attribs[16] = {};
+
+		U32 totalAttribs = 0;
+		if (pInfo->bindingCount != 0)
+		{
+			for (U32 i = 0; i < pInfo->bindingCount; i++)
+			{
+				totalAttribs += pInfo->pVertBindings[i].attribCount;
+				bindings[i].stride = pInfo->pVertBindings[i].stride;
+				bindings[i].binding = i;
+				bindings[i].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+				for (U32 j = 0; j < pInfo->pVertBindings[i].attribCount; j++)
+				{
+					attribs[j].binding = i;
+					attribs[j].location = pInfo->pVertBindings[i].pAtrribs[j].shaderLocation;
+					attribs[j].offset = pInfo->pVertBindings[i].pAtrribs[j].byteOffset;
+					switch (pInfo->pVertBindings[i].pAtrribs[j].format)
+					{
+					case GRAPHICS_FORMATS_R32G32B32A32_SFLOAT:
+						attribs[j].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+						break;
+					case GRAPHICS_FORMATS_R32G32B32_SFLOAT:
+						attribs[j].format = VK_FORMAT_R32G32B32_SFLOAT;
+						break;
+					case GRAPHICS_FORMATS_R32G32_SFLOAT:
+						attribs[j].format = VK_FORMAT_R32G32_SFLOAT;
+						break;
+					case GRAPHICS_FORMATS_R32_SFLOAT:
+						attribs[j].format = VK_FORMAT_R32_SFLOAT;
+						break;
+					}
+				}
+			}
+		}
+
+		vertexInputInfo.pVertexBindingDescriptions = bindings;
+		vertexInputInfo.vertexBindingDescriptionCount = pInfo->bindingCount;
+		vertexInputInfo.pVertexAttributeDescriptions = attribs;
+		vertexInputInfo.vertexAttributeDescriptionCount = totalAttribs;
+
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo = {};
 		inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 		inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -609,7 +651,7 @@ namespace MarkTech
 			requiredProperties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 			break;
 		case ALLOCATION_TYPE_APPLICATION:
-			requiredProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+			requiredProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 			break;
 		}
 
@@ -725,6 +767,10 @@ namespace MarkTech
 			bufferUsage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 		if (pInfo->usage & BUFFER_USAGE_UNIFORM_BUFFER)
 			bufferUsage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+		if (pInfo->usage & BUFFER_USAGE_TRANSFER_SRC)
+			bufferUsage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		if (pInfo->usage & BUFFER_USAGE_TRANSFER_DST)
+			bufferUsage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
 		VkBufferCreateInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -738,14 +784,23 @@ namespace MarkTech
 
 		BindBufferToMemory(pContext, pInfo->pAlloc, buffer.buffer, &buffer.offset);
 
-		buffer.pAlloc = pInfo->pAlloc;
 		return buffer;
 	}
 
-	void DestroyGraphicsBuffer(const GraphicsContext* pContext, GraphicsBuffer* pBuffer)
+	void DestroyGraphicsBuffer(const GraphicsContext* pContext, DeviceAllocator* pAlloc, GraphicsBuffer* pBuffer)
 	{
-		FreeBufferMemory(pContext, pBuffer->pAlloc, pBuffer->buffer, pBuffer->offset);
+		FreeBufferMemory(pContext, pAlloc, pBuffer->buffer, pBuffer->offset);
 		vkDestroyBuffer(pContext->device, pBuffer->buffer, nullptr);
+	}
+
+	void MapDeviceMemory(const GraphicsContext* pContext, DeviceAllocator* pAlloc, U64 offset, U64 size, void** ppPtr)
+	{
+		vkMapMemory(pContext->device, pAlloc->deviceAllocation, offset, size, 0, ppPtr);
+	}
+
+	void UnmapDeviceMemory(const GraphicsContext* pContext, DeviceAllocator* pAlloc)
+	{
+		vkUnmapMemory(pContext->device, pAlloc->deviceAllocation);
 	}
 
 	CommandBufferPool CreateCommandBufferPool(const GraphicsContext* pContext)
@@ -887,5 +942,21 @@ namespace MarkTech
 
 		vkCmdSetViewport(pCmdBuffer->commandBuffer, 0, 1, &viewport);
 		vkCmdSetScissor(pCmdBuffer->commandBuffer, 0, 1, &rect);
+	}
+
+	void CmdCopyBuffer(CommandBuffer* pCmdBuffer, GraphicsBuffer* src, GraphicsBuffer* dst, U64 size, U64 offset)
+	{
+		VkBufferCopy copy = {};
+		copy.srcOffset = 0;
+		copy.dstOffset = offset;
+		copy.size = size;
+
+		vkCmdCopyBuffer(pCmdBuffer->commandBuffer, src->buffer, dst->buffer, 1, &copy);
+	}
+
+	void CmdBindVertexBuffer(CommandBuffer* pCmdBuffer, GraphicsBuffer* pBuffer)
+	{
+		VkDeviceSize offset = 0;
+		vkCmdBindVertexBuffers(pCmdBuffer->commandBuffer, 0, 1, &pBuffer->buffer, &offset);
 	}
 }

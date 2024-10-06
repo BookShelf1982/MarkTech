@@ -22,20 +22,55 @@ namespace MarkTech
 
 		renderer.bufferAllocator = AllocateDeviceAllocator(&renderer.context, MEGABYTE, ALLOCATION_TYPE_DEVICE);
 		renderer.tempAllocator = AllocateDeviceAllocator(&renderer.context, 64 * KILOBYTE, ALLOCATION_TYPE_APPLICATION);
-		
+
+		float verts[] = {
+			0.0f, 0.5f,
+			0.5f, -0.5f,
+			-0.5, -0.5f
+		};
+
 		GraphicsBufferCreateInfo bufferInfo = {};
-		bufferInfo.dataSize = 1024;
+		bufferInfo.dataSize = sizeof(verts);
 		bufferInfo.pAlloc = &renderer.tempAllocator;
-		bufferInfo.pData = nullptr;
-		bufferInfo.usage = BUFFER_USAGE_VERTEX_BUFFER;
-		GraphicsBuffer buffer = CreateGraphicsBuffer(&renderer.context, &bufferInfo);
-		DestroyGraphicsBuffer(&renderer.context, &buffer);
+		bufferInfo.usage = BUFFER_USAGE_TRANSFER_SRC;
+		GraphicsBuffer stagingBuffer = CreateGraphicsBuffer(&renderer.context, &bufferInfo);
+
+		GraphicsBufferCreateInfo deviceBufferInfo = {};
+		deviceBufferInfo.dataSize = sizeof(verts);
+		deviceBufferInfo.pAlloc = &renderer.bufferAllocator;
+		deviceBufferInfo.usage = BUFFER_USAGE_TRANSFER_DST | BUFFER_USAGE_VERTEX_BUFFER;
+		renderer.vertBuffer = CreateGraphicsBuffer(&renderer.context, &deviceBufferInfo);
+		
+		void* pData = 0;
+		MapDeviceMemory(&renderer.context, &renderer.tempAllocator, stagingBuffer.offset, sizeof(verts), &pData);
+		memcpy(pData, verts, sizeof(verts));
+		UnmapDeviceMemory(&renderer.context, &renderer.tempAllocator);
+
+		BeginCommandBufferRecording(&renderer.commandBuffer);
+		CmdCopyBuffer(&renderer.commandBuffer, &stagingBuffer, &renderer.vertBuffer, sizeof(verts), 0);
+		EndCommandBufferRecording(&renderer.commandBuffer);
+		SubmitCommandBuffer(&renderer.context, &renderer.commandBuffer);
+		ResetCommandBuffer(&renderer.commandBuffer);
+
+		DestroyGraphicsBuffer(&renderer.context, &renderer.tempAllocator, &stagingBuffer);
 
 		return renderer;
 	}
 
 	void CreatePipeline(Renderer2D* pRenderer)
 	{
+		VertexBindingDesc mainBinding = {};
+		mainBinding.binding = 0;
+		mainBinding.stride = 4;
+
+		VertexAttributeDesc attribDesc = {};
+		attribDesc.shaderLocation = 0;
+		attribDesc.byteOffset = 0;
+		attribDesc.format = GRAPHICS_FORMATS_R32G32B32_SFLOAT;
+
+		mainBinding.pAtrribs = &attribDesc;
+		mainBinding.attribCount = 1;
+
 		ShaderStageInfo shaders[2] = {
 			{pRenderer->shaders[0], "main", SHADER_STAGES_VERTEX},
 			{pRenderer->shaders[1], "main", SHADER_STAGES_FRAGMENT}
@@ -45,6 +80,8 @@ namespace MarkTech
 		pipelineInfo.renderPass.renderPass = pRenderer->swapchain.renderPass;
 		pipelineInfo.pShaders = shaders;
 		pipelineInfo.shaderCount = 2;
+		pipelineInfo.pVertBindings = &mainBinding;
+		pipelineInfo.bindingCount = 1;
 		pRenderer->pipeline = CreateGraphicsPipeline(&pRenderer->context, &pipelineInfo);
 	}
 
@@ -74,6 +111,7 @@ namespace MarkTech
 		viewport.extentX = pRenderer->swapchain.framebufferExtent.width;
 		viewport.extentY = pRenderer->swapchain.framebufferExtent.height;
 		CmdSetViewportScissor(&pRenderer->commandBuffer, &viewport);
+		CmdBindVertexBuffer(&pRenderer->commandBuffer, &pRenderer->vertBuffer);
 
 		CmdDraw(&pRenderer->commandBuffer, 0, 3);
 		CmdEndFramebuffer(&pRenderer->commandBuffer);
@@ -86,6 +124,9 @@ namespace MarkTech
 	void ShutdownRenderer2D(Renderer2D* pRenderer)
 	{
 		vkDeviceWaitIdle(pRenderer->context.device);
+
+		DestroyGraphicsBuffer(&pRenderer->context, &pRenderer->bufferAllocator, &pRenderer->vertBuffer);
+
 		FreeDeviceAllocator(&pRenderer->context, &pRenderer->tempAllocator);
 		FreeDeviceAllocator(&pRenderer->context, &pRenderer->bufferAllocator);
 

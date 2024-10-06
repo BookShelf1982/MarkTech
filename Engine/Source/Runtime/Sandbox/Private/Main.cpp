@@ -203,7 +203,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	CreatePipeline(&renderer);
 
 	gIsRunningMutex = MakeMutex();
-	Thread tickLoop = MakeThread(TickLoop);
+	Thread tickLoop = MakeThread(TickLoop); // start simulation loop
 
 	// Render Loop
 	while (true)

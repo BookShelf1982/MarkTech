@@ -17,6 +17,7 @@ namespace MarkTech
 		U32 loadedShaders;
 		DeviceAllocator bufferAllocator;
 		DeviceAllocator tempAllocator;
+		GraphicsBuffer vertBuffer;
 	};
 
 	void LoadShader(Renderer2D* pRenderer, U32* pCode, U64 codeSizeInBytes);

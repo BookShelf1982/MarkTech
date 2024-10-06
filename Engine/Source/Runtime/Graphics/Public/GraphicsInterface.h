@@ -13,6 +13,16 @@ namespace MarkTech
 #define MT_MAX_SEMAPHORES 16
 #define MT_MAX_FENCES 16
 #define MT_MAX_PIPELINE_SHADERS 8
+
+	enum GraphicsFormats
+	{
+		GRAPHICS_FORMATS_R32_SFLOAT,
+		GRAPHICS_FORMATS_R32G32_SFLOAT,
+		GRAPHICS_FORMATS_R32G32B32_SFLOAT,
+		GRAPHICS_FORMATS_R32G32B32A32_SFLOAT,
+		GRAPHICS_FORMATS_R32_UINT,
+	};
+
 	struct SwapchainDetails
 	{
 		VkSurfaceCapabilitiesKHR caps;
@@ -80,8 +90,25 @@ namespace MarkTech
 		ShaderStage stage;
 	};
 
+	struct VertexAttributeDesc
+	{
+		U32 shaderLocation;
+		GraphicsFormats format;
+		U32 byteOffset;
+	};
+
+	struct VertexBindingDesc
+	{
+		U32 binding;
+		U32 stride;
+		VertexAttributeDesc* pAtrribs;
+		U32 attribCount;
+	};
+
 	struct GraphicsPipelineCreateInfo
 	{
+		VertexBindingDesc* pVertBindings;
+		U32 bindingCount;
 		ShaderStageInfo* pShaders;
 		U32 shaderCount;
 		RenderPass renderPass;
@@ -127,14 +154,15 @@ namespace MarkTech
 	{
 		BUFFER_USAGE_VERTEX_BUFFER = 0x1,
 		BUFFER_USAGE_INDEX_BUFFER = 0x2,
-		BUFFER_USAGE_UNIFORM_BUFFER = 0x4
+		BUFFER_USAGE_UNIFORM_BUFFER = 0x4,
+		BUFFER_USAGE_TRANSFER_SRC = 0x8,
+		BUFFER_USAGE_TRANSFER_DST = 0x10
 	};
 
 	struct GraphicsBufferCreateInfo
 	{
-		void* pData;
 		U64 dataSize;
-		BufferUsage usage;
+		U32 usage;
 		DeviceAllocator* pAlloc;
 	};
 
@@ -142,7 +170,6 @@ namespace MarkTech
 	{
 		VkBuffer buffer;
 		VkDeviceAddress offset;
-		DeviceAllocator* pAlloc;
 	};
 
 	struct AppInfo
@@ -208,7 +235,9 @@ namespace MarkTech
 	void FreeDeviceAllocator(const GraphicsContext* pContext, DeviceAllocator* pAlloc);
 
 	GraphicsBuffer CreateGraphicsBuffer(const GraphicsContext* pContext, const GraphicsBufferCreateInfo* pInfo);
-	void DestroyGraphicsBuffer(const GraphicsContext* pContext, GraphicsBuffer* pBuffer);
+	void DestroyGraphicsBuffer(const GraphicsContext* pContext, DeviceAllocator* pAlloc, GraphicsBuffer* pBuffer);
+	void MapDeviceMemory(const GraphicsContext* pContext, DeviceAllocator* pAlloc, U64 offset, U64 size, void** ppPtr);
+	void UnmapDeviceMemory(const GraphicsContext* pContext, DeviceAllocator* pAlloc);
 
 	CommandBufferPool CreateCommandBufferPool(const GraphicsContext* pContext);
 	void DestroyCommandBufferPool(const GraphicsContext* pContext, CommandBufferPool* pPool);
@@ -228,4 +257,6 @@ namespace MarkTech
 	void CmdBindPipeline(CommandBuffer* pCmdBuffer, const GraphicsPipeline* pPipeline);
 	void CmdDraw(CommandBuffer* pCmdBuffer, U32 offset, U32 length);
 	void CmdSetViewportScissor(CommandBuffer* pCmdBuffer, const ViewportScissor* pViewportScissor);
+	void CmdCopyBuffer(CommandBuffer* pCmdBuffer, GraphicsBuffer* src, GraphicsBuffer* dst, U64 size, U64 offset);
+	void CmdBindVertexBuffer(CommandBuffer* pCmdBuffer, GraphicsBuffer* pBuffer);
 }
