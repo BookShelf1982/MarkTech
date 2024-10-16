@@ -29,20 +29,37 @@ static void* gpGameWorld = nullptr;
 
 using namespace MarkTech;
 
-void WindowEventHandler(WindowEvent event, U64 param, U64 param2)
+void WindowEventHandler(void* pEvent)
 {
+	WindowEventType event = (WindowEventType)*(WindowEventType*)pEvent;
 	switch (event)
 	{
-	case WindowEvent::WINDOW_CLOSE: 
+	case WINDOW_EVENT_CLOSE: 
 	{
 		LockMutex(&gIsRunningMutex);
 		gIsRunning = false; 
 		UnlockMutex(&gIsRunningMutex);
 	} return;
-	case WindowEvent::WINDOW_KEYCHANGED: { UpdateKeyboardState(ConvertWin32KeycodeToMarkTechKeycode(param), param2); } return;
-	case WindowEvent::WNIDOW_MOUSEPOS: { UpdateMousePos((I32)param, (I32)param2); } return;
-	case WindowEvent::WINDOW_MOUSEBUTTON: { UpdateMouseButtons((U8)param, param2); } return;
-	default: { } return;
+	case WINDOW_EVENT_KEYCHANGED: 
+	{ 
+		WindowEventKeyChangedInfo* pKeyChanged = (WindowEventKeyChangedInfo*)pEvent;
+		UpdateKeyboardState(ConvertWin32KeycodeToMarkTechKeycode(pKeyChanged->keycode), pKeyChanged->keydown); 
+	} return;
+	case WINDOW_EVENT_MOUSEPOS: 
+	{
+		WindowEventMouseMoveInfo* pMouseMoved = (WindowEventMouseMoveInfo*)pEvent;
+		UpdateMousePos((I32)pMouseMoved->x, (I32)pMouseMoved->y);
+	} return;
+	case WINDOW_EVENT_MOUSEBUTTON_UP: 
+	{
+		WindowEventMouseButtonsInfo* pMouseButtons = (WindowEventMouseButtonsInfo*)pEvent;
+		UpdateMouseButtons(pMouseButtons->buttons, false);
+	} return;
+	case WINDOW_EVENT_MOUSEBUTTON_DOWN: 
+	{ 
+		WindowEventMouseButtonsInfo* pMouseButtons = (WindowEventMouseButtonsInfo*)pEvent;
+		UpdateMouseButtons(pMouseButtons->buttons, true);
+	} return;
 	}
 }
 

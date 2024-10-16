@@ -10,7 +10,15 @@ namespace MarkTech
 	{
 		switch (uMsg)
 		{
-		case WM_CLOSE: { if (pfnEventHandler) pfnEventHandler(WindowEvent::WINDOW_CLOSE, 0, 0); } break;
+		case WM_CLOSE: 
+		{
+			if (pfnEventHandler)
+			{
+				WindowEventCloseInfo info = {};
+				info.type = WINDOW_EVENT_CLOSE;
+				pfnEventHandler(&info);
+			}
+		} break;
 		case WM_SYSKEYDOWN:
 		case WM_SYSKEYUP:
 		case WM_KEYDOWN:
@@ -20,36 +28,102 @@ namespace MarkTech
 			keyWasDown = ((lParam & (1 << 30)) != 0);
 			if (keyDown != keyWasDown)
 			{
-				if (pfnEventHandler) pfnEventHandler(WindowEvent::WINDOW_KEYCHANGED, wParam, keyDown);
+				WindowEventKeyChangedInfo info = {};
+				info.type = WINDOW_EVENT_KEYCHANGED;
+				info.keydown = keyDown;
+				info.keycode = wParam;
+				if (pfnEventHandler)
+					pfnEventHandler(&info);
 			}
 		} break;
-		case WM_MOUSEMOVE: {
-			if (pfnEventHandler) pfnEventHandler(WindowEvent::WNIDOW_MOUSEPOS, LOWORD(wParam), HIWORD(lParam));
-		} break;
-		case WM_LBUTTONDOWN: { if (pfnEventHandler) pfnEventHandler(WindowEvent::WINDOW_MOUSEBUTTON, 0b1, 1); } break;
-		case WM_LBUTTONUP: { if (pfnEventHandler) pfnEventHandler(WindowEvent::WINDOW_MOUSEBUTTON, 0b1, 0); } break;
-		case WM_MBUTTONDOWN: { if (pfnEventHandler) pfnEventHandler(WindowEvent::WINDOW_MOUSEBUTTON, 0b10, 1); } break;
-		case WM_MBUTTONUP: { if (pfnEventHandler) pfnEventHandler(WindowEvent::WINDOW_MOUSEBUTTON, 0b10, 0); } break;
-		case WM_RBUTTONDOWN: { if (pfnEventHandler) pfnEventHandler(WindowEvent::WINDOW_MOUSEBUTTON, 0b100, 1); } break;
-		case WM_RBUTTONUP: { if (pfnEventHandler) pfnEventHandler(WindowEvent::WINDOW_MOUSEBUTTON, 0b100, 0); } break;
-		case WM_XBUTTONDOWN: { 
-			if (GET_XBUTTON_WPARAM(wParam) == XBUTTON1)
+		case WM_MOUSEMOVE: 
+		{
+			if (pfnEventHandler)
 			{
-				if (pfnEventHandler) pfnEventHandler(WindowEvent::WINDOW_MOUSEBUTTON, 0b1000, 1);
+				WindowEventMouseMoveInfo info = {};
+				info.type = WINDOW_EVENT_MOUSEPOS;
+				info.x = LOWORD(wParam);
+				info.y = HIWORD(lParam);
+				pfnEventHandler(&info);
 			}
-			else
+		} break;
+		case WM_LBUTTONDOWN:
+		{
+			if (pfnEventHandler)
 			{
-				if (pfnEventHandler) pfnEventHandler(WindowEvent::WINDOW_MOUSEBUTTON, 0b10000, 1);
+				WindowEventMouseButtonsInfo info = {};
+				info.type = WINDOW_EVENT_MOUSEBUTTON_DOWN;
+				info.buttons = 0b1;
+				pfnEventHandler(&info);
+			}
+		} break;
+		case WM_LBUTTONUP: 
+		{
+			if (pfnEventHandler)
+			{
+				WindowEventMouseButtonsInfo info = {};
+				info.type = WINDOW_EVENT_MOUSEBUTTON_UP;
+				info.buttons = 0b1;
+				pfnEventHandler(&info);
+			}
+		} break;
+		case WM_MBUTTONDOWN:
+		{ 
+			if (pfnEventHandler)
+			{
+				WindowEventMouseButtonsInfo info = {};
+				info.type = WINDOW_EVENT_MOUSEBUTTON_DOWN;
+				info.buttons = 0b10;
+				pfnEventHandler(&info);
+			}
+		} break;
+		case WM_MBUTTONUP: 
+		{ 
+			if (pfnEventHandler)
+			{
+				WindowEventMouseButtonsInfo info = {};
+				info.type = WINDOW_EVENT_MOUSEBUTTON_UP;
+				info.buttons = 0b10;
+				pfnEventHandler(&info);
+			}
+		} break;
+		case WM_RBUTTONDOWN: 
+		{
+			if (pfnEventHandler)
+			{
+				WindowEventMouseButtonsInfo info = {};
+				info.type = WINDOW_EVENT_MOUSEBUTTON_DOWN;
+				info.buttons = 0b100;
+				pfnEventHandler(&info);
+			}
+		} break;
+		case WM_RBUTTONUP: 
+		{ 
+			if (pfnEventHandler)
+			{
+				WindowEventMouseButtonsInfo info = {};
+				info.type = WINDOW_EVENT_MOUSEBUTTON_UP;
+				info.buttons = 0b100;
+				pfnEventHandler(&info);
+			}
+		} break;
+		case WM_XBUTTONDOWN: 
+		{
+			if (pfnEventHandler)
+			{
+				WindowEventMouseButtonsInfo info = {};
+				info.type = WINDOW_EVENT_MOUSEBUTTON_DOWN;
+				info.buttons = GET_XBUTTON_WPARAM(wParam) == XBUTTON1 ? 0b10000 : 0b1000;
+				pfnEventHandler(&info);
 			}
 		} break;
 		case WM_XBUTTONUP: {
-			if (GET_XBUTTON_WPARAM(wParam) == XBUTTON1)
+			if (pfnEventHandler)
 			{
-				if (pfnEventHandler) pfnEventHandler(WindowEvent::WINDOW_MOUSEBUTTON, 0b1000, 0);
-			}
-			else
-			{
-				if (pfnEventHandler) pfnEventHandler(WindowEvent::WINDOW_MOUSEBUTTON, 0b10000, 0);
+				WindowEventMouseButtonsInfo info = {};
+				info.type = WINDOW_EVENT_MOUSEBUTTON_UP;
+				info.buttons = GET_XBUTTON_WPARAM(wParam) == XBUTTON1 ? 0b10000 : 0b1000;
+				pfnEventHandler(&info);
 			}
 		} break;
 		}
@@ -62,9 +136,9 @@ namespace MarkTech
 		return DefWindowProc(hwnd, uMsg, wParam, lParam);
 	}
 
-    Window MakeWindow(const wchar_t* pTitle, U16 width, U16 height)
-    {
-        Window window = {};
+	Window MakeWindow(const wchar_t* pTitle, U16 width, U16 height)
+	{
+		Window window = {};
 
 		WNDCLASSW winClass = {};
 		winClass.lpfnWndProc = WindowProc;
@@ -80,7 +154,7 @@ namespace MarkTech
 		ShowWindow(window.hWnd, SW_NORMAL);
 
 		return window;
-    }
+	}
 
 	void KillWindow(const Window* pWindow)
 	{

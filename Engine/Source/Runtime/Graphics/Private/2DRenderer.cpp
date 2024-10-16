@@ -24,9 +24,9 @@ namespace MarkTech
 		renderer.tempAllocator = AllocateDeviceAllocator(&renderer.context, 64 * KILOBYTE, ALLOCATION_TYPE_APPLICATION);
 
 		float verts[] = {
-			0.0f, 0.5f,
-			0.5f, -0.5f,
-			-0.5, -0.5f
+			0.0f, -1.0f,
+			-1.0f, 1.0f,
+			1.0, 1.0f
 		};
 
 		GraphicsBufferCreateInfo bufferInfo = {};
@@ -61,12 +61,12 @@ namespace MarkTech
 	{
 		VertexBindingDesc mainBinding = {};
 		mainBinding.binding = 0;
-		mainBinding.stride = 4;
+		mainBinding.stride = 8;
 
 		VertexAttributeDesc attribDesc = {};
 		attribDesc.shaderLocation = 0;
 		attribDesc.byteOffset = 0;
-		attribDesc.format = GRAPHICS_FORMATS_R32G32B32_SFLOAT;
+		attribDesc.format = GRAPHICS_FORMATS_R32G32_SFLOAT;
 
 		mainBinding.pAtrribs = &attribDesc;
 		mainBinding.attribCount = 1;
