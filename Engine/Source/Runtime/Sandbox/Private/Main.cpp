@@ -22,6 +22,10 @@
 #include <Thread.h>
 #include <ThreadSync.h>
 
+#include <Dictionary.h>
+#include <LinkedList.h>
+#include <NBT.h>
+
 bool gIsRunning = true;
 MarkTech::Mutex gIsRunningMutex = {};
 const MarkTech::U32 tickRate = 15;
@@ -182,18 +186,69 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	FreeCommandLineArgs(&cmdArgs);
 
+	// Logging
+	if (!InitLog(16 * KILOBYTE))
+		return 1;
+
+	ConsoleLog("Log initialized!");
+
+	NBTStructure nbtStruct;
+	NBTStructureCreateInfo info;
+	StackAllocator stackAlloc;
+	CreateStackAllocator(&stackAlloc, 2 * KILOBYTE);
+	info.pPool = nullptr;
+	info.pStack = &stackAlloc;
+	CreateNBTStructure(&info, &nbtStruct);
+
+	CompoundTagPayload personPayload;
+	personPayload.tagType = NBT_TAG_TYPE_COMPOUND;
+
+	StringTagPayload stringPayload;
+	stringPayload.tagType = NBT_TAG_TYPE_STRING;
+	stringPayload.pString = "hello world!";
+
+	LongTagPayload longPayload;
+	longPayload.tagType = NBT_TAG_TYPE_LONG;
+	longPayload.value = 987654321;
+
+	AddNamedTagInfo addPersons;
+	addPersons.pData = &personPayload;
+	addPersons.pParent = nullptr;
+
+	addPersons.pName = "Andrew";
+	addPersons.pParent = AddNamedTag(&nbtStruct, &addPersons);
+
+	addPersons.pName = "string";
+	addPersons.pData = &stringPayload;
+	AddNamedTag(&nbtStruct, &addPersons);
+
+	addPersons.pName = "BEEG number";
+	addPersons.pData = &longPayload;
+	AddNamedTag(&nbtStruct, &addPersons);
+
+	WriteNBTToFile("OUTPUT.dat", &nbtStruct);
+	DestroyNBTStructure(&nbtStruct);
+
 	// Input System
-	InitInputSystem();
+	if (!InitInputSystem())
+		return 1;
+
+	ConsoleLog("Input initialized!");
 
 	// Window Creation
 	SetWindowEventHandler(WindowEventHandler);
 	Window window = MakeWindow(L"MarkTech 2024", 800, 600);
 
 	// Resource Manager Creation
-	PoolAllocator resourceEntryAlloc = CreatePoolAllocator(sizeof(ResourceEntry), 1024);
-	PoolAllocator packageEntryAlloc = CreatePoolAllocator(sizeof(PackageEntry), 128);
-	PoolAllocator stringTableEntryAlloc = CreatePoolAllocator(sizeof(StringTableEntry), 256);
-	StackAllocator resourceDataAlloc = CreateStackAllocator(MEGABYTE);
+	PoolAllocator resourceEntryAlloc;
+	PoolAllocator packageEntryAlloc;
+	PoolAllocator stringTableEntryAlloc;
+	CreatePoolAllocator(&resourceEntryAlloc, sizeof(ResourceEntry), 1024);
+	CreatePoolAllocator(&packageEntryAlloc, sizeof(PackageEntry), 128);
+	CreatePoolAllocator(&stringTableEntryAlloc, sizeof(StringTableEntry), 256);
+	
+	StackAllocator resourceDataAlloc;
+	CreateStackAllocator(&resourceDataAlloc, MEGABYTE);
 
 	ResourceManagerInfo resourceManagerInfo = {};
 	resourceManagerInfo.pEntryAllocator = &resourceEntryAlloc;
@@ -222,6 +277,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	gIsRunningMutex = MakeMutex();
 	Thread tickLoop = MakeThread(TickLoop); // start simulation loop
 
+	ConsoleLog("Loop Started!");
+
 	// Render Loop
 	while (true)
 	{
@@ -237,12 +294,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		RenderFrame(&renderer);
 	}
 
+	ConsoleLog("Shutting down!");
+
 	DestroyMutex(&gIsRunningMutex);
 	DestroyGameWorld(&gameWorld);
 	ShutdownRenderer2D(&renderer);
 	ShutdownResourceManager(&resourceManager);
 	KillWindow(&window);
 	ShutdownInputSystem();
+	ShutdownLog();
 
 #ifdef DEBUG
 	_CrtDumpMemoryLeaks();

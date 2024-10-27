@@ -23,6 +23,8 @@ namespace MarkTech
 		GRAPHICS_FORMATS_R32_UINT,
 	};
 
+	U32 GetGraphicsFormatSize(GraphicsFormats format);
+
 	struct SwapchainDetails
 	{
 		VkSurfaceCapabilitiesKHR caps;
@@ -220,7 +222,7 @@ namespace MarkTech
 	void WaitForFences(const GraphicsContext* pContext, GraphicsFence* pFences, U32 fenceCount);
 	void ResetFences(const GraphicsContext* pContext, GraphicsFence* pFences, U32 fenceCount);*/
 
-	Swapchain CreateSwapchain(const GraphicsContext* pContext, const Window* pWindow);
+	Swapchain CreateSwapchain(GraphicsContext* pContext, const Window* pWindow);
 	void DestroySwapchain(const GraphicsContext* pContext, Swapchain* pSwapchain);
 	void AquireNextSwapchainImage(const GraphicsContext* pContext, Swapchain* pSwapchain);
 	void PresentSwapchainImage(const GraphicsContext* pContext, Swapchain* pSwapchain);

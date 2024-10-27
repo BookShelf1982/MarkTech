@@ -111,6 +111,13 @@ namespace MarkTech
 		return 0;
 	}
 
+	U32 gGraphicsFormatsSize[] = { 4, 8, 12, 16, 4 };
+
+	U32 GetFormatSize(GraphicsFormats format)
+	{
+		return gGraphicsFormatsSize[format];
+	}
+
 	// API FUNCTIONS
 	GraphicsContext CreateGraphicsContext(const GraphicsContextCreateInfo* pInfo)
 	{
@@ -287,7 +294,7 @@ namespace MarkTech
 		vkResetFences(pContext->device, fenceCount, fences);
 	}*/
 
-	Swapchain CreateSwapchain(const GraphicsContext* pContext, const Window* pWindow)
+	Swapchain CreateSwapchain(GraphicsContext* pContext, const Window* pWindow)
 	{
 		Swapchain swapchain = {};
 #ifdef MT_PLATFORM_WINDOWS
@@ -639,7 +646,7 @@ namespace MarkTech
 	DeviceAllocator AllocateDeviceAllocator(const GraphicsContext* pContext, U64 allocSize, AllocationType type)
 	{
 		DeviceAllocator alloc = {};
-		alloc.pool = CreatePoolAllocator(sizeof(FreeMemory), 256);
+		CreatePoolAllocator(&alloc.pool, sizeof(FreeMemory), 256);
 
 		VkPhysicalDeviceMemoryProperties memProps;
 		vkGetPhysicalDeviceMemoryProperties(pContext->physicalDevice, &memProps);

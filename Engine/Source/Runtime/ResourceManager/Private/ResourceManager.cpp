@@ -5,7 +5,8 @@ namespace MarkTech
 {
 	bool LoadPackage(ResourceManager* pManager, const char* pFilepath)
 	{
-		File file = FOpen(pFilepath, FileAccessType::READ);
+		File file;
+		FOpen(&file, pFilepath, FILE_ACCESS_READ);
 		if (!file.isOpened)
 			return false;
 
@@ -15,7 +16,7 @@ namespace MarkTech
 		U8 signatureLen = 0;
 		FRead(&file, (char*)&signatureLen, 1);
 		if (signatureLen != 0)
-			FSeek(&file, signatureLen, SeekOrigin::CURRENT);
+			FSeek(&file, signatureLen, SEEK_ORIGIN_CURRENT);
 
 		FRead(&file, (char*)&entryCount, sizeof(U64));
 		FRead(&file, (char*)&packageFlags, sizeof(U32));
@@ -150,7 +151,7 @@ namespace MarkTech
 		{
 			if (i == packageIndex)
 			{
-				FSeek(&pEntry->packageFile, (I32)offsetToBlob, SeekOrigin::BEGINING);
+				FSeek(&pEntry->packageFile, (I32)offsetToBlob, SEEK_ORIGIN_BEGINING);
 				FRead(&pEntry->packageFile, (char*)pBuffer, resourceSize);
 			}
 

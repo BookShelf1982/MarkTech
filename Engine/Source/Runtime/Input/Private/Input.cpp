@@ -7,114 +7,72 @@
 
 namespace MarkTech
 {
-    struct MouseState
-    {
-        I32 x, y;
-        U8 mouseButtons;
-    };
+	struct MouseState
+	{
+		I32 x, y;
+		U8 mouseButtons;
+	};
 
-    bool keyState[104] = {};
-    MouseState mouseState = {};
+	bool keyState[104] = {};
+	MouseState mouseState = {};
 
-    struct KeyBinding
-    {
-        U8 id;
-        Keycode keycode;
-        KeyBinding* pNext;
-    };
+	struct KeyBinding
+	{
+		U8 id;
+		Keycode keycode;
+		KeyBinding* pNext;
+	};
 
-    KeyBinding* pFirstBinding = nullptr;
+	KeyBinding* pFirstBinding = nullptr;
 
-    PoolAllocator gBindingAlloc = {};
+	PoolAllocator gBindingAlloc = {};
 
-    bool InitInputSystem()
-    {
-        gBindingAlloc = CreatePoolAllocator(sizeof(KeyBinding), 128);
-        return true;
-    }
+	bool InitInputSystem()
+	{
+		return true;
+	}
 
-    void ShutdownInputSystem()
-    {
-        FreePoolAllocator(&gBindingAlloc);
-    }
+	void ShutdownInputSystem()
+	{
+		FreePoolAllocator(&gBindingAlloc);
+	}
 
-    void UpdateKeyboardState(Keycode keycode, bool state)
-    {
-        keyState[(U32)keycode] = state;
-    }
+	void UpdateKeyboardState(Keycode keycode, bool state)
+	{
+		keyState[(U32)keycode] = state;
+	}
 
-    void UpdateMousePos(I32 x, I32 y)
-    {
-        mouseState.x = x;
-        mouseState.y = y;
-    }
+	void UpdateMousePos(I32 x, I32 y)
+	{
+		mouseState.x = x;
+		mouseState.y = y;
+	}
 
-    void UpdateMouseButtons(U8 buttons, bool state)
-    {
-        if (state)
-            mouseState.mouseButtons |= buttons;
-        else
-            mouseState.mouseButtons &= ~buttons;
-    }
+	void UpdateMouseButtons(U8 buttons, bool state)
+	{
+		if (state)
+			mouseState.mouseButtons |= buttons;
+		else
+			mouseState.mouseButtons &= ~buttons;
+	}
 
-    Keycode ConvertWin32KeycodeToMarkTechKeycode(U64 keycode)
-    {
-        switch (keycode)
-        {
-        case VK_ESCAPE:
-            return Keycode::ESCAPE;
-        case VK_CONTROL:
-            return Keycode::LEFT_CONTROL;
-        case 'X':
-            return Keycode::X;
-        default:
-            return Keycode::ZERO;
-        }
-    }
+	Keycode ConvertWin32KeycodeToMarkTechKeycode(U64 keycode)
+	{
+		switch (keycode)
+		{
+		case VK_ESCAPE:
+			return Keycode::ESCAPE;
+		case VK_CONTROL:
+			return Keycode::LEFT_CONTROL;
+		case 'X':
+			return Keycode::X;
+		default:
+			return Keycode::ZERO;
+		}
+	}
 
-    void BindKey(Keycode keycode, U8 bindId)
-    {
-        KeyBinding* pBinding = (KeyBinding*)AllocFromPool(&gBindingAlloc);
-        pBinding->keycode = keycode;
-        pBinding->id = bindId;
-        pBinding->pNext = nullptr;
-
-        if (!pFirstBinding)
-        {
-            pFirstBinding = pBinding;
-            return;
-        }
-
-        KeyBinding* pLastBinding = pFirstBinding;
-        while (pFirstBinding->pNext != nullptr)
-        {
-            pLastBinding = pLastBinding->pNext;
-        }
-
-        pLastBinding->pNext = pBinding;
-    }
-
-    void UnbindKey(U8 bindId)
-    {
-    }
-
-    bool GetBindState(U8 bindId)
-    {
-        KeyBinding* pBinding = pFirstBinding;
-        while (pFirstBinding != nullptr)
-        {
-            if (pBinding->id == bindId)
-            {
-                return keyState[(U32)pBinding->keycode];
-            }
-            pBinding = pBinding->pNext;
-        }
-
-        return false;
-    }
-
-    bool GetMouseButton(MouseButtons button)
-    {
-        return ((mouseState.mouseButtons & button) != 0);
-    }
+	bool GetMouseButton(MouseButtons button)
+	{
+		return ((mouseState.mouseButtons & button) != 0);
+	}
 }

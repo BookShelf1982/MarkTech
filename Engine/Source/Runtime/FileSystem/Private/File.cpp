@@ -4,7 +4,7 @@
 namespace MarkTech
 {
 #ifdef MT_PLATFORM_WINDOWS
-	File FOpen(const char* pFilepath, FileAccessType accessType)
+	void FOpen(File* pFile, const char* pFilepath, FileAccessType accessType)
 	{
 		// Create directory if it doesn't exist
 		{
@@ -31,28 +31,27 @@ namespace MarkTech
 			}
 		}
 
-		File file = {};
-		file.accessType = accessType;
+		pFile->accessType = accessType;
 
 		DWORD accessTypeArg = 0;
 		DWORD openMode = 0;
 		switch (accessType)
 		{
-		case FileAccessType::READ:
+		case FILE_ACCESS_READ:
 			accessTypeArg = GENERIC_READ;
 			openMode = OPEN_EXISTING;
 			break;
-		case FileAccessType::WRITE:
+		case FILE_ACCESS_WRITE:
 			accessTypeArg = GENERIC_WRITE;
 			openMode = CREATE_NEW;
 			break;
-		case FileAccessType::READ_WRITE:
+		case FILE_ACCESS_READ_WRITE:
 			accessTypeArg = GENERIC_READ | GENERIC_WRITE;
 			openMode = OPEN_ALWAYS;
 			break;
 		}
 
-		file.hFile = CreateFileA(
+		pFile->hFile = CreateFileA(
 			pFilepath,
 			accessTypeArg,
 			0,
@@ -62,24 +61,23 @@ namespace MarkTech
 			NULL
 		);
 
-		if (file.hFile == INVALID_HANDLE_VALUE || GetLastError() == ERROR_FILE_NOT_FOUND)
-			file.isOpened = false;
+		if (pFile->hFile == INVALID_HANDLE_VALUE || GetLastError() == ERROR_FILE_NOT_FOUND)
+			pFile->isOpened = false;
 		else
-			file.isOpened = true;
+			pFile->isOpened = true;
 
-		if (GetLastError() == ERROR_FILE_EXISTS && accessType == FileAccessType::WRITE)
+		if (GetLastError() == ERROR_FILE_EXISTS && accessType == FILE_ACCESS_WRITE)
 		{
 			DeleteFileA(pFilepath);
-			return FOpen(pFilepath, accessType);
+			FOpen(pFile, pFilepath, accessType);
+			return;
 		}
 
 		LARGE_INTEGER size = {};
-		if (!GetFileSizeEx(file.hFile, &size))
+		if (!GetFileSizeEx(pFile->hFile, &size))
 			DWORD err = GetLastError();
 
-		file.size = size.QuadPart;
-		
-		return file;
+		pFile->size = size.QuadPart;
 	}
 
 	void FClose(File* pFile)
@@ -90,7 +88,7 @@ namespace MarkTech
 
 	void FRead(const File* pFile, char* pBuffer, U64 bytesToRead)
 	{
-		if (pFile->accessType == FileAccessType::WRITE || pFile->isOpened == false)
+		if (pFile->accessType == FILE_ACCESS_WRITE || pFile->isOpened == false)
 			return;
 
 		ReadFile(
@@ -104,7 +102,7 @@ namespace MarkTech
 
 	void FWrite(const File* pFile, char* pBuffer, U64 bytesToRead)
 	{
-		if (pFile->accessType == FileAccessType::READ || pFile->isOpened == false)
+		if (pFile->accessType == FILE_ACCESS_READ || pFile->isOpened == false)
 			return;
 
 		WriteFile(
@@ -118,20 +116,20 @@ namespace MarkTech
 
 	void FSeek(const File* pFile, I32 location, SeekOrigin origin)
 	{
-		if (pFile->accessType == FileAccessType::WRITE || pFile->isOpened == false)
+		if (pFile->accessType == FILE_ACCESS_WRITE || pFile->isOpened == false)
 			return;
 
 		DWORD moveMethod = FILE_CURRENT;
 
 		switch (origin)
 		{
-		case MarkTech::SeekOrigin::BEGINING:
+		case SEEK_ORIGIN_BEGINING:
 			moveMethod = FILE_BEGIN;
 			break;
-		case MarkTech::SeekOrigin::CURRENT:
+		case SEEK_ORIGIN_CURRENT:
 			moveMethod = FILE_CURRENT;
 			break;
-		case MarkTech::SeekOrigin::END:
+		case SEEK_ORIGIN_END:
 			moveMethod = FILE_END;
 			break;
 		default:

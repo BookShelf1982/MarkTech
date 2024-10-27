@@ -8,11 +8,15 @@ namespace MarkTech
 	StackAllocator CreateStackAllocator(U64 sizeInBytes)
 	{
 		StackAllocator allocator = {};
-		allocator.allocatedSize = sizeInBytes;
-		allocator.pMemory = (char*)malloc(sizeInBytes);
-		memset(allocator.pMemory, 0, sizeInBytes);
-		allocator.pCursor = allocator.pMemory;
 		return allocator;
+	}
+
+	void CreateStackAllocator(StackAllocator* pAlloc, U64 sizeInBytes)
+	{
+		pAlloc->allocatedSize = sizeInBytes;
+		pAlloc->pMemory = (char*)malloc(sizeInBytes);
+		memset(pAlloc->pMemory, 0, sizeInBytes);
+		pAlloc->pCursor = pAlloc->pMemory;
 	}
 
 	void* AllocFromStack(StackAllocator* pAllocator, U64 sizeInBytes)

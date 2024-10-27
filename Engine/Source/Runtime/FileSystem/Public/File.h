@@ -8,18 +8,18 @@
 
 namespace MarkTech
 {
-	enum class FileAccessType
+	enum FileAccessType
 	{
-		READ,
-		WRITE,
-		READ_WRITE
+		FILE_ACCESS_READ,
+		FILE_ACCESS_WRITE,
+		FILE_ACCESS_READ_WRITE
 	};
 
-	enum class SeekOrigin
+	enum SeekOrigin
 	{
-		BEGINING,
-		CURRENT,
-		END
+		SEEK_ORIGIN_BEGINING,
+		SEEK_ORIGIN_CURRENT,
+		SEEK_ORIGIN_END
 	};
 
 	struct File
@@ -32,9 +32,9 @@ namespace MarkTech
 		FileAccessType accessType;
 	};
 
-	File FOpen(const char* pFilepath, FileAccessType accessType);
+	void FOpen(File* pFile, const char* pFilepath, FileAccessType accessType);
 	void FClose(File* pFile);
 	void FRead(const File* pFile, char* pBuffer, U64 bytesToRead);
 	void FWrite(const File* pFile, char* pBuffer, U64 bytesToRead);
-	void FSeek(const File* pFile, I32 location, SeekOrigin origin = SeekOrigin::CURRENT);
+	void FSeek(const File* pFile, I32 location, SeekOrigin origin = SEEK_ORIGIN_CURRENT);
 }
