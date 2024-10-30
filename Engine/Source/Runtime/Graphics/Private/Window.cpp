@@ -147,7 +147,7 @@ namespace MarkTech
 
 		RegisterClass(&winClass);
 
-		window.hWnd = CreateWindow(WINDOW_CLASS_NAME, L"MarkTech", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, width, height, NULL, NULL, hInst, NULL);
+		window.hWnd = CreateWindowW(WINDOW_CLASS_NAME, pTitle, WS_OVERLAPPEDWINDOW | CS_OWNDC, CW_USEDEFAULT, CW_USEDEFAULT, width, height, NULL, NULL, hInst, NULL);
 		if (window.hWnd == NULL)
 			return window;
 

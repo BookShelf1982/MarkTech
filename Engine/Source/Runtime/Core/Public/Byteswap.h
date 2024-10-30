@@ -29,14 +29,16 @@ namespace MarkTech
         return (val << 16) | ((val >> 16) & 0xFFFF);
     }
 
-    I64 SwapI64(I64 val)
+    //! Byte swap long long
+    inline I64 SwapI64(I64 val)
     {
         val = ((val << 8) & 0xFF00FF00FF00FF00ULL) | ((val >> 8) & 0x00FF00FF00FF00FFULL);
         val = ((val << 16) & 0xFFFF0000FFFF0000ULL) | ((val >> 16) & 0x0000FFFF0000FFFFULL);
         return (val << 32) | ((val >> 32) & 0xFFFFFFFFULL);
     }
 
-    U64 SwapU64(U64 val)
+    //! Byte swap unsigned long long
+    inline U64 SwapU64(U64 val)
     {
         val = ((val << 8) & 0xFF00FF00FF00FF00ULL) | ((val >> 8) & 0x00FF00FF00FF00FFULL);
         val = ((val << 16) & 0xFFFF0000FFFF0000ULL) | ((val >> 16) & 0x0000FFFF0000FFFFULL);

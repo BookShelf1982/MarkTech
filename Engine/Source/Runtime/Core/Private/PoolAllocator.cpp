@@ -4,17 +4,17 @@
 
 namespace MarkTech
 {
-	void CreatePoolAllocator(PoolAllocator* pPool, U64 blockSize, U64 blockCount)
+	void CreatePoolAllocator(PoolAllocator& allocator, U64 blockSize, U64 blockCount)
 	{
 		MT_ASSERT(blockSize >= sizeof(void*));
 
-		pPool->blockSize = blockSize;
-		pPool->memorySize = blockSize * blockCount;
-		pPool->pMemory = (char*)malloc(pPool->memorySize);
-		pPool->pFreeBlocks = (U64*)pPool->pMemory;
+		allocator.blockSize = blockSize;
+		allocator.memorySize = blockSize * blockCount;
+		allocator.pMemory = (char*)malloc(allocator.memorySize);
+		allocator.pFreeBlocks = (U64*)allocator.pMemory;
 
-		U64* pElement = (U64*)pPool->pMemory;
-		char* pNextPtr = pPool->pMemory;
+		U64* pElement = (U64*)allocator.pMemory;
+		char* pNextPtr = allocator.pMemory;
 		for (U64 i = 0; i < blockCount; i++)
 		{
 			pNextPtr += blockSize;
@@ -28,21 +28,21 @@ namespace MarkTech
 		}
 	}
 
-	void* AllocFromPool(PoolAllocator* pAllocator)
+	void* AllocFromPool(PoolAllocator& allocator)
 	{
-		void* pBlock = pAllocator->pFreeBlocks;
-		pAllocator->pFreeBlocks = (U64*)*pAllocator->pFreeBlocks;
+		void* pBlock = allocator.pFreeBlocks;
+		allocator.pFreeBlocks = (U64*)*allocator.pFreeBlocks;
 		return pBlock;
 	}
 
-	void FreeToPool(PoolAllocator* pAllocator, void* ptr)
+	void FreeToPool(PoolAllocator& allocator, void* ptr)
 	{
 		// Overwrite the pointer to be a next pointer
 		U64* ptr64 = (U64*)ptr;
 		*ptr64 = 0;
 
 		// Get the next pointer pointing to 0 
-		U64* pNextPointer = pAllocator->pFreeBlocks;
+		U64* pNextPointer = allocator.pFreeBlocks;
 		while (*pNextPointer != 0)
 		{
 			pNextPointer = (U64*)*pNextPointer;
@@ -52,8 +52,8 @@ namespace MarkTech
 		*pNextPointer = (U64)ptr;
 	}
 
-	void FreePoolAllocator(PoolAllocator* pAllocator)
+	void FreePoolAllocator(PoolAllocator& allocator)
 	{
-		free(pAllocator->pMemory);
+		free(allocator.pMemory);
 	}
 }

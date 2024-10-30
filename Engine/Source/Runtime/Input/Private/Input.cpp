@@ -34,7 +34,7 @@ namespace MarkTech
 
 	void ShutdownInputSystem()
 	{
-		FreePoolAllocator(&gBindingAlloc);
+		FreePoolAllocator(gBindingAlloc);
 	}
 
 	void UpdateKeyboardState(Keycode keycode, bool state)

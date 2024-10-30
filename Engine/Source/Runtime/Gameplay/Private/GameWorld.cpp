@@ -7,57 +7,51 @@
 
 namespace MarkTech
 {
-	GameWorld CreateGameWorld(U32 maxGameElements)
+	void CreateGameWorld(GameWorld& world, U32 maxGameElements)
 	{
-		GameWorld world = {};
 		world.maxGameElements = maxGameElements;
-		void* pAllocMem = malloc((sizeof(U32) * world.maxGameElements) + (sizeof(SpriteComponent) * world.maxGameElements));
+		void* pAllocMem = malloc((sizeof(U32) * world.maxGameElements) + (sizeof(NBTDataComponent) * world.maxGameElements));
 		world.pEntities = (U32*)pAllocMem;
-		world.pSprites = (SpriteComponent*)((char*)pAllocMem + (sizeof(U32) * world.maxGameElements));
-		return world;
+		world.pNBTs = (NBTDataComponent*)((char*)pAllocMem + (sizeof(U32) * world.maxGameElements));
 	}
 
-	void UpdateSprite(SpriteComponent* pSprite)
+	void UpdateSprite(SpriteComponent& sprite)
 	{
-		if (pSprite->rotation >= 360.0f)
+		if (sprite.rotation >= 360.0f)
 		{
-			pSprite->rotation = 0.0f;
+			sprite.rotation = 0.0f;
 			return;
 		}
 		
-		pSprite->rotation += 5.0f;
+		sprite.rotation += 5.0f;
 	}
 
-	void TickGameWorld(GameWorld* pWorld)
+	void TickGameWorld(GameWorld& world)
 	{
-		for (U32 i = 0; i < pWorld->enabledSprites; i++)
-		{
-			UpdateSprite(&pWorld->pSprites[i]);
-		}
 	}
 
-	void DestroyGameWorld(GameWorld* pWorld)
+	void DestroyGameWorld(GameWorld& world)
 	{
-		free(pWorld->pEntities);
+		free(world.pEntities);
 	}
 
-	U32 CreateEntity(GameWorld* pWorld)
+	U32 CreateEntity(GameWorld& world)
 	{
 		std::random_device rd;
 		std::uniform_int_distribution<U32> dist;
-		pWorld->pEntities[pWorld->enabledEntities] = dist(rd);
-		pWorld->enabledEntities++;
-		return pWorld->pEntities[pWorld->enabledEntities - 1];
+		world.pEntities[world.enabledEntities] = dist(rd);
+		world.enabledEntities++;
+		return world.pEntities[world.enabledEntities - 1];
 	}
 
-	void DestroyEntity(GameWorld* pWorld, U32 id)
+	void DestroyEntity(GameWorld& world, U32 id)
 	{
-		for (U32 i = 0; i < pWorld->enabledEntities; i++)
+		for (U32 i = 0; i < world.enabledEntities; i++)
 		{
-			if (pWorld->pEntities[i] == id)
+			if (world.pEntities[i] == id)
 			{
-				pWorld->pEntities[i] = pWorld->pEntities[pWorld->enabledEntities - 1];
-				pWorld->enabledEntities--;
+				world.pEntities[i] = world.pEntities[world.enabledEntities - 1];
+				world.enabledEntities--;
 			}
 		}
 	}

@@ -20,84 +20,153 @@ namespace MarkTech
 	};
 
 	template<typename T>
-	void CreateLinkedList(LinkedList<T>* pList, PoolAllocator* pPool)
+	void CreateLinkedList(LinkedList<T>& list, PoolAllocator* pPool)
 	{
-		pList->pStart = nullptr;
-		pList->pEnd = nullptr;
-		pList->pPool = pPool;
+		list.pStart = nullptr;
+		list.pEnd = nullptr;
+		list.pPool = pPool;
 	}
 
 	template<typename T>
-	void InsertLinkedListItem(LinkedList<T>* pList, T item)
+	void InsertLinkedListItem(LinkedList<T>& list, T item)
 	{
 		LinkedList<T>::NodeType* pNode = nullptr;
-		if (pList->pPool)
-			pNode = (LinkedList<T>::NodeType*)AllocFromPool(pList->pPool);
+		if (list.pPool)
+			pNode = (LinkedList<T>::NodeType*)AllocFromPool(*list.pPool);
 		else
 			pNode = (LinkedList<T>::NodeType*)malloc(sizeof(LinkedList<T>::NodeType));
 
 		pNode->data = item;
 		pNode->pNext = nullptr;
 
-		if (!pList->pStart)
+		if (!list.pStart)
 		{
-			pList->pStart = pNode;
-			pList->pEnd = pNode;
+			list.pStart = pNode;
+			list.pEnd = pNode;
 		}
 		else
 		{
-			LinkedList<T>::NodeType* pLast = pList->pStart;
+			LinkedList<T>::NodeType* pLast = list.pStart;
 			while (pLast->pNext != nullptr)
 			{
 				pLast = pLast->pNext;
 			}
 
 			pLast->pNext = pNode;
-			pList->pEnd = pNode;
+			list.pEnd = pNode;
 		}
 	}
 
 	template<typename T>
-	void RemoveLastLinkedListItem(LinkedList<T>* pList)
+	void RemoveLastLinkedListItem(LinkedList<T>& list)
 	{
-		if (pList->pStart == pList->pEnd)
+		LinkedList<T>::NodeType* pEnd = list.pEnd;
+		if (list.pStart == list.pEnd)
 		{
-			pList->pStart = nullptr;
-			pList->pEnd = nullptr;
+			list.pStart = nullptr;
+			list.pEnd = nullptr;
 		}
 		else
 		{
-			LinkedList<T>::NodeType* pNode = pList->pStart;
+			LinkedList<T>::NodeType* pNode = list.pStart;
 			while (pNode->pNext->pNext != nullptr)
 			{
 				pNode = pNode->pNext;
 			}
-			pList->pEnd = pNode;
+			list.pEnd = pNode;
 		}
 
-		if (pList->pPool)
-			FreeToPool(&pList->pPool, pList->pEnd);
+		if (list.pPool)
+			FreeToPool(*list.pPool, pEnd);
 		else
-			free(pList->pEnd);
+			free(pEnd);
 	}
 
 	template<typename T>
-	void DestroyLinkedList(LinkedList<T>* pList)
+	void RemoveLinkedListItemWithIndex(LinkedList<T>& list, U32 index)
 	{
-		if (pList->pStart)
+		LinkedList<T>::NodeType* pNode = list.pStart;
+		LinkedList<T>::NodeType* pPrevNode = nullptr;
+		U32 currentIndex = 0;
+		while (pNode != nullptr)
 		{
-			if (pList->pPool)
+			if (currentIndex == index)
+				break;
+
+			currentIndex++;
+			pPrevNode = pNode;
+			pNode = pNode->pNext;
+		}
+		
+		if (pNode == list.pStart)
+		{
+			list.pStart = list.pStart->pNext;
+		}
+		else
+		{
+			pPrevNode->pNext = pNode->pNext;
+		}
+
+		if (pNode == list.pEnd)
+		{
+			list.pEnd = pPrevNode;
+		}
+
+		if (!list.pPool)
+			free(pNode);
+		else
+			FreeToPool(*list.pPool, pNode);
+	}
+
+	template<typename T>
+	void RemoveLinkedListItem(LinkedList<T>& list, void* pNodePtr)
+	{
+		LinkedList<T>::NodeType* pNode = list.pStart;
+		LinkedList<T>::NodeType* pPrevNode = nullptr;
+
+		while (pNode != (LinkedList<T>::NodeType*)pNodePtr)
+		{
+			pPrevNode = pNode;
+			pNode = pNode->pNext;
+		}
+
+		if (pNode == list.pStart)
+		{
+			list.pStart = list.pStart->pNext;
+		}
+		else
+		{
+			pPrevNode->pNext = pNode->pNext;
+		}
+
+		if (pNode == list.pEnd)
+		{
+			list.pEnd = pPrevNode;
+		}
+
+		if (!list.pPool)
+			free(pNode);
+		else
+			FreeToPool(*list.pPool, pNode);
+	}
+
+	template<typename T>
+	void DestroyLinkedList(LinkedList<T>& list)
+	{
+		if (list.pStart)
+		{
+			if (list.pPool)
 			{
-				LinkedList<T>::NodeType* pNode = pList->pStart;
+				LinkedList<T>::NodeType* pNode = list.pStart;
 				while (pNode->pNext != nullptr)
 				{
-					FreeToPool(pList->pPool, pNode);
+					FreeToPool(*list.pPool, pNode);
 					pNode = pNode->pNext;
 				}
 				return;
 			}
 
-			LinkedList<T>::NodeType* pNode = pList->pStart;
+			LinkedList<T>::NodeType* pNode = list.pStart;
 			while (pNode->pNext != nullptr)
 			{
 				LinkedList<T>::NodeType* pNextNode = pNode->pNext;

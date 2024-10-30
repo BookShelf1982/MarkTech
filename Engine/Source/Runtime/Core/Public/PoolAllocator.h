@@ -11,8 +11,8 @@ namespace MarkTech
 		U64 blockSize;
 	};
 
-	void CreatePoolAllocator(PoolAllocator* pPool, U64 blockSize, U64 blockCount);
-	void* AllocFromPool(PoolAllocator* pAllocator);
-	void FreeToPool(PoolAllocator* pAllocator, void* ptr);
-	void FreePoolAllocator(PoolAllocator* pAllocator);
+	void CreatePoolAllocator(PoolAllocator& allocator, U64 blockSize, U64 blockCount);
+	void* AllocFromPool(PoolAllocator& allocator);
+	void FreeToPool(PoolAllocator& allocator, void* ptr);
+	void FreePoolAllocator(PoolAllocator& allocator);
 }

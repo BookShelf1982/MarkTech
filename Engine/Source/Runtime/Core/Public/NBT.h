@@ -1,7 +1,7 @@
 #pragma once
 #include <PrimitiveTypes.h>
 #include "LinkedList.h"
-#include "StackAllocator.h"
+#include "Array.h"
 
 namespace MarkTech
 {
@@ -32,13 +32,13 @@ namespace MarkTech
 	struct NBTStructureCreateInfo
 	{
 		PoolAllocator* pPool;
-		StackAllocator* pStack;
+		MemoryAllocator* pMemAlloc;
 	};
 
 	struct NBTStructure
 	{
 		LinkedList<NamedTag> namedTags;
-		StackAllocator* pStack;
+		MemoryAllocator* pMemAlloc;
 	};
 
 	struct AddNamedTagInfo
@@ -72,21 +72,54 @@ namespace MarkTech
 		I64 value;
 	};
 
+	struct FloatTagPayload
+	{
+		NBTTagType tagType;
+		F32 value;
+	};
+
+	struct DoubleTagPayload
+	{
+		NBTTagType tagType;
+		F64 value;
+	};
+
+	struct ByteArrayTagPayload
+	{
+		NBTTagType tagType;
+		U32 size;
+		U8* pArray;
+	};
+
 	struct StringTagPayload
 	{
 		NBTTagType tagType;
 		char* pString;
 	};
 
-	struct CompoundTagPayload
+	struct ContainerTagPayload
 	{
 		NBTTagType tagType;
 	};
 
-	void CreateNBTStructure(NBTStructureCreateInfo* pInfo, NBTStructure* pNBT);
-	NamedTag* AddNamedTag(NBTStructure* pNBT, const AddNamedTagInfo* pInfo);
-	NamedTag* GetCompoundTag(const char* pName, NBTStructure* pNBT);
-	void ParseNBTFile(const char* pFilepath, NBTStructure* pNBT);
-	void WriteNBTToFile(const char* pFilepath, NBTStructure* pNBT);
-	void DestroyNBTStructure(NBTStructure* pNBT);
+	struct IntArrayTagPayload
+	{
+		NBTTagType tagType;
+		U32 size;
+		U32* pArray;
+	};
+
+	struct LongArrayTagPayload
+	{
+		NBTTagType tagType;
+		U32 size;
+		U64* pArray;
+	};
+
+	void CreateNBTStructure(const NBTStructureCreateInfo& info, NBTStructure& nbt);
+	NamedTag* AddNamedTag(NBTStructure& nbt, const AddNamedTagInfo& info);
+	NamedTag* GetCompoundTag(const char* pName, NBTStructure& nbt);
+	void ParseNBTFile(const char* pFilepath, NBTStructure& nbt);
+	void WriteNBTToFile(const char* pFilepath, const char* pRootTagName, NBTStructure& nbt);
+	void DestroyNBTStructure(NBTStructure& nbt);
 }

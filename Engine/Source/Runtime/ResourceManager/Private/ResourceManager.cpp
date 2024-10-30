@@ -29,7 +29,7 @@ namespace MarkTech
 			for (U64 i = 0; i < stringCount; i++)
 			{
 				// Read entries
-				StringTableEntry* pEntry = (StringTableEntry*)AllocFromPool(pManager->pStringTableAlloc);
+				StringTableEntry* pEntry = (StringTableEntry*)AllocFromPool(*pManager->pStringTableAlloc);
 				pEntry->pNext = nullptr;
 
 				FRead(&file, (char*)&pEntry->assetId, sizeof(U32));
@@ -56,7 +56,7 @@ namespace MarkTech
 
 		for (U32 i = 0; i < entryCount; i++)
 		{
-			ResourceEntry* pEntry = (ResourceEntry*)AllocFromPool(pManager->pResourceEntryAlloc);
+			ResourceEntry* pEntry = (ResourceEntry*)AllocFromPool(*pManager->pResourceEntryAlloc);
 			pEntry->pNext = nullptr;
 			pEntry->pData = nullptr;
 			
@@ -82,7 +82,7 @@ namespace MarkTech
 		}
 
 		// add to list
-		PackageEntry* pEntry = (PackageEntry*)AllocFromPool(pManager->pPackageEntryAlloc);
+		PackageEntry* pEntry = (PackageEntry*)AllocFromPool(*pManager->pPackageEntryAlloc);
 		pEntry->packageFile = file;
 		pEntry->pNext = nullptr;
 
@@ -192,9 +192,9 @@ namespace MarkTech
 			pEntry = pEntry->pNext;
 		}
 
-		FreePoolAllocator(pManager->pStringTableAlloc);
-		FreePoolAllocator(pManager->pResourceEntryAlloc);
-		FreePoolAllocator(pManager->pPackageEntryAlloc);
+		FreePoolAllocator(*pManager->pStringTableAlloc);
+		FreePoolAllocator(*pManager->pResourceEntryAlloc);
+		FreePoolAllocator(*pManager->pPackageEntryAlloc);
 		FreeStackAllocator(pManager->pResourceDataAlloc);
 	}
 

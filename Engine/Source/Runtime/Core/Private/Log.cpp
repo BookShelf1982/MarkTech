@@ -39,9 +39,6 @@ namespace MarkTech
 		char buffer[MAX_CHARS];
 		vsnprintf(buffer, MAX_CHARS, msg, argList);
 
-#ifdef MT_PLATFORM_WINDOWS
-		OutputDebugStringA(buffer);
-#endif
 		va_end(argList);
 		
 		char newBuffer[MAX_CHARS];
