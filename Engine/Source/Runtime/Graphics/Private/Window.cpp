@@ -1,22 +1,49 @@
 #include "Window.h"
+#include <LinkedList.h>
+
+#include <string.h>
+
 namespace MarkTech
 {
 #ifdef MT_PLATFORM_WINDOWS
 	const wchar_t WINDOW_CLASS_NAME[] = L"MarkTechWindow";
 	HINSTANCE hInst = GetModuleHandle(NULL);
-	PFN_WINDOWEVENTHANDLER pfnEventHandler = nullptr;
 
-	LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	U32 gWindowModeTable[3] = {
+		{ 0 },
+		{ WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX },
+		{ WS_POPUP /* | WS_THICKFRAME | WS_SYSMENU | WS_MAXIMIZEBOX | WS_MINIMIZEBOX*/ }
+	};
+
+	LinkedList<Window> gWindowList = {};
+
+	static PFN_WINDOWEVENTHANDLER GetEventHandler(HWND hWnd)
 	{
+		LinkedList<Window>::NodeType* pNode = gWindowList.pStart;
+		while (pNode != nullptr)
+		{
+			if (pNode->data.hWnd == hWnd)
+			{
+				return pNode->data.pfnEventHandler;
+			}
+
+			pNode = pNode->pNext;
+		}
+	}
+
+	LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		PFN_WINDOWEVENTHANDLER pfnHandler = GetEventHandler(hWnd);
+
 		switch (uMsg)
 		{
 		case WM_CLOSE: 
 		{
-			if (pfnEventHandler)
+			if (pfnHandler)
 			{
 				WindowEventCloseInfo info = {};
 				info.type = WINDOW_EVENT_CLOSE;
-				pfnEventHandler(&info);
+				pfnHandler(&info);
 			}
 		} break;
 		case WM_SYSKEYDOWN:
@@ -32,98 +59,98 @@ namespace MarkTech
 				info.type = WINDOW_EVENT_KEYCHANGED;
 				info.keydown = keyDown;
 				info.keycode = wParam;
-				if (pfnEventHandler)
-					pfnEventHandler(&info);
+				if (pfnHandler)
+					pfnHandler(&info);
 			}
 		} break;
 		case WM_MOUSEMOVE: 
 		{
-			if (pfnEventHandler)
+			if (pfnHandler)
 			{
 				WindowEventMouseMoveInfo info = {};
 				info.type = WINDOW_EVENT_MOUSEPOS;
 				info.x = LOWORD(wParam);
 				info.y = HIWORD(lParam);
-				pfnEventHandler(&info);
+				pfnHandler(&info);
 			}
 		} break;
 		case WM_LBUTTONDOWN:
 		{
-			if (pfnEventHandler)
+			if (pfnHandler)
 			{
 				WindowEventMouseButtonsInfo info = {};
 				info.type = WINDOW_EVENT_MOUSEBUTTON_DOWN;
 				info.buttons = 0b1;
-				pfnEventHandler(&info);
+				pfnHandler(&info);
 			}
 		} break;
 		case WM_LBUTTONUP: 
 		{
-			if (pfnEventHandler)
+			if (pfnHandler)
 			{
 				WindowEventMouseButtonsInfo info = {};
 				info.type = WINDOW_EVENT_MOUSEBUTTON_UP;
 				info.buttons = 0b1;
-				pfnEventHandler(&info);
+				pfnHandler(&info);
 			}
 		} break;
 		case WM_MBUTTONDOWN:
 		{ 
-			if (pfnEventHandler)
+			if (pfnHandler)
 			{
 				WindowEventMouseButtonsInfo info = {};
 				info.type = WINDOW_EVENT_MOUSEBUTTON_DOWN;
 				info.buttons = 0b10;
-				pfnEventHandler(&info);
+				pfnHandler(&info);
 			}
 		} break;
 		case WM_MBUTTONUP: 
 		{ 
-			if (pfnEventHandler)
+			if (pfnHandler)
 			{
 				WindowEventMouseButtonsInfo info = {};
 				info.type = WINDOW_EVENT_MOUSEBUTTON_UP;
 				info.buttons = 0b10;
-				pfnEventHandler(&info);
+				pfnHandler(&info);
 			}
 		} break;
 		case WM_RBUTTONDOWN: 
 		{
-			if (pfnEventHandler)
+			if (pfnHandler)
 			{
 				WindowEventMouseButtonsInfo info = {};
 				info.type = WINDOW_EVENT_MOUSEBUTTON_DOWN;
 				info.buttons = 0b100;
-				pfnEventHandler(&info);
+				pfnHandler(&info);
 			}
 		} break;
 		case WM_RBUTTONUP: 
 		{ 
-			if (pfnEventHandler)
+			if (pfnHandler)
 			{
 				WindowEventMouseButtonsInfo info = {};
 				info.type = WINDOW_EVENT_MOUSEBUTTON_UP;
 				info.buttons = 0b100;
-				pfnEventHandler(&info);
+				pfnHandler(&info);
 			}
 		} break;
 		case WM_XBUTTONDOWN: 
 		{
-			if (pfnEventHandler)
+			if (pfnHandler)
 			{
 				WindowEventMouseButtonsInfo info = {};
 				info.type = WINDOW_EVENT_MOUSEBUTTON_DOWN;
 				info.buttons = GET_XBUTTON_WPARAM(wParam) == XBUTTON1 ? 0b10000 : 0b1000;
-				pfnEventHandler(&info);
+				pfnHandler(&info);
 			}
 		} break;
 		case WM_XBUTTONUP: {
-			if (pfnEventHandler)
+			if (pfnHandler)
 			{
 				WindowEventMouseButtonsInfo info = {};
 				info.type = WINDOW_EVENT_MOUSEBUTTON_UP;
 				info.buttons = GET_XBUTTON_WPARAM(wParam) == XBUTTON1 ? 0b10000 : 0b1000;
-				pfnEventHandler(&info);
+				pfnHandler(&info);
 			}
 		} break;
 		}
@@ -131,35 +158,71 @@ namespace MarkTech
 		switch (uMsg)
 		{
 		case WM_DESTROY: { PostQuitMessage(0); } return 0;
-		case WM_CLOSE: { DestroyWindow(hwnd); } return 0;
+		case WM_CLOSE: { DestroyWindow(hWnd); } return 0;
 		}
-		return DefWindowProc(hwnd, uMsg, wParam, lParam);
+		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	}
 
-	Window MakeWindow(const wchar_t* pTitle, U16 width, U16 height)
+	void ConstructWindow(const WindowInfo& info, Window& window)
 	{
-		Window window = {};
+		if (!gWindowList.pStart)
+		{
+			CreateLinkedList(gWindowList, nullptr);
 
-		WNDCLASSW winClass = {};
-		winClass.lpfnWndProc = WindowProc;
-		winClass.lpszClassName = WINDOW_CLASS_NAME;
-		winClass.hInstance = hInst;
+			WNDCLASSW winClass = {};
+			winClass.lpfnWndProc = WindowProc;
+			winClass.lpszClassName = WINDOW_CLASS_NAME;
+			winClass.hInstance = hInst;
 
-		RegisterClass(&winClass);
+			RegisterClass(&winClass);
+		}
 
-		window.hWnd = CreateWindowW(WINDOW_CLASS_NAME, pTitle, WS_OVERLAPPEDWINDOW | CS_OWNDC, CW_USEDEFAULT, CW_USEDEFAULT, width, height, NULL, NULL, hInst, NULL);
+		window.defaultMode = info.defaultMode;
+		window.height = info.height;
+		window.pfnEventHandler = info.pfnEventHandler;
+		window.pTitle = info.pTitle;
+		window.width = info.width;
+
+		wchar_t windowTitle[256] = L"";
+		size_t sizeConverted = 0;
+		mbstowcs_s(&sizeConverted, windowTitle, info.pTitle, strlen(info.pTitle));
+
+		U32 width = info.defaultMode == WINDOW_MODE_BORDERLESS_WINDOWED ? GetSystemMetrics(SM_CXSCREEN) : info.width;
+		U32 height = info.defaultMode == WINDOW_MODE_BORDERLESS_WINDOWED ? GetSystemMetrics(SM_CYSCREEN) : info.height;
+
+		window.hWnd = CreateWindowW(
+			WINDOW_CLASS_NAME,
+			windowTitle, 
+			gWindowModeTable[info.defaultMode] | CS_OWNDC, 
+			CW_USEDEFAULT, 
+			CW_USEDEFAULT, 
+			width,
+			width,
+			NULL, NULL, NULL, NULL);
+
 		if (window.hWnd == NULL)
-			return window;
+			return;
 
 		ShowWindow(window.hWnd, SW_NORMAL);
-
-		return window;
+		InsertLinkedListItem(gWindowList, window);
 	}
 
-	void KillWindow(const Window* pWindow)
+	void ReleaseWindow(Window& window)
 	{
-		DestroyWindow(pWindow->hWnd);
+		DestroyWindow(window.hWnd);
 		UnregisterClassW(WINDOW_CLASS_NAME, hInst);
+		
+		LinkedList<Window>::NodeType* pNode = gWindowList.pStart;
+		while (pNode != nullptr)
+		{
+			if (pNode->data.hWnd == window.hWnd)
+			{
+				RemoveLinkedListItem(gWindowList, pNode);
+				break;
+			}
+
+			pNode = pNode->pNext;
+		}
 	}
 
 	void PollWindowMessages()
@@ -171,23 +234,5 @@ namespace MarkTech
 			DispatchMessage(&msg);
 		}
 	}
-
-	void SetWindowEventHandler(PFN_WINDOWEVENTHANDLER eventHandler)
-	{
-		pfnEventHandler = eventHandler;
-	}
-
-	void WindowMessage(const Window* pWindow, const wchar_t* pHeader, const wchar_t* pDesc)
-	{
-		if (pWindow)
-		{
-			MessageBox(pWindow->hWnd, pDesc, pHeader, MB_OK);
-		}
-		else
-		{
-			MessageBox(NULL, pDesc, pHeader, MB_OK | MB_ICONEXCLAMATION);
-		}
-	}
-
 #endif
 }

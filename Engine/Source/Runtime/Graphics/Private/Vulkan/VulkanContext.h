@@ -36,10 +36,21 @@ namespace MarkTech
 		VulkanContextCreateFlags flags;
 	};
 
+	struct QueueFamilyIndices
+	{
+		U32 graphicsQueue;
+	};
+
 	struct VulkanContext
 	{
 		VkInstance instance;
+		VkDevice device;
 		VkDebugUtilsMessengerEXT messenger;
+	};
+
+	struct VulkanSwapchain
+	{
+		VkSwapchainKHR swapchain;
 	};
 
 	VulkanResultCode CreateVulkanContext(const VulkanContextInfo& info, VulkanContext** ppContext);

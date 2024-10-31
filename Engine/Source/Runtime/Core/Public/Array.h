@@ -35,21 +35,19 @@ namespace MarkTech
 	template<typename T>
 	void ReserveArray(Array<T>& arr, U32 size, MemoryAllocator* pAlloc)
 	{
-		if (!arr.pArray)
+		if (pAlloc)
 		{
-			if (pAlloc)
-			{
-				arr.pArray = (T*)AllocFromMemAllocator(*pAlloc, size);
-				arr.pAlloc = pAlloc;
-			}
-			else
-			{
-				arr.pArray = (T*)malloc(sizeof(T) * size);
-				arr.pAlloc = nullptr;
-			}
-
-			arr.reservedSize = size;
+			arr.pArray = (T*)AllocFromMemAllocator(*pAlloc, sizeof(T) * size);
+			arr.pAlloc = pAlloc;
 		}
+		else
+		{
+			arr.pArray = (T*)malloc(sizeof(T) * size);
+			arr.pAlloc = nullptr;
+		}
+
+		arr.reservedSize = size;
+		arr.size = 0;
 	}
 
 	template<typename T>

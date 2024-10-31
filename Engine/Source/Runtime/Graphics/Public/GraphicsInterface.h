@@ -26,6 +26,7 @@ namespace MarkTech
 	typedef U32 ContextCreateFlags;
 
 	typedef void* GraphicsContext;
+	typedef void* Swapchain;
 
 	struct ApplicationInfo
 	{
@@ -44,4 +45,12 @@ namespace MarkTech
 
 	ResultCode CreateGraphicsContext(const CreateGraphicsContextInfo& info, GraphicsContext* pContext);
 	void DestroyGraphicsContext(GraphicsContext context);
+
+	struct SwapchainCreateInfo
+	{
+
+	};
+
+	ResultCode CreateSwapchain(GraphicsContext context, const SwapchainCreateInfo& info, Swapchain* pSwapchain);
+	void DestroySwapchain(Swapchain swapchain);
 }

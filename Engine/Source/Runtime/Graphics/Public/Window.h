@@ -6,6 +6,13 @@
 
 namespace MarkTech
 {
+	enum WindowMode
+	{
+		WINDOW_MODE_FULLSCREEN,
+		WINDOW_MODE_WINDOWED,
+		WINDOW_MODE_BORDERLESS_WINDOWED
+	};
+
 	enum WindowEventType
 	{
 		WINDOW_EVENT_CLOSE,
@@ -42,16 +49,29 @@ namespace MarkTech
 
 	typedef void (*PFN_WINDOWEVENTHANDLER)(void* pEvent);
 
+	struct WindowInfo
+	{
+		const char* pTitle;
+		U32 width;
+		U32 height;
+		WindowMode defaultMode;
+		PFN_WINDOWEVENTHANDLER pfnEventHandler;
+	};
+
 	struct Window
 	{
 #ifdef MT_PLATFORM_WINDOWS
 		HWND hWnd;
 #endif
+		PFN_WINDOWEVENTHANDLER pfnEventHandler;
+		const char* pTitle;
+		U32 width;
+		U32 height;
+		WindowMode defaultMode;
 	};
 
-	Window MakeWindow(const wchar_t* pTitle, U16 width, U16 height);
-	void KillWindow(const Window* pWindow);
+	void ConstructWindow(const WindowInfo& info, Window& window);
+	void ReleaseWindow(Window& pWindow);
 	void PollWindowMessages();
-	void SetWindowEventHandler(PFN_WINDOWEVENTHANDLER eventHandler);
-	void WindowMessage(const Window* pWindow, const wchar_t* pHeader, const wchar_t* pDesc);
+	void WindowMessageBox(const Window& pWindow, const wchar_t* pHeader, const wchar_t* pDesc);
 }
