@@ -1,4 +1,4 @@
-#include "VulkanContext.h"
+#include "VulkanImpl.h"
 #include <PoolAllocator.h>
 #include <Array.h>
 #include <Version.h>
@@ -48,7 +48,10 @@ namespace MarkTech
 		Array<const char*> extensionNames;
 		ReserveArray(extensionNames, 8, nullptr);
 		InsertArrayItem(extensionNames, VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-
+		InsertArrayItem(extensionNames, VK_KHR_SURFACE_EXTENSION_NAME);
+#ifdef MT_PLATFORM_WINDOWS
+		InsertArrayItem(extensionNames, VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+#endif
 		if (info.flags & VULKAN_CONTEXT_FLAGS_DEBUG_MESSAGES)
 		{
 			InsertArrayItem(extensionNames, VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -146,10 +149,15 @@ namespace MarkTech
 		info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		info.pNext = nullptr;
 		info.flags = 0;
-		info.enabledExtensionCount = 0;
-		info.ppEnabledExtensionNames = nullptr;
+		Array<const char*> extensionNames;
+		ReserveArray(extensionNames, 8, nullptr);
+		InsertArrayItem(extensionNames, VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+
+		info.enabledExtensionCount = extensionNames.size;
+		info.ppEnabledExtensionNames = extensionNames.size > 0 ? extensionNames.pArray : nullptr;;
 		info.enabledLayerCount = 0;
 		info.ppEnabledLayerNames = nullptr;
+
 		VkPhysicalDeviceFeatures features = {};
 		info.pEnabledFeatures = &features;
 
@@ -167,8 +175,80 @@ namespace MarkTech
 
 		info.queueCreateInfoCount = 1;
 		info.pQueueCreateInfos = &queueInfo;
+		
+		VkResult result = vkCreateDevice(physicalDevice, &info, nullptr, pDevice);
+		
+		DestroyArray(extensionNames);
+		return result;
+	}
 
-		return vkCreateDevice(physicalDevice, &info, nullptr, pDevice);
+	static VkResult CreateSurface(VkInstance instance, const Window& window, VkSurfaceKHR* pSurface)
+	{
+#ifdef MT_PLATFORM_WINDOWS
+		VkWin32SurfaceCreateInfoKHR surfaceInfo;
+		surfaceInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+		surfaceInfo.pNext = nullptr;
+		surfaceInfo.flags = 0;
+		surfaceInfo.hwnd = window.hWnd;
+		surfaceInfo.hinstance = ghApplicationInstance;
+		return vkCreateWin32SurfaceKHR(instance, &surfaceInfo, nullptr, pSurface);
+#endif
+	}
+
+	static VkSurfaceFormatKHR GetBestSurfaceFormat(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkSurfaceFormatKHR desiredFormat)
+	{
+		Array<VkSurfaceFormatKHR> surfaceFormats;
+		U32 formatCount = 0;
+		vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, nullptr);
+		ReserveArray(surfaceFormats, formatCount, nullptr);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, surfaceFormats.pArray);
+		VkSurfaceFormatKHR format = surfaceFormats.pArray[0];
+
+		for (U32 i = 0; i < formatCount; i++)
+		{
+			if (surfaceFormats.pArray[i].format == desiredFormat.format && surfaceFormats.pArray[i].colorSpace == desiredFormat.colorSpace)
+			{
+				VkSurfaceFormatKHR format = surfaceFormats.pArray[i];
+			}
+		}
+		DestroyArray(surfaceFormats);
+		return format;
+	}
+
+	static VkResult CreateVkSwapchain(
+		VkDevice device,
+		VkPhysicalDevice physicalDevice,
+		VkSurfaceKHR surface,
+		VkPresentModeKHR presentMode,
+		VkSwapchainKHR oldSwapchain,
+		VkSwapchainKHR* pSwapchain
+	)
+	{
+		VkSurfaceFormatKHR surfaceFormat = GetBestSurfaceFormat(physicalDevice, surface, { VK_FORMAT_B8G8R8A8_UINT, VK_COLORSPACE_SRGB_NONLINEAR_KHR });
+		VkSurfaceCapabilitiesKHR surfaceCaps;
+		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfaceCaps);
+
+		VkSwapchainCreateInfoKHR swapchainInfo;
+		swapchainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+		swapchainInfo.pNext = nullptr;
+		swapchainInfo.flags = 0;
+		swapchainInfo.surface = surface;
+		swapchainInfo.minImageCount = surfaceCaps.minImageCount + 1;
+		swapchainInfo.imageFormat = surfaceFormat.format;
+		swapchainInfo.imageColorSpace = surfaceFormat.colorSpace;
+		swapchainInfo.imageExtent = surfaceCaps.currentExtent;
+		swapchainInfo.imageArrayLayers = 1;
+		swapchainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		swapchainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		swapchainInfo.queueFamilyIndexCount = 0;
+		swapchainInfo.pQueueFamilyIndices = nullptr;
+		swapchainInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+		swapchainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+		swapchainInfo.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+		swapchainInfo.clipped = VK_TRUE;
+		swapchainInfo.oldSwapchain = oldSwapchain;
+
+		return vkCreateSwapchainKHR(device, &swapchainInfo, nullptr, pSwapchain);
 	}
 
 	VulkanResultCode CreateVulkanContext(const VulkanContextInfo& info, VulkanContext** ppContext)
@@ -198,6 +278,7 @@ namespace MarkTech
 		}
 
 		VkPhysicalDevice physicalDevice = ChooseBestDevice(pVulkanContext->instance);
+		pVulkanContext->physicalDevice = physicalDevice;
 
 		if (CreateLogicalDevice(physicalDevice, &pVulkanContext->device) != VK_SUCCESS)
 		{
@@ -222,5 +303,48 @@ namespace MarkTech
 		volkFinalize();
 		FreeToPool(gObjAlloc, pContext);
 		FreePoolAllocator(gObjAlloc);
+	}
+
+	VulkanResultCode CreateVulkanSwapchain(VulkanContext* pContext, const VulkanSwapchainInfo& info, VulkanSwapchain** ppSwapchain)
+	{
+		VulkanSwapchain* pSwapchain = (VulkanSwapchain*)AllocFromPool(gObjAlloc);
+		*ppSwapchain = pSwapchain;
+		if (CreateSurface(pContext->instance, *info.pWindow, &pSwapchain->surface) != VK_SUCCESS)
+		{
+			FreeToPool(gObjAlloc, pSwapchain);
+			return VRC_FAILED;
+		}
+
+		VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
+		switch (info.presentationMode)
+		{
+		case VULKAN_PRESENTATION_MODE_FIFO:
+			presentMode = VK_PRESENT_MODE_FIFO_KHR;
+			break;
+		case VULKAN_PRESENTATION_MODE_IMMEDIATE:
+			presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+			break;
+		}
+
+		 VkSwapchainKHR oldSwapchain = info.pOldSwapchain ? info.pOldSwapchain->swapchain : nullptr;
+
+		if (CreateVkSwapchain( 
+			pContext->device, pContext->physicalDevice, pSwapchain->surface, 
+			presentMode, oldSwapchain, &pSwapchain->swapchain
+		) != VK_SUCCESS)
+		{
+			vkDestroySurfaceKHR(pContext->instance, pSwapchain->surface, nullptr);
+			FreeToPool(gObjAlloc, pSwapchain);
+			return VRC_FAILED;
+		}
+
+		return VRC_SUCCESS;
+	}
+
+	void DestroyVulkanSwapchain(VulkanContext* pContext, VulkanSwapchain* pSwapchain)
+	{
+		vkDestroySwapchainKHR(pContext->device, pSwapchain->swapchain, nullptr);
+		vkDestroySurfaceKHR(pContext->instance, pSwapchain->surface, nullptr);
+		FreeToPool(gObjAlloc, pSwapchain);
 	}
 }

@@ -7,7 +7,7 @@ namespace MarkTech
 {
 #ifdef MT_PLATFORM_WINDOWS
 	const wchar_t WINDOW_CLASS_NAME[] = L"MarkTechWindow";
-	HINSTANCE hInst = GetModuleHandle(NULL);
+	HINSTANCE ghApplicationInstance = GetModuleHandle(NULL);
 
 	U32 gWindowModeTable[3] = {
 		{ 0 },
@@ -172,7 +172,7 @@ namespace MarkTech
 			WNDCLASSW winClass = {};
 			winClass.lpfnWndProc = WindowProc;
 			winClass.lpszClassName = WINDOW_CLASS_NAME;
-			winClass.hInstance = hInst;
+			winClass.hInstance = ghApplicationInstance;
 
 			RegisterClass(&winClass);
 		}
@@ -210,7 +210,7 @@ namespace MarkTech
 	void ReleaseWindow(Window& window)
 	{
 		DestroyWindow(window.hWnd);
-		UnregisterClassW(WINDOW_CLASS_NAME, hInst);
+		UnregisterClassW(WINDOW_CLASS_NAME, ghApplicationInstance);
 		
 		LinkedList<Window>::NodeType* pNode = gWindowList.pStart;
 		while (pNode != nullptr)

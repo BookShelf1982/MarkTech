@@ -6,6 +6,8 @@
 
 namespace MarkTech
 {
+	extern HINSTANCE ghApplicationInstance;
+
 	enum WindowMode
 	{
 		WINDOW_MODE_FULLSCREEN,

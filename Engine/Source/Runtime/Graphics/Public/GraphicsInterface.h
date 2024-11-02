@@ -3,11 +3,13 @@
 #ifdef MT_PLATFORM_WINDOWS
 #include <Windows.h>
 #endif
+#include <Window.h>
 
 namespace MarkTech
 {
 	enum GraphicsAPI
 	{
+		GRAPHICS_API_NONE,
 		GRAPHICS_API_OPENGL,
 		GRAPHICS_API_VULKAN
 	};
@@ -36,21 +38,29 @@ namespace MarkTech
 		U32 verPatch;
 	};
 
-	struct CreateGraphicsContextInfo
+	struct GraphicsContextCreateInfo
 	{
 		ApplicationInfo* pAppInfo;
 		ContextCreateFlags flags;
 		GraphicsAPI api;
 	};
 
-	ResultCode CreateGraphicsContext(const CreateGraphicsContextInfo& info, GraphicsContext* pContext);
+	ResultCode CreateGraphicsContext(const GraphicsContextCreateInfo& info, GraphicsContext* pContext);
 	void DestroyGraphicsContext(GraphicsContext context);
+
+	enum PresentationMode
+	{
+		PRESENTATION_MODE_FIFO,
+		PRESENTATION_MODE_IMMEDIATE
+	};
 
 	struct SwapchainCreateInfo
 	{
-
+		Window* pWindow;
+		PresentationMode presentationMode;
+		Swapchain oldSwapchain;
 	};
 
 	ResultCode CreateSwapchain(GraphicsContext context, const SwapchainCreateInfo& info, Swapchain* pSwapchain);
-	void DestroySwapchain(Swapchain swapchain);
+	void DestroySwapchain(GraphicsContext context, Swapchain swapchain);
 }

@@ -33,7 +33,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 {
 	Window window;
 	WindowInfo windowInfo;
-	windowInfo.defaultMode = WINDOW_MODE_WINDOWED;
+	windowInfo.defaultMode = WINDOW_MODE_BORDERLESS_WINDOWED;
 	windowInfo.pTitle = "MarkTech Window";
 	windowInfo.width = 640;
 	windowInfo.height = 480;
@@ -41,43 +41,40 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	ConstructWindow(windowInfo, window);
 
-	Window subWindow;
-	WindowInfo subWindowInfo;
-	subWindowInfo.defaultMode = WINDOW_MODE_WINDOWED;
-	subWindowInfo.pTitle = "Sub Window";
-	subWindowInfo.width = 640;
-	subWindowInfo.height = 480;
-	subWindowInfo.pfnEventHandler = SubWindowEventHandler;
-
-	ConstructWindow(subWindowInfo, subWindow);
-
 	ApplicationInfo appInfo;
 	appInfo.pName = "MarkTech";
 	appInfo.verMajor = 1;
 	appInfo.verMinor = 0;
 	appInfo.verPatch = 0;
 
-	CreateGraphicsContextInfo info;
+	GraphicsContextCreateInfo info;
 	info.api = GRAPHICS_API_VULKAN;
 	info.flags = 0;
 	info.pAppInfo = &appInfo;
-	GraphicsContext context;
+	GraphicsContext context = nullptr;
 #ifdef DEBUG
 	info.flags |= CONTEXT_FLAGS_DEBUG_MESSAGES;
 #endif
 
 	CreateGraphicsContext(info, &context);
 
+	SwapchainCreateInfo swapchainInfo;
+	swapchainInfo.pWindow = &window;
+	swapchainInfo.oldSwapchain = nullptr;
+	swapchainInfo.presentationMode = PRESENTATION_MODE_FIFO;
+
+	Swapchain swapchain = nullptr;
+	CreateSwapchain(context, swapchainInfo, &swapchain);
+
 	while (gIsRunning)
 	{
 		PollWindowMessages();
 	}
 
+	DestroySwapchain(context, swapchain);
 	DestroyGraphicsContext(context);
-	ReleaseWindow(subWindow);
 	ReleaseWindow(window);
 	
-
 #ifdef DEBUG
 	_CrtDumpMemoryLeaks();
 #endif

@@ -1,11 +1,11 @@
 #include "GraphicsInterface.h"
-#include "Vulkan\VulkanContext.h"
+#include "Vulkan\VulkanImpl.h"
 
 namespace MarkTech
 {
 	GraphicsAPI gAPI;
 
-	ResultCode CreateGraphicsContext(const CreateGraphicsContextInfo& info, GraphicsContext* pContext)
+	ResultCode CreateGraphicsContext(const GraphicsContextCreateInfo& info, GraphicsContext* pContext)
 	{
 		switch (info.api)
 		{
@@ -35,6 +35,33 @@ namespace MarkTech
 		{
 			DestroyVulkanContext((VulkanContext*)context);
 		} break;
+		}
+	}
+
+	ResultCode CreateSwapchain(GraphicsContext context, const SwapchainCreateInfo& info, Swapchain* pSwapchain)
+	{
+		switch (gAPI)
+		{
+		case GRAPHICS_API_VULKAN:
+			VulkanSwapchainInfo swapchainInfo = {
+				info.pWindow,
+				(VulkanPresentationMode)info.presentationMode,
+				(VulkanSwapchain*)info.oldSwapchain
+			};
+			return (ResultCode)CreateVulkanSwapchain((VulkanContext*)context, swapchainInfo, (VulkanSwapchain**)pSwapchain);
+			break;
+		}
+
+		return RC_FAILED;
+	}
+
+	void DestroySwapchain(GraphicsContext context, Swapchain swapchain)
+	{
+		switch (gAPI)
+		{
+		case GRAPHICS_API_VULKAN:
+			DestroyVulkanSwapchain((VulkanContext*)context, (VulkanSwapchain*)swapchain);
+			break;
 		}
 	}
 }
