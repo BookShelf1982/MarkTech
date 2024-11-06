@@ -94,6 +94,12 @@ namespace MarkTech
 	}
 
 	template<typename T>
+	void EmptyArray(Array<T>& arr)
+	{
+		arr.size = 0;
+	}
+
+	template<typename T>
 	void DestroyArray(Array<T>& arr)
 	{
 		if (arr.pAlloc)

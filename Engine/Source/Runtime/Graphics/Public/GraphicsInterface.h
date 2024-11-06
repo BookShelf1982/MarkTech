@@ -29,7 +29,10 @@ namespace MarkTech
 
 	typedef void* GraphicsContext;
 	typedef void* Swapchain;
-
+	typedef void* CommandBuffer;
+	typedef void* GraphicsPipeline;
+	typedef void* Framebuffer;
+	
 	struct ApplicationInfo
 	{
 		const char* pName;
@@ -47,6 +50,7 @@ namespace MarkTech
 
 	ResultCode CreateGraphicsContext(const GraphicsContextCreateInfo& info, GraphicsContext* pContext);
 	void DestroyGraphicsContext(GraphicsContext context);
+	void WaitDeviceIdle(GraphicsContext context);
 
 	enum PresentationMode
 	{
@@ -63,4 +67,26 @@ namespace MarkTech
 
 	ResultCode CreateSwapchain(GraphicsContext context, const SwapchainCreateInfo& info, Swapchain* pSwapchain);
 	void DestroySwapchain(GraphicsContext context, Swapchain swapchain);
+	ResultCode AcquireNextSwapchainImage(GraphicsContext context, Swapchain swapchain, Framebuffer* pFramebuffer);
+	void SwapchainPresent(GraphicsContext context, Swapchain swapchain);
+
+	ResultCode CreateCommandBuffer(GraphicsContext context, CommandBuffer* pCmdBuffer);
+	void DestroyCommandBuffer(GraphicsContext context, CommandBuffer cmdBuffer);
+	ResultCode StartCommandRecording(CommandBuffer cmdBuffer);
+	ResultCode ResetCommandBuffer(CommandBuffer cmdBuffer);
+	ResultCode FinishCommandBuffer(CommandBuffer cmdBuffer);
+	ResultCode SubmitCommandBuffer(GraphicsContext context, CommandBuffer cmdBuffer);
+
+	struct FramebufferCreateInfo
+	{
+
+	};
+
+	ResultCode CreateFrameBuffer(GraphicsContext context, Framebuffer* pFB);
+	void DestroyFramebuffer(GraphicsContext context, Framebuffer* pFB);
+	void CmdBeginRenderTarget(CommandBuffer cmdBuffer, Framebuffer framebuffer);
+	void CmdEndRenderTarget(CommandBuffer cmdBuffer);
+
+	ResultCode CreateGraphicsPipeline(GraphicsContext context);
+	void DestroyGraphicsPipeline(GraphicsContext context);
 }

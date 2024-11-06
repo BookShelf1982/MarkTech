@@ -5,7 +5,6 @@
 #endif
 #include "Window.h"
 #include <volk.h>
-#include <PoolAllocator.h>
 
 namespace MarkTech
 {
@@ -45,12 +44,24 @@ namespace MarkTech
 	{
 		VkInstance instance;
 		VkDevice device;
+		VkQueue graphicsQueue;
 		VkPhysicalDevice physicalDevice;
 		VkDebugUtilsMessengerEXT messenger;
+		QueueFamilyIndices queueIndices;
+		VkCommandPool commandPool;
+		VkFence finishedPreviousFrame;
 	};
 
 	VulkanResultCode CreateVulkanContext(const VulkanContextInfo& info, VulkanContext** ppContext);
 	void DestroyVulkanContext(VulkanContext* pContext);
+	void WaitVulkanDeviceIdle(VulkanContext* pContext);
+
+	struct VulkanFramebuffer
+	{
+		VkRenderPass renderPass;
+		VkFramebuffer framebuffer;
+		VkExtent2D extent;
+	};
 
 	enum VulkanPresentationMode
 	{
@@ -62,6 +73,16 @@ namespace MarkTech
 	{
 		VkSurfaceKHR surface;
 		VkSwapchainKHR swapchain;
+		VkImage swapchainImages[3];
+		VkImageView swapchainImageViews[3];
+		VulkanFramebuffer swapchainFramebuffers[3];
+		VkRenderPass renderPass;
+		VkFormat imageFormat;
+		VkExtent2D imageExtent;
+		VkSemaphore acquiredImage;
+		VkSemaphore finishedRendering;
+		U32 swapchainImageCount;
+		U32 currentImageIndex;
 	};
 
 	struct VulkanSwapchainInfo
@@ -73,4 +94,22 @@ namespace MarkTech
 
 	VulkanResultCode CreateVulkanSwapchain(VulkanContext* pContext, const VulkanSwapchainInfo& info, VulkanSwapchain** ppSwapchain);
 	void DestroyVulkanSwapchain(VulkanContext* pContext, VulkanSwapchain* pSwapchain);
+	void VulkanSwapchainPresent(VulkanContext* pContext, VulkanSwapchain* pSwapchain);
+	VulkanResultCode AcquireNextVulkanFramebuffer(VulkanContext* pContext, VulkanSwapchain* pSwapchain, VulkanFramebuffer** ppFramebuffer);
+
+	struct VulkanCommandBuffer
+	{
+		VkCommandBuffer commandBuffer;
+		VkSemaphore finished;
+	};
+
+	VulkanResultCode CreateVulkanCommandBuffer(VulkanContext* pContext, VulkanCommandBuffer** ppCmdBuffer);
+	void DestroyVulkanCommandBuffer(VulkanContext* pContext, VulkanCommandBuffer* pCmdBuffer);
+	VulkanResultCode StartVulkanCommandRecording(VulkanCommandBuffer* pCmdBuffer);
+	VulkanResultCode ResetVulkanCommandBuffer(VulkanCommandBuffer* pCmdBuffer);
+	VulkanResultCode FinishVulkanCommandBuffer(VulkanCommandBuffer* pCmdBuffer);
+	VulkanResultCode SubmitVulkanCommandBuffer(VulkanContext* pContext, VulkanCommandBuffer* pCmdBuffer);
+
+	void CmdBeginVulkanRenderTarget(VulkanCommandBuffer* pCmdBuffer, VulkanFramebuffer* pFramebuffer);
+	void CmdEndVulkanRenderTarget(VulkanCommandBuffer* pCmdBuffer);
 }

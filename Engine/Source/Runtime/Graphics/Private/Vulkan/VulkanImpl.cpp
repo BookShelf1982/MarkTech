@@ -1,268 +1,48 @@
 #include "VulkanImpl.h"
+#include "VulkanHelpers.h"
 #include <PoolAllocator.h>
 #include <Array.h>
 #include <Version.h>
 
 #include <stdio.h>
 
-#define ENGINE_NAME "MarkTech"
-
 namespace MarkTech
 {
+	PoolAllocator gCtxAlloc;
+	PoolAllocator gSwpAlloc;
 	PoolAllocator gObjAlloc;
+	PoolAllocator gAdvObjAlloc;
+	Array<VkSemaphore> gBlockPresent;
+	Array<VkSemaphore> gBlockRender;
+	Array<VkSemaphore> gOnFinishedRender;
 
-	VkBool32 DebugMessagengerCallback(
-		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-		VkDebugUtilsMessageTypeFlagsEXT messageTypes,
-		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-		void* pUserData)
+	static void AbortVulkanContextCreation(VulkanContext* pContext)
 	{
-#ifdef MT_PLATFORM_WINDOWS
-		char buffer[1024] = "";
-		sprintf_s(buffer, "%s\n", pCallbackData->pMessage);
-		OutputDebugStringA(buffer);
-#endif
-		return VK_FALSE;
-	}
+		if (pContext->commandPool)
+			vkDestroyCommandPool(pContext->device, pContext->commandPool, nullptr);
+		if (pContext->device)
+			vkDestroyDevice(pContext->device, nullptr);
+		if (pContext->messenger)
+			vkDestroyDebugUtilsMessengerEXT(pContext->instance, pContext->messenger, nullptr);
+		if (pContext->instance)
+			vkDestroyInstance(pContext->instance, nullptr);
 
-	static VkResult CreateInstance(const VulkanContextInfo& info, VkInstance* pInstance)
-	{
-		VkApplicationInfo appInfo;
-		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-		appInfo.pNext = nullptr;
-		appInfo.apiVersion = VK_API_VERSION_1_2;
-		appInfo.applicationVersion = VK_MAKE_VERSION(info.pAppInfo->verMajor, info.pAppInfo->verMinor, info.pAppInfo->verPatch);
-		appInfo.pApplicationName = info.pAppInfo->pName;
-		appInfo.engineVersion = VK_MAKE_VERSION(MT_MAJOR_VERSION, MT_MINOR_VERSION, MT_PATCH_VERSION);
-		appInfo.pEngineName = ENGINE_NAME;
-
-		VkInstanceCreateInfo instanceInfo;
-		instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-		instanceInfo.pNext = nullptr;
-		instanceInfo.flags = 0;
-		instanceInfo.pApplicationInfo = &appInfo;
-
-		Array<const char*> layerNames;
-		ReserveArray(layerNames, 1, nullptr);
-
-		Array<const char*> extensionNames;
-		ReserveArray(extensionNames, 8, nullptr);
-		InsertArrayItem(extensionNames, VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-		InsertArrayItem(extensionNames, VK_KHR_SURFACE_EXTENSION_NAME);
-#ifdef MT_PLATFORM_WINDOWS
-		InsertArrayItem(extensionNames, VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-#endif
-		if (info.flags & VULKAN_CONTEXT_FLAGS_DEBUG_MESSAGES)
-		{
-			InsertArrayItem(extensionNames, VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-			InsertArrayItem(layerNames, "VK_LAYER_KHRONOS_validation");
-		}
-
-		instanceInfo.enabledExtensionCount = extensionNames.size;
-		instanceInfo.ppEnabledExtensionNames = extensionNames.size > 0 ? extensionNames.pArray : nullptr;
-
-		instanceInfo.enabledLayerCount = layerNames.size;
-		instanceInfo.ppEnabledLayerNames = layerNames.size > 0 ? layerNames.pArray : nullptr;
-
-		VkResult result = vkCreateInstance(&instanceInfo, nullptr, pInstance);
-		if (result != VK_SUCCESS)
-			return result;
-
-		DestroyArray(extensionNames);
-		DestroyArray(layerNames);
-		volkLoadInstance(*pInstance);
-
-		return VK_SUCCESS;
-	}
-
-	static VkResult CreateDebugMessenger(VkInstance instance, VkDebugUtilsMessengerEXT* pMessenger)
-	{
-		VkDebugUtilsMessengerCreateInfoEXT debugInfo = {};
-		debugInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-		debugInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;;
-		debugInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;;
-		debugInfo.pfnUserCallback = DebugMessagengerCallback;
-
-		return vkCreateDebugUtilsMessengerEXT(instance, &debugInfo, nullptr, pMessenger);
-	}
-
-	static VkPhysicalDevice ChooseBestDevice(VkInstance instance)
-	{
-		U32 deviceCount;
-		Array<VkPhysicalDevice> physicalDevices;
-		vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
-		ReserveArray(physicalDevices, deviceCount, nullptr);
-		vkEnumeratePhysicalDevices(instance, &deviceCount, physicalDevices.pArray);
-
-		U32 bestDeviceIndex = 0;
-		U32 prevScore = 0;
-		for (U32 i = 0; i < deviceCount; i++)
-		{
-			U32 score = 0;
-			VkPhysicalDeviceProperties deviceProps = {};
-			vkGetPhysicalDeviceProperties(physicalDevices.pArray[i], &deviceProps);
-			if (deviceProps.deviceType = VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
-				score += 1024;
-
-			score += deviceProps.limits.maxBoundDescriptorSets;
-			score += deviceProps.limits.maxDescriptorSetInputAttachments;
-			score += deviceProps.limits.maxDescriptorSetSamplers;
-			score += deviceProps.limits.maxDescriptorSetStorageBuffers;
-			score += deviceProps.limits.maxDescriptorSetUniformBuffers;
-
-			if (prevScore < score)
-			{
-				prevScore = score;
-				bestDeviceIndex = i;
-			}
-		}
-
-		VkPhysicalDevice bestDevice = physicalDevices.pArray[bestDeviceIndex];
-		DestroyArray(physicalDevices);
-		return bestDevice;
-	}
-	
-	static void GetQueueFamilyIndices(VkPhysicalDevice physicalDevice, QueueFamilyIndices& indices)
-	{
-		U32 familyCount = 0;
-		Array<VkQueueFamilyProperties> queueFamiles;
-		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &familyCount, nullptr);
-		ReserveArray(queueFamiles, familyCount, nullptr);
-		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &familyCount, queueFamiles.pArray);
-
-		U32 queuesLeft = 0;
-		for (U32 i = 0; i < familyCount; i++)
-		{
-			if (queueFamiles.pArray[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
-			{
-				indices.graphicsQueue = i;
-				break;
-			}
-		}
-
-		DestroyArray(queueFamiles);
-	}
-
-	static VkResult CreateLogicalDevice(VkPhysicalDevice physicalDevice, VkDevice* pDevice)
-	{
-		VkDeviceCreateInfo info;
-		info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-		info.pNext = nullptr;
-		info.flags = 0;
-		Array<const char*> extensionNames;
-		ReserveArray(extensionNames, 8, nullptr);
-		InsertArrayItem(extensionNames, VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-
-		info.enabledExtensionCount = extensionNames.size;
-		info.ppEnabledExtensionNames = extensionNames.size > 0 ? extensionNames.pArray : nullptr;;
-		info.enabledLayerCount = 0;
-		info.ppEnabledLayerNames = nullptr;
-
-		VkPhysicalDeviceFeatures features = {};
-		info.pEnabledFeatures = &features;
-
-		QueueFamilyIndices queueIndices;
-		GetQueueFamilyIndices(physicalDevice, queueIndices);
-
-		VkDeviceQueueCreateInfo queueInfo;
-		queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		queueInfo.pNext = nullptr;
-		queueInfo.flags = 0;
-		float priorities = 1.0f;
-		queueInfo.pQueuePriorities = &priorities;
-		queueInfo.queueCount = 1;
-		queueInfo.queueFamilyIndex = queueIndices.graphicsQueue;
-
-		info.queueCreateInfoCount = 1;
-		info.pQueueCreateInfos = &queueInfo;
-		
-		VkResult result = vkCreateDevice(physicalDevice, &info, nullptr, pDevice);
-		
-		DestroyArray(extensionNames);
-		return result;
-	}
-
-	static VkResult CreateSurface(VkInstance instance, const Window& window, VkSurfaceKHR* pSurface)
-	{
-#ifdef MT_PLATFORM_WINDOWS
-		VkWin32SurfaceCreateInfoKHR surfaceInfo;
-		surfaceInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-		surfaceInfo.pNext = nullptr;
-		surfaceInfo.flags = 0;
-		surfaceInfo.hwnd = window.hWnd;
-		surfaceInfo.hinstance = ghApplicationInstance;
-		return vkCreateWin32SurfaceKHR(instance, &surfaceInfo, nullptr, pSurface);
-#endif
-	}
-
-	static VkSurfaceFormatKHR GetBestSurfaceFormat(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkSurfaceFormatKHR desiredFormat)
-	{
-		Array<VkSurfaceFormatKHR> surfaceFormats;
-		U32 formatCount = 0;
-		vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, nullptr);
-		ReserveArray(surfaceFormats, formatCount, nullptr);
-		vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, surfaceFormats.pArray);
-		VkSurfaceFormatKHR format = surfaceFormats.pArray[0];
-
-		for (U32 i = 0; i < formatCount; i++)
-		{
-			if (surfaceFormats.pArray[i].format == desiredFormat.format && surfaceFormats.pArray[i].colorSpace == desiredFormat.colorSpace)
-			{
-				VkSurfaceFormatKHR format = surfaceFormats.pArray[i];
-			}
-		}
-		DestroyArray(surfaceFormats);
-		return format;
-	}
-
-	static VkResult CreateVkSwapchain(
-		VkDevice device,
-		VkPhysicalDevice physicalDevice,
-		VkSurfaceKHR surface,
-		VkPresentModeKHR presentMode,
-		VkSwapchainKHR oldSwapchain,
-		VkSwapchainKHR* pSwapchain
-	)
-	{
-		VkSurfaceFormatKHR surfaceFormat = GetBestSurfaceFormat(physicalDevice, surface, { VK_FORMAT_B8G8R8A8_UINT, VK_COLORSPACE_SRGB_NONLINEAR_KHR });
-		VkSurfaceCapabilitiesKHR surfaceCaps;
-		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfaceCaps);
-
-		VkSwapchainCreateInfoKHR swapchainInfo;
-		swapchainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		swapchainInfo.pNext = nullptr;
-		swapchainInfo.flags = 0;
-		swapchainInfo.surface = surface;
-		swapchainInfo.minImageCount = surfaceCaps.minImageCount + 1;
-		swapchainInfo.imageFormat = surfaceFormat.format;
-		swapchainInfo.imageColorSpace = surfaceFormat.colorSpace;
-		swapchainInfo.imageExtent = surfaceCaps.currentExtent;
-		swapchainInfo.imageArrayLayers = 1;
-		swapchainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-		swapchainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		swapchainInfo.queueFamilyIndexCount = 0;
-		swapchainInfo.pQueueFamilyIndices = nullptr;
-		swapchainInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-		swapchainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-		swapchainInfo.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-		swapchainInfo.clipped = VK_TRUE;
-		swapchainInfo.oldSwapchain = oldSwapchain;
-
-		return vkCreateSwapchainKHR(device, &swapchainInfo, nullptr, pSwapchain);
+		volkFinalize();
+		FreeToPool(gCtxAlloc, pContext);
+		FreePoolAllocator(gCtxAlloc);
 	}
 
 	VulkanResultCode CreateVulkanContext(const VulkanContextInfo& info, VulkanContext** ppContext)
 	{
 		volkInitialize();
-		CreatePoolAllocator(gObjAlloc, sizeof(VulkanContext), 16);
-		VulkanContext* pVulkanContext = (VulkanContext*)AllocFromPool(gObjAlloc);
+		CreatePoolAllocator(gCtxAlloc, sizeof(VulkanContext), 2);
+
+		VulkanContext* pVulkanContext = (VulkanContext*)AllocFromPool(gCtxAlloc);
 		*ppContext = pVulkanContext;
 
 		if (CreateInstance(info, &pVulkanContext->instance) != VK_SUCCESS)
 		{
-			volkFinalize();
-			FreeToPool(gObjAlloc, pVulkanContext);
-			FreePoolAllocator(gObjAlloc);
+			AbortVulkanContextCreation(pVulkanContext);
 			return VRC_FAILED;
 		}
 
@@ -270,30 +50,55 @@ namespace MarkTech
 		{
 			if (CreateDebugMessenger(pVulkanContext->instance, &pVulkanContext->messenger) != VK_SUCCESS)
 			{
-				volkFinalize();
-				FreeToPool(gObjAlloc, pVulkanContext);
-				FreePoolAllocator(gObjAlloc);
+				AbortVulkanContextCreation(pVulkanContext);
 				return VRC_FAILED;
 			}
 		}
 
 		VkPhysicalDevice physicalDevice = ChooseBestDevice(pVulkanContext->instance);
 		pVulkanContext->physicalDevice = physicalDevice;
-
-		if (CreateLogicalDevice(physicalDevice, &pVulkanContext->device) != VK_SUCCESS)
+		
+		if (CreateLogicalDevice(physicalDevice, &pVulkanContext->device, pVulkanContext->queueIndices) != VK_SUCCESS)
 		{
-			volkFinalize();
-			vkDestroyInstance(pVulkanContext->instance, nullptr);
-			FreeToPool(gObjAlloc, pVulkanContext);
-			FreePoolAllocator(gObjAlloc);
+			AbortVulkanContextCreation(pVulkanContext);
 			return VRC_FAILED;
 		}
+
+		vkGetDeviceQueue(pVulkanContext->device, pVulkanContext->queueIndices.graphicsQueue, 0, &pVulkanContext->graphicsQueue);
+
+		VkCommandPoolCreateInfo commandPoolInfo;
+		commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		commandPoolInfo.pNext = nullptr;
+		commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		commandPoolInfo.queueFamilyIndex = pVulkanContext->queueIndices.graphicsQueue;
+		
+		if (vkCreateCommandPool(pVulkanContext->device, &commandPoolInfo, nullptr, &pVulkanContext->commandPool) != VK_SUCCESS)
+		{
+			AbortVulkanContextCreation(pVulkanContext);
+			return VRC_FAILED;
+		}
+
+		VkFenceCreateInfo fenceInfo;
+		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		fenceInfo.pNext = nullptr;
+		fenceInfo.flags = 0;
+
+		vkCreateFence(pVulkanContext->device, &fenceInfo, nullptr, &pVulkanContext->finishedPreviousFrame);
+
+		CreatePoolAllocator(gObjAlloc, 8, 1024);
+		CreatePoolAllocator(gAdvObjAlloc, 32, 128);
+		CreatePoolAllocator(gSwpAlloc, sizeof(VulkanSwapchain), 4);
+		ReserveArray(gBlockPresent, 32, nullptr);
+		ReserveArray(gOnFinishedRender, 32, nullptr);
+		ReserveArray(gBlockRender, 32, nullptr);
 
 		return VRC_SUCCESS;
 	}
 
 	void DestroyVulkanContext(VulkanContext* pContext)
 	{
+		vkDestroyFence(pContext->device, pContext->finishedPreviousFrame, nullptr);
+		vkDestroyCommandPool(pContext->device, pContext->commandPool, nullptr);
 		vkDestroyDevice(pContext->device, nullptr);
 
 		if (pContext->messenger)
@@ -301,13 +106,25 @@ namespace MarkTech
 
 		vkDestroyInstance(pContext->instance, nullptr);
 		volkFinalize();
-		FreeToPool(gObjAlloc, pContext);
+
+		DestroyArray(gBlockPresent);
+		DestroyArray(gBlockRender);
+		DestroyArray(gOnFinishedRender);
+		FreeToPool(gCtxAlloc, pContext);
 		FreePoolAllocator(gObjAlloc);
+		FreePoolAllocator(gAdvObjAlloc);
+		FreePoolAllocator(gCtxAlloc);
+		FreePoolAllocator(gSwpAlloc);
+	}
+
+	void WaitVulkanDeviceIdle(VulkanContext* pContext)
+	{
+		vkDeviceWaitIdle(pContext->device);
 	}
 
 	VulkanResultCode CreateVulkanSwapchain(VulkanContext* pContext, const VulkanSwapchainInfo& info, VulkanSwapchain** ppSwapchain)
 	{
-		VulkanSwapchain* pSwapchain = (VulkanSwapchain*)AllocFromPool(gObjAlloc);
+		VulkanSwapchain* pSwapchain = (VulkanSwapchain*)AllocFromPool(gSwpAlloc);
 		*ppSwapchain = pSwapchain;
 		if (CreateSurface(pContext->instance, *info.pWindow, &pSwapchain->surface) != VK_SUCCESS)
 		{
@@ -330,21 +147,219 @@ namespace MarkTech
 
 		if (CreateVkSwapchain( 
 			pContext->device, pContext->physicalDevice, pSwapchain->surface, 
-			presentMode, oldSwapchain, &pSwapchain->swapchain
+			presentMode, oldSwapchain, pSwapchain
 		) != VK_SUCCESS)
 		{
 			vkDestroySurfaceKHR(pContext->instance, pSwapchain->surface, nullptr);
 			FreeToPool(gObjAlloc, pSwapchain);
 			return VRC_FAILED;
 		}
+		
+		if (info.pOldSwapchain)
+			info.pOldSwapchain->surface = VK_NULL_HANDLE;
+
+		CreateSwapchainRenderPass(pContext->device, pSwapchain);
+
+		vkGetSwapchainImagesKHR(pContext->device, pSwapchain->swapchain, &pSwapchain->swapchainImageCount, pSwapchain->swapchainImages);
+
+		for (U32 i = 0; i < pSwapchain->swapchainImageCount; i++)
+		{
+			VkImageViewCreateInfo imgViewInfo;
+			imgViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			imgViewInfo.pNext = nullptr;
+			imgViewInfo.flags = 0;
+			imgViewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+			imgViewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+			imgViewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+			imgViewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+			imgViewInfo.format = pSwapchain->imageFormat;
+			imgViewInfo.image = pSwapchain->swapchainImages[i];
+			imgViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			imgViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			imgViewInfo.subresourceRange.baseArrayLayer = 0;
+			imgViewInfo.subresourceRange.baseMipLevel = 0;
+			imgViewInfo.subresourceRange.layerCount = 1;
+			imgViewInfo.subresourceRange.levelCount = 1;
+
+			vkCreateImageView(pContext->device, &imgViewInfo, nullptr, &pSwapchain->swapchainImageViews[i]);
+		}
+
+		for (U32 i = 0; i < pSwapchain->swapchainImageCount; i++)
+		{
+			VkFramebufferCreateInfo framebufferInfo;
+			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+			framebufferInfo.pNext = nullptr;
+			framebufferInfo.flags = 0;
+			framebufferInfo.renderPass = pSwapchain->renderPass;
+			framebufferInfo.height = pSwapchain->imageExtent.height;
+			framebufferInfo.width = pSwapchain->imageExtent.width;
+			framebufferInfo.layers = 1;
+			framebufferInfo.pAttachments = &pSwapchain->swapchainImageViews[i];
+			framebufferInfo.attachmentCount = 1;
+
+			vkCreateFramebuffer(pContext->device, &framebufferInfo, nullptr, &pSwapchain->swapchainFramebuffers[i].framebuffer);
+			pSwapchain->swapchainFramebuffers[i].renderPass = pSwapchain->renderPass;
+			pSwapchain->swapchainFramebuffers[i].extent = pSwapchain->imageExtent;
+		}
+
+		VkSemaphoreCreateInfo semaphoreInfo;
+		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		semaphoreInfo.pNext = nullptr;
+		semaphoreInfo.flags = 0;
+
+		vkCreateSemaphore(pContext->device, &semaphoreInfo, nullptr, &pSwapchain->acquiredImage);
 
 		return VRC_SUCCESS;
 	}
 
 	void DestroyVulkanSwapchain(VulkanContext* pContext, VulkanSwapchain* pSwapchain)
 	{
+		vkDestroySemaphore(pContext->device, pSwapchain->acquiredImage, nullptr);
+
+		for (U32 i = 0; i < pSwapchain->swapchainImageCount; i++)
+			vkDestroyFramebuffer(pContext->device, pSwapchain->swapchainFramebuffers[i].framebuffer, nullptr);
+
+		for (U32 i = 0; i < pSwapchain->swapchainImageCount; i++)
+			vkDestroyImageView(pContext->device, pSwapchain->swapchainImageViews[i], nullptr);
+
+		vkDestroyRenderPass(pContext->device, pSwapchain->renderPass, nullptr);
 		vkDestroySwapchainKHR(pContext->device, pSwapchain->swapchain, nullptr);
 		vkDestroySurfaceKHR(pContext->instance, pSwapchain->surface, nullptr);
 		FreeToPool(gObjAlloc, pSwapchain);
+	}
+
+	void VulkanSwapchainPresent(VulkanContext* pContext, VulkanSwapchain* pSwapchain)
+	{
+		VkPresentInfoKHR info;
+		info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+		info.pNext = nullptr;
+		info.swapchainCount = 1;
+		info.pSwapchains = &pSwapchain->swapchain;
+		info.waitSemaphoreCount = gBlockPresent.size;
+		info.pWaitSemaphores = gBlockPresent.size > 0 ? gBlockPresent.pArray : nullptr;
+		info.pResults = nullptr;
+		U32 indices = pSwapchain->currentImageIndex;
+		info.pImageIndices = &indices;
+
+		vkQueuePresentKHR(pContext->graphicsQueue, &info);
+		
+		EmptyArray(gBlockPresent);
+
+		vkWaitForFences(pContext->device, 1, &pContext->finishedPreviousFrame, VK_TRUE, U64_MAX);
+		vkResetFences(pContext->device, 1, &pContext->finishedPreviousFrame);
+	}
+
+	VulkanResultCode AcquireNextVulkanFramebuffer(VulkanContext* pContext, VulkanSwapchain* pSwapchain, VulkanFramebuffer** ppFramebuffer)
+	{
+		vkAcquireNextImageKHR(pContext->device, pSwapchain->swapchain, U64_MAX, pSwapchain->acquiredImage, nullptr, &pSwapchain->currentImageIndex);
+		InsertArrayItem(gBlockRender, pSwapchain->acquiredImage);
+
+		*ppFramebuffer = &pSwapchain->swapchainFramebuffers[pSwapchain->currentImageIndex];
+		return VRC_SUCCESS;
+	}
+
+	VulkanResultCode CreateVulkanCommandBuffer(VulkanContext* pContext, VulkanCommandBuffer** ppCmdBuffer)
+	{
+		VulkanCommandBuffer* pCmdBuffer = (VulkanCommandBuffer*)AllocFromPool(gAdvObjAlloc);
+		*ppCmdBuffer = pCmdBuffer;
+		VkCommandBufferAllocateInfo allocateInfo;
+		allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocateInfo.pNext = nullptr;
+		allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		allocateInfo.commandBufferCount = 1;
+		allocateInfo.commandPool = pContext->commandPool;
+
+		if (vkAllocateCommandBuffers(pContext->device, &allocateInfo, &pCmdBuffer->commandBuffer) != VK_SUCCESS)
+			return VRC_FAILED;
+
+		VkSemaphoreCreateInfo semaphoreInfo;
+		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		semaphoreInfo.pNext = nullptr;
+		semaphoreInfo.flags = 0;
+
+		if (vkCreateSemaphore(pContext->device, &semaphoreInfo, nullptr, &pCmdBuffer->finished) != VK_SUCCESS)
+			return VRC_FAILED;
+
+		return VRC_SUCCESS;
+	}
+
+	void DestroyVulkanCommandBuffer(VulkanContext* pContext, VulkanCommandBuffer* pCmdBuffer)
+	{
+		vkFreeCommandBuffers(pContext->device, pContext->commandPool, 1, &pCmdBuffer->commandBuffer);
+		vkDestroySemaphore(pContext->device, pCmdBuffer->finished, nullptr);
+		FreeToPool(gAdvObjAlloc, pCmdBuffer);
+	}
+
+	VulkanResultCode StartVulkanCommandRecording(VulkanCommandBuffer* pCmdBuffer)
+	{
+		VkCommandBufferBeginInfo info;
+		info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		info.flags = 0;
+		info.pNext = nullptr;
+		info.pInheritanceInfo = nullptr;
+		if (vkBeginCommandBuffer(pCmdBuffer->commandBuffer, &info) != VK_SUCCESS)
+			return  VRC_FAILED;
+		
+		return VRC_SUCCESS;
+	}
+
+	VulkanResultCode ResetVulkanCommandBuffer(VulkanCommandBuffer* pCmdBuffer)
+	{
+		if (vkResetCommandBuffer(pCmdBuffer->commandBuffer, 0) != VK_SUCCESS)
+			return VRC_FAILED;
+
+		return VRC_SUCCESS;
+	}
+
+	VulkanResultCode FinishVulkanCommandBuffer(VulkanCommandBuffer* pCmdBuffer)
+	{
+		if (vkEndCommandBuffer(pCmdBuffer->commandBuffer) != VK_SUCCESS)
+			return VRC_FAILED;
+
+		return VRC_SUCCESS;
+	}
+
+	VulkanResultCode SubmitVulkanCommandBuffer(VulkanContext* pContext, VulkanCommandBuffer* pCmdBuffer)
+	{
+		VkSubmitInfo info;
+		info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		info.pNext = nullptr;
+		info.commandBufferCount = 1;
+		info.pCommandBuffers = &pCmdBuffer->commandBuffer;
+		info.signalSemaphoreCount = 1;
+		info.pSignalSemaphores = &pCmdBuffer->finished;
+		info.waitSemaphoreCount = gBlockRender.size;
+		info.pWaitSemaphores = gBlockRender.size ? gBlockRender.pArray : nullptr;
+		VkPipelineStageFlags stageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		info.pWaitDstStageMask = &stageMask;
+
+		if (vkQueueSubmit(pContext->graphicsQueue, 1, &info, pContext->finishedPreviousFrame) != VK_SUCCESS)
+			return VRC_FAILED;
+		
+		InsertArrayItem(gBlockPresent, pCmdBuffer->finished);
+		EmptyArray(gBlockRender);
+
+		return VRC_SUCCESS;
+	}
+
+	void CmdBeginVulkanRenderTarget(VulkanCommandBuffer* pCmdBuffer, VulkanFramebuffer* pFramebuffer)
+	{
+		VkRenderPassBeginInfo info;
+		info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		info.pNext = nullptr;
+		info.framebuffer = pFramebuffer->framebuffer;
+		info.renderArea.extent = pFramebuffer->extent;
+		info.renderArea.offset = { 0,0 };
+		info.renderPass = pFramebuffer->renderPass;
+		VkClearValue clearColor = { 0.0f, 0.0f, 1.0f, 1.0f };
+		info.clearValueCount = 1;
+		info.pClearValues = &clearColor;
+
+		vkCmdBeginRenderPass(pCmdBuffer->commandBuffer, &info, VK_SUBPASS_CONTENTS_INLINE);
+	}
+
+	void CmdEndVulkanRenderTarget(VulkanCommandBuffer* pCmdBuffer)
+	{
+		vkCmdEndRenderPass(pCmdBuffer->commandBuffer);
 	}
 }

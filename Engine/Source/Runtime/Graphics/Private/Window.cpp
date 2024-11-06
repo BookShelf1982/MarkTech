@@ -29,6 +29,8 @@ namespace MarkTech
 
 			pNode = pNode->pNext;
 		}
+
+		return nullptr;
 	}
 
 	LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -197,7 +199,7 @@ namespace MarkTech
 			CW_USEDEFAULT, 
 			CW_USEDEFAULT, 
 			width,
-			width,
+			height,
 			NULL, NULL, NULL, NULL);
 
 		if (window.hWnd == NULL)

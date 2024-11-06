@@ -38,6 +38,17 @@ namespace MarkTech
 		}
 	}
 
+	void WaitDeviceIdle(GraphicsContext context)
+	{
+		switch (gAPI)
+		{
+		case GRAPHICS_API_VULKAN:
+		{
+			WaitVulkanDeviceIdle((VulkanContext*)context);
+		} break;
+		}
+	}
+
 	ResultCode CreateSwapchain(GraphicsContext context, const SwapchainCreateInfo& info, Swapchain* pSwapchain)
 	{
 		switch (gAPI)
@@ -61,6 +72,117 @@ namespace MarkTech
 		{
 		case GRAPHICS_API_VULKAN:
 			DestroyVulkanSwapchain((VulkanContext*)context, (VulkanSwapchain*)swapchain);
+			break;
+		}
+	}
+
+	void SwapchainPresent(GraphicsContext context, Swapchain swapchain)
+	{
+		switch (gAPI)
+		{
+		case GRAPHICS_API_VULKAN:
+			VulkanSwapchainPresent((VulkanContext*)context, (VulkanSwapchain*)swapchain);
+			break;
+		}
+	}
+
+	ResultCode AcquireNextSwapchainImage(GraphicsContext context, Swapchain swapchain, Framebuffer* pFramebuffer)
+	{
+		switch (gAPI)
+		{
+		case GRAPHICS_API_VULKAN:
+			return (ResultCode)AcquireNextVulkanFramebuffer((VulkanContext*)context, (VulkanSwapchain*)swapchain, (VulkanFramebuffer**)pFramebuffer);
+			break;
+		}
+
+		return RC_FAILED;
+	}
+
+	ResultCode CreateCommandBuffer(GraphicsContext context, CommandBuffer* pCmdBuffer)
+	{
+		switch (gAPI)
+		{
+		case GRAPHICS_API_VULKAN:
+			return (ResultCode)CreateVulkanCommandBuffer((VulkanContext*)context, (VulkanCommandBuffer**)pCmdBuffer);
+		}
+
+		return RC_FAILED;
+	}
+
+	void DestroyCommandBuffer(GraphicsContext context, CommandBuffer cmdBuffer)
+	{
+		switch (gAPI)
+		{
+		case GRAPHICS_API_VULKAN:
+			DestroyVulkanCommandBuffer((VulkanContext*)context, (VulkanCommandBuffer*)cmdBuffer);
+			break;
+		}
+	}
+
+	ResultCode StartCommandRecording(CommandBuffer cmdBuffer)
+	{
+		switch (gAPI)
+		{
+		case GRAPHICS_API_VULKAN:
+			return (ResultCode)StartVulkanCommandRecording((VulkanCommandBuffer*)cmdBuffer);
+			break;
+		}
+
+		return RC_FAILED;
+	}
+
+	ResultCode ResetCommandBuffer(CommandBuffer cmdBuffer)
+	{
+		switch (gAPI)
+		{
+		case GRAPHICS_API_VULKAN:
+			return (ResultCode)ResetVulkanCommandBuffer((VulkanCommandBuffer*)cmdBuffer);
+			break;
+		}
+		
+		return RC_FAILED;
+	}
+
+	ResultCode FinishCommandBuffer(CommandBuffer cmdBuffer)
+	{
+		switch (gAPI)
+		{
+		case GRAPHICS_API_VULKAN:
+			return (ResultCode)FinishVulkanCommandBuffer((VulkanCommandBuffer*)cmdBuffer);
+			break;
+		}
+
+		return RC_FAILED;
+	}
+
+	ResultCode SubmitCommandBuffer(GraphicsContext context, CommandBuffer cmdBuffer)
+	{
+		switch (gAPI)
+		{
+		case GRAPHICS_API_VULKAN:
+			return (ResultCode)SubmitVulkanCommandBuffer((VulkanContext*)context, (VulkanCommandBuffer*)cmdBuffer);
+			break;
+		}
+
+		return RC_FAILED;
+	}
+
+	void CmdBeginRenderTarget(CommandBuffer cmdBuffer, Framebuffer framebuffer)
+	{
+		switch (gAPI)
+		{
+		case GRAPHICS_API_VULKAN:
+			CmdBeginVulkanRenderTarget((VulkanCommandBuffer*)cmdBuffer, (VulkanFramebuffer*)framebuffer);
+			break;
+		}
+	}
+
+	void CmdEndRenderTarget(CommandBuffer cmdBuffer)
+	{
+		switch (gAPI)
+		{
+		case GRAPHICS_API_VULKAN:
+			CmdEndVulkanRenderTarget((VulkanCommandBuffer*)cmdBuffer);
 			break;
 		}
 	}

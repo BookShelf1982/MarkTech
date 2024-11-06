@@ -51,11 +51,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	info.api = GRAPHICS_API_VULKAN;
 	info.flags = 0;
 	info.pAppInfo = &appInfo;
-	GraphicsContext context = nullptr;
 #ifdef DEBUG
 	info.flags |= CONTEXT_FLAGS_DEBUG_MESSAGES;
 #endif
 
+	GraphicsContext context = nullptr;
 	CreateGraphicsContext(info, &context);
 
 	SwapchainCreateInfo swapchainInfo;
@@ -66,11 +66,25 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	Swapchain swapchain = nullptr;
 	CreateSwapchain(context, swapchainInfo, &swapchain);
 
+	CommandBuffer commandBuffer = nullptr;
+	CreateCommandBuffer(context, &commandBuffer);
+
+	Framebuffer currentFramebuffer = nullptr;
 	while (gIsRunning)
 	{
 		PollWindowMessages();
+		ResetCommandBuffer(commandBuffer);
+		AcquireNextSwapchainImage(context, swapchain, &currentFramebuffer);
+		StartCommandRecording(commandBuffer);
+		CmdBeginRenderTarget(commandBuffer, currentFramebuffer);
+		CmdEndRenderTarget(commandBuffer);
+		FinishCommandBuffer(commandBuffer);
+		SubmitCommandBuffer(context, commandBuffer);
+		SwapchainPresent(context, swapchain);
 	}
 
+	WaitDeviceIdle(context);
+	DestroyCommandBuffer(context, commandBuffer);
 	DestroySwapchain(context, swapchain);
 	DestroyGraphicsContext(context);
 	ReleaseWindow(window);
