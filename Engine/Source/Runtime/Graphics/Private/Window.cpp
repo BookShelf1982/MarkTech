@@ -236,5 +236,10 @@ namespace MarkTech
 			DispatchMessage(&msg);
 		}
 	}
+
+	void WindowMessageBox(const Window& window, const wchar_t* pHeader, const wchar_t* pDesc)
+	{
+		MessageBoxW(window.hWnd, pDesc, pHeader, MB_ICONERROR);
+	}
 #endif
 }

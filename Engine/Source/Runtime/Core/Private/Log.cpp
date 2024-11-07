@@ -40,7 +40,7 @@ namespace MarkTech
 		vsnprintf(buffer, MAX_CHARS, msg, argList);
 
 		va_end(argList);
-		
+
 		char newBuffer[MAX_CHARS];
 		U64 time = (GetCurrentTimestamp() - gStartTimestamp) * 1000 / GetCPUFrequency();
 
@@ -49,5 +49,8 @@ namespace MarkTech
 		U64 length = strlen(newBuffer);
 		char* ptr = (char*)AllocFromStack(&gConsoleBuffer, length);
 		strcpy_s(ptr, length + 1, newBuffer);
+#ifdef MT_PLATFORM_WINDOWS
+		OutputDebugStringA(newBuffer);
+#endif
 	}
 }

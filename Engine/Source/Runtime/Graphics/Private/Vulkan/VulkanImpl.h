@@ -3,6 +3,7 @@
 #ifdef MT_PLATFORM_WINDOWS
 #define VK_USE_PLATFORM_WIN32_KHR
 #endif
+#include <Array.h>
 #include "Window.h"
 #include <volk.h>
 
@@ -73,14 +74,14 @@ namespace MarkTech
 	{
 		VkSurfaceKHR surface;
 		VkSwapchainKHR swapchain;
-		VkImage swapchainImages[3];
-		VkImageView swapchainImageViews[3];
-		VulkanFramebuffer swapchainFramebuffers[3];
+		Array<VkImage> swapchainImages;
+		Array<VkImageView> swapchainImageViews;
+		Array<VulkanFramebuffer> swapchainFramebuffers;
 		VkRenderPass renderPass;
 		VkFormat imageFormat;
 		VkExtent2D imageExtent;
+		VkFence acquiredImageFence;
 		VkSemaphore acquiredImage;
-		VkSemaphore finishedRendering;
 		U32 swapchainImageCount;
 		U32 currentImageIndex;
 	};

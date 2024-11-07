@@ -1,8 +1,8 @@
 #include "VulkanImpl.h"
 #include "VulkanHelpers.h"
 #include <PoolAllocator.h>
-#include <Array.h>
 #include <Version.h>
+#include <Log.h>
 
 #include <stdio.h>
 
@@ -14,7 +14,6 @@ namespace MarkTech
 	PoolAllocator gAdvObjAlloc;
 	Array<VkSemaphore> gBlockPresent;
 	Array<VkSemaphore> gBlockRender;
-	Array<VkSemaphore> gOnFinishedRender;
 
 	static void AbortVulkanContextCreation(VulkanContext* pContext)
 	{
@@ -54,6 +53,10 @@ namespace MarkTech
 				return VRC_FAILED;
 			}
 		}
+		else
+		{
+			pVulkanContext->messenger = nullptr;
+		}
 
 		VkPhysicalDevice physicalDevice = ChooseBestDevice(pVulkanContext->instance);
 		pVulkanContext->physicalDevice = physicalDevice;
@@ -89,7 +92,6 @@ namespace MarkTech
 		CreatePoolAllocator(gAdvObjAlloc, 32, 128);
 		CreatePoolAllocator(gSwpAlloc, sizeof(VulkanSwapchain), 4);
 		ReserveArray(gBlockPresent, 32, nullptr);
-		ReserveArray(gOnFinishedRender, 32, nullptr);
 		ReserveArray(gBlockRender, 32, nullptr);
 
 		return VRC_SUCCESS;
@@ -109,7 +111,6 @@ namespace MarkTech
 
 		DestroyArray(gBlockPresent);
 		DestroyArray(gBlockRender);
-		DestroyArray(gOnFinishedRender);
 		FreeToPool(gCtxAlloc, pContext);
 		FreePoolAllocator(gObjAlloc);
 		FreePoolAllocator(gAdvObjAlloc);
@@ -160,7 +161,11 @@ namespace MarkTech
 
 		CreateSwapchainRenderPass(pContext->device, pSwapchain);
 
-		vkGetSwapchainImagesKHR(pContext->device, pSwapchain->swapchain, &pSwapchain->swapchainImageCount, pSwapchain->swapchainImages);
+		vkGetSwapchainImagesKHR(pContext->device, pSwapchain->swapchain, &pSwapchain->swapchainImageCount, nullptr);
+		ReserveArray(pSwapchain->swapchainImages, pSwapchain->swapchainImageCount, nullptr);
+		ReserveArray(pSwapchain->swapchainImageViews, pSwapchain->swapchainImageCount, nullptr);
+		ReserveArray(pSwapchain->swapchainFramebuffers, pSwapchain->swapchainImageCount, nullptr);
+		vkGetSwapchainImagesKHR(pContext->device, pSwapchain->swapchain, &pSwapchain->swapchainImageCount, pSwapchain->swapchainImages.pArray);
 
 		for (U32 i = 0; i < pSwapchain->swapchainImageCount; i++)
 		{
@@ -173,7 +178,7 @@ namespace MarkTech
 			imgViewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
 			imgViewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
 			imgViewInfo.format = pSwapchain->imageFormat;
-			imgViewInfo.image = pSwapchain->swapchainImages[i];
+			imgViewInfo.image = pSwapchain->swapchainImages.pArray[i];
 			imgViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 			imgViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 			imgViewInfo.subresourceRange.baseArrayLayer = 0;
@@ -181,7 +186,7 @@ namespace MarkTech
 			imgViewInfo.subresourceRange.layerCount = 1;
 			imgViewInfo.subresourceRange.levelCount = 1;
 
-			vkCreateImageView(pContext->device, &imgViewInfo, nullptr, &pSwapchain->swapchainImageViews[i]);
+			vkCreateImageView(pContext->device, &imgViewInfo, nullptr, &pSwapchain->swapchainImageViews.pArray[i]);
 		}
 
 		for (U32 i = 0; i < pSwapchain->swapchainImageCount; i++)
@@ -194,12 +199,12 @@ namespace MarkTech
 			framebufferInfo.height = pSwapchain->imageExtent.height;
 			framebufferInfo.width = pSwapchain->imageExtent.width;
 			framebufferInfo.layers = 1;
-			framebufferInfo.pAttachments = &pSwapchain->swapchainImageViews[i];
+			framebufferInfo.pAttachments = &pSwapchain->swapchainImageViews.pArray[i];
 			framebufferInfo.attachmentCount = 1;
 
-			vkCreateFramebuffer(pContext->device, &framebufferInfo, nullptr, &pSwapchain->swapchainFramebuffers[i].framebuffer);
-			pSwapchain->swapchainFramebuffers[i].renderPass = pSwapchain->renderPass;
-			pSwapchain->swapchainFramebuffers[i].extent = pSwapchain->imageExtent;
+			vkCreateFramebuffer(pContext->device, &framebufferInfo, nullptr, &pSwapchain->swapchainFramebuffers.pArray[i].framebuffer);
+			pSwapchain->swapchainFramebuffers.pArray[i].renderPass = pSwapchain->renderPass;
+			pSwapchain->swapchainFramebuffers.pArray[i].extent = pSwapchain->imageExtent;
 		}
 
 		VkSemaphoreCreateInfo semaphoreInfo;
@@ -209,22 +214,33 @@ namespace MarkTech
 
 		vkCreateSemaphore(pContext->device, &semaphoreInfo, nullptr, &pSwapchain->acquiredImage);
 
+		VkFenceCreateInfo fenceInfo;
+		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		fenceInfo.pNext = nullptr;
+		fenceInfo.flags = 0;
+
+		vkCreateFence(pContext->device, &fenceInfo, nullptr, &pSwapchain->acquiredImageFence);
+
 		return VRC_SUCCESS;
 	}
 
 	void DestroyVulkanSwapchain(VulkanContext* pContext, VulkanSwapchain* pSwapchain)
 	{
+		vkDestroyFence(pContext->device, pSwapchain->acquiredImageFence, nullptr);
 		vkDestroySemaphore(pContext->device, pSwapchain->acquiredImage, nullptr);
 
 		for (U32 i = 0; i < pSwapchain->swapchainImageCount; i++)
-			vkDestroyFramebuffer(pContext->device, pSwapchain->swapchainFramebuffers[i].framebuffer, nullptr);
+			vkDestroyFramebuffer(pContext->device, pSwapchain->swapchainFramebuffers.pArray[i].framebuffer, nullptr);
 
 		for (U32 i = 0; i < pSwapchain->swapchainImageCount; i++)
-			vkDestroyImageView(pContext->device, pSwapchain->swapchainImageViews[i], nullptr);
+			vkDestroyImageView(pContext->device, pSwapchain->swapchainImageViews.pArray[i], nullptr);
 
 		vkDestroyRenderPass(pContext->device, pSwapchain->renderPass, nullptr);
 		vkDestroySwapchainKHR(pContext->device, pSwapchain->swapchain, nullptr);
 		vkDestroySurfaceKHR(pContext->instance, pSwapchain->surface, nullptr);
+		DestroyArray(pSwapchain->swapchainFramebuffers);
+		DestroyArray(pSwapchain->swapchainImages);
+		DestroyArray(pSwapchain->swapchainImageViews);
 		FreeToPool(gObjAlloc, pSwapchain);
 	}
 
@@ -251,10 +267,13 @@ namespace MarkTech
 
 	VulkanResultCode AcquireNextVulkanFramebuffer(VulkanContext* pContext, VulkanSwapchain* pSwapchain, VulkanFramebuffer** ppFramebuffer)
 	{
-		vkAcquireNextImageKHR(pContext->device, pSwapchain->swapchain, U64_MAX, pSwapchain->acquiredImage, nullptr, &pSwapchain->currentImageIndex);
+		vkAcquireNextImageKHR(pContext->device, pSwapchain->swapchain, U64_MAX, pSwapchain->acquiredImage, pSwapchain->acquiredImageFence, &pSwapchain->currentImageIndex);
 		InsertArrayItem(gBlockRender, pSwapchain->acquiredImage);
+		
+		vkWaitForFences(pContext->device, 1, &pSwapchain->acquiredImageFence, VK_TRUE, U64_MAX);
+		vkResetFences(pContext->device, 1, &pSwapchain->acquiredImageFence);
 
-		*ppFramebuffer = &pSwapchain->swapchainFramebuffers[pSwapchain->currentImageIndex];
+		*ppFramebuffer = &pSwapchain->swapchainFramebuffers.pArray[pSwapchain->currentImageIndex];
 		return VRC_SUCCESS;
 	}
 
@@ -344,6 +363,12 @@ namespace MarkTech
 
 	void CmdBeginVulkanRenderTarget(VulkanCommandBuffer* pCmdBuffer, VulkanFramebuffer* pFramebuffer)
 	{
+		if (!pFramebuffer->framebuffer)
+			return;
+
+		if (!pFramebuffer->renderPass)
+			return;
+
 		VkRenderPassBeginInfo info;
 		info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		info.pNext = nullptr;
@@ -351,7 +376,7 @@ namespace MarkTech
 		info.renderArea.extent = pFramebuffer->extent;
 		info.renderArea.offset = { 0,0 };
 		info.renderPass = pFramebuffer->renderPass;
-		VkClearValue clearColor = { 0.0f, 0.0f, 1.0f, 1.0f };
+		VkClearValue clearColor = { {{0.0f, 0.0f, 0.25f, 1.0f}} };
 		info.clearValueCount = 1;
 		info.pClearValues = &clearColor;
 

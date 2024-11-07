@@ -268,12 +268,18 @@ namespace MarkTech
 
 		renderPassInfo.attachmentCount = 1;
 		renderPassInfo.pAttachments = &colorAttachment;
-		renderPassInfo.pDependencies = nullptr;
-		renderPassInfo.dependencyCount = 0;
 		
 		VkAttachmentReference colorRef;
 		colorRef.attachment = 0;
 		colorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		VkSubpassDependency dependency = {};
+		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+		dependency.dstSubpass = 0;
+		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependency.srcAccessMask = 0;
+		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
 		VkSubpassDescription subpass = {};
 		subpass.flags = 0;
@@ -283,6 +289,9 @@ namespace MarkTech
 		
 		renderPassInfo.subpassCount = 1;
 		renderPassInfo.pSubpasses = &subpass;
+
+		renderPassInfo.dependencyCount = 1;
+		renderPassInfo.pDependencies = &dependency;
 
 		return vkCreateRenderPass(device, &renderPassInfo, nullptr, &pSwapchain->renderPass);
 	}
