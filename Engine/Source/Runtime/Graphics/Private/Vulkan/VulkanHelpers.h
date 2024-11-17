@@ -2,6 +2,7 @@
 #include <Version.h>
 #include <Array.h>
 #include <stdio.h>
+#include "VulkanImpl.h"
 
 #define ENGINE_NAME "MarkTech"
 
@@ -250,36 +251,20 @@ namespace MarkTech
 
 	static VkResult CreateSwapchainRenderPass(VkDevice device, VulkanSwapchain* pSwapchain)
 	{
-		VkRenderPassCreateInfo renderPassInfo;
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		renderPassInfo.pNext = nullptr;
-		renderPassInfo.flags = 0;
-
 		VkAttachmentDescription colorAttachment;
 		colorAttachment.flags = 0;
 		colorAttachment.format = pSwapchain->imageFormat;
 		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-
-		renderPassInfo.attachmentCount = 1;
-		renderPassInfo.pAttachments = &colorAttachment;
 		
 		VkAttachmentReference colorRef;
 		colorRef.attachment = 0;
 		colorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-		VkSubpassDependency dependency = {};
-		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-		dependency.dstSubpass = 0;
-		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		dependency.srcAccessMask = 0;
-		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
 		VkSubpassDescription subpass = {};
 		subpass.flags = 0;
@@ -287,11 +272,14 @@ namespace MarkTech
 		subpass.pColorAttachments = &colorRef;
 		subpass.colorAttachmentCount = 1;
 		
+		VkRenderPassCreateInfo renderPassInfo = {};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+		renderPassInfo.pNext = nullptr;
+		renderPassInfo.flags = 0;
 		renderPassInfo.subpassCount = 1;
 		renderPassInfo.pSubpasses = &subpass;
-
-		renderPassInfo.dependencyCount = 1;
-		renderPassInfo.pDependencies = &dependency;
+		renderPassInfo.attachmentCount = 1;
+		renderPassInfo.pAttachments = &colorAttachment;
 
 		return vkCreateRenderPass(device, &renderPassInfo, nullptr, &pSwapchain->renderPass);
 	}
@@ -324,5 +312,87 @@ namespace MarkTech
 		fbInfo.pNext = nullptr;
 		fbInfo.flags = 0;
 		fbInfo.pAttachments = nullptr;
+	}
+
+	static void GetVertexInfoFromInfo(
+		const VulkanPipelineCreateInfo& info,
+		Array<VkVertexInputAttributeDescription>& attribs,
+		Array<VkVertexInputBindingDescription>& bindings
+	)
+	{
+		if (info.vertexInfoCount == 0)
+			return;
+
+		U32 bindingCount = info.vertexInfoCount;
+		U32 attribCount = 0;
+
+		ReserveArray(bindings, bindingCount, nullptr);
+		for (U32 i = 0; i < bindingCount; i++)
+		{
+			bindings.pArray[i].binding = i;
+			bindings.pArray[i].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+			bindings.pArray[i].stride = info.pVertexInfos[i].stride;
+			attribCount += info.pVertexInfos[i].attribCount;
+		}
+
+		ReserveArray(attribs, attribCount, nullptr);
+		U32 attribIndex = 0;
+		for (U32 i = 0; i < bindingCount; i++)
+		{
+			for (U32 j = 0; j < info.pVertexInfos[i].attribCount; j++)
+			{
+				attribs.pArray[attribIndex].binding = i;
+				attribs.pArray[attribIndex].location = info.pVertexInfos[i].pAttribs[j].location;
+				attribs.pArray[attribIndex].offset = info.pVertexInfos[i].pAttribs[j].offset;
+				switch (info.pVertexInfos[i].pAttribs[j].componentLength)
+				{
+				case 1:
+					attribs.pArray[attribIndex].format = VK_FORMAT_R32_SFLOAT;
+					break;
+				case 2:
+					attribs.pArray[attribIndex].format = VK_FORMAT_R32G32_SFLOAT;
+					break;
+				case 3:
+					attribs.pArray[attribIndex].format = VK_FORMAT_R32G32B32_SFLOAT;
+					break;
+				case 4:
+					attribs.pArray[attribIndex].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+					break;
+				}
+
+				attribIndex++;
+			}
+		}
+
+		bindings.size = bindings.reservedSize;
+		attribs.size = attribs.reservedSize;
+	}
+
+	static void GetShaderStageInfoFromInfo(
+		const VulkanPipelineCreateInfo& info,
+		Array<VkPipelineShaderStageCreateInfo>& shaders
+	)
+	{
+		ReserveArray(shaders, info.stageCount, nullptr);
+		for (U32 i = 0; i < info.stageCount; i++)
+		{
+			shaders.pArray[i].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+			shaders.pArray[i].flags = 0;
+			shaders.pArray[i].pNext = nullptr;
+			shaders.pArray[i].pName = info.pStages[i].pEntrypoint;
+			shaders.pArray[i].pSpecializationInfo = nullptr;
+			shaders.pArray[i].module = info.pStages[i].pShader->shader;
+			switch (info.pStages[i].stage)
+			{
+			case VULKAN_SHADER_STAGE_VERTEX:
+				shaders.pArray[i].stage = VK_SHADER_STAGE_VERTEX_BIT;
+				break;
+			case VULKAN_SHADER_STAGE_FRAGMENT:
+				shaders.pArray[i].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+				break;
+			}
+		}
+
+		shaders.size = shaders.reservedSize;
 	}
 }

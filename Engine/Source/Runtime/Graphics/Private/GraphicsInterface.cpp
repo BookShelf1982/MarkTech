@@ -98,6 +98,26 @@ namespace MarkTech
 		return RC_FAILED;
 	}
 
+	void GetSwapchainFramebufferClass(Swapchain swapchain, FramebufferClass fbClass)
+	{
+		switch (gAPI)
+		{
+		case GRAPHICS_API_VULKAN:
+			GetVulkanSwapchainFramebufferClass((VulkanSwapchain*)swapchain, (U64*)fbClass);
+			break;
+		}
+	}
+
+	void GetSwapchainExtent(Swapchain swapchain, Extent2D* pExtent)
+	{
+		switch (gAPI)
+		{
+		case GRAPHICS_API_VULKAN:
+			GetVulkanSwapchainExtent((VulkanSwapchain*)swapchain, (VkExtent2D*)pExtent);
+			break;
+		}
+	}
+
 	ResultCode CreateCommandBuffer(GraphicsContext context, CommandBuffer* pCmdBuffer)
 	{
 		switch (gAPI)
@@ -183,6 +203,107 @@ namespace MarkTech
 		{
 		case GRAPHICS_API_VULKAN:
 			CmdEndVulkanRenderTarget((VulkanCommandBuffer*)cmdBuffer);
+			break;
+		}
+	}
+
+	ResultCode CreateShader(GraphicsContext context, const ShaderCreateInfo& info, Shader* pShader)
+	{
+		switch (gAPI)
+		{
+		case GRAPHICS_API_VULKAN:
+		{
+			VulkanShaderCreateInfo vulkanInfo = {
+				info.pSPIR,
+				info.sizeInBytes
+			};
+			return (ResultCode)CreateVulkanShader((VulkanContext*)context, vulkanInfo, (VulkanShader**)pShader);
+		} break;
+		}
+
+		return RC_FAILED;
+	}
+
+	void DestroyShader(GraphicsContext context, Shader shader)
+	{
+		switch (gAPI)
+		{
+		case GRAPHICS_API_VULKAN:
+			DestroyVulkanShader((VulkanContext*)context, (VulkanShader*)shader);
+			break;
+		}
+	}
+
+	ResultCode CreateGraphicsPipeline(GraphicsContext context, const GraphicsPipelineCreateInfo& info, GraphicsPipeline* pPipeline)
+	{
+		switch (gAPI)
+		{
+		case GRAPHICS_API_VULKAN:
+			return (ResultCode)CreateVulkanPipeline((VulkanContext*)context, (const VulkanPipelineCreateInfo&)info, (VulkanPipeline**)pPipeline);
+			break;
+		}
+
+		return RC_FAILED;
+	}
+
+	void DestroyGraphicsPipeline(GraphicsContext context, GraphicsPipeline pipeline)
+	{
+		switch (gAPI)
+		{
+		case GRAPHICS_API_VULKAN:
+			DestroyVulkanPipeline((VulkanContext*)context, (VulkanPipeline*)pipeline);
+			break;
+		}
+	}
+
+	void CmdBindPipeline(CommandBuffer cmdBuffer, GraphicsPipeline pipeline)
+	{
+		switch (gAPI)
+		{
+		case GRAPHICS_API_VULKAN:
+			CmdBindVulkanPipeline((VulkanCommandBuffer*)cmdBuffer, (VulkanPipeline*)pipeline);
+			break;
+		}
+	}
+
+	void CmdDrawVertices(CommandBuffer cmdBuffer, U32 offset, U32 size)
+	{
+		switch (gAPI)
+		{
+		case GRAPHICS_API_VULKAN:
+			CmdVulkanDrawVertices((VulkanCommandBuffer*)cmdBuffer, offset, size);
+			break;
+		}
+	}
+
+	void CmdSetViewport(CommandBuffer cmdBuffer, Viewport viewport)
+	{
+		switch (gAPI)
+		{
+		case GRAPHICS_API_VULKAN:
+			VkViewport vulkanViewport;
+			vulkanViewport.height = viewport.height;
+			vulkanViewport.width = viewport.width;
+			vulkanViewport.maxDepth = viewport.maxDepth;
+			vulkanViewport.minDepth = viewport.minDepth;
+			vulkanViewport.x = viewport.x;
+			vulkanViewport.y = viewport.y;
+			CmdSetVulkanViewport((VulkanCommandBuffer*)cmdBuffer, vulkanViewport);
+			break;
+		}
+	}
+
+	void CmdSetScissor(CommandBuffer cmdBuffer, Rect2D rect)
+	{
+		switch (gAPI)
+		{
+		case GRAPHICS_API_VULKAN:
+			VkRect2D vulkanRect;
+			vulkanRect.extent.width = rect.width;
+			vulkanRect.extent.height = rect.height;
+			vulkanRect.offset.x = rect.x;
+			vulkanRect.offset.y = rect.y;
+			CmdSetVulkanScissor((VulkanCommandBuffer*) cmdBuffer, vulkanRect);
 			break;
 		}
 	}

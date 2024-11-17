@@ -3,6 +3,7 @@
 #include <PoolAllocator.h>
 #include <Version.h>
 #include <Log.h>
+#include <HashMap.h>
 
 #include <stdio.h>
 
@@ -14,6 +15,33 @@ namespace MarkTech
 	PoolAllocator gAdvObjAlloc;
 	Array<VkSemaphore> gBlockPresent;
 	Array<VkSemaphore> gBlockRender;
+	PoolAllocator gPipelineLayoutNodeAlloc;
+	HashMap<U32, VkPipelineLayout> gPipelineLayouts;
+
+	static void GetPipelineLayout(VkDevice device, const VkPipelineLayoutCreateInfo* pInfo, VkPipelineLayout* pLayout)
+	{
+		U32 key = 0x1;
+		if (GetHashMapItem(gPipelineLayouts, key, pLayout))
+			return;
+
+		VkPipelineLayout layout = VK_NULL_HANDLE;
+		vkCreatePipelineLayout(device, pInfo, nullptr, &layout);
+		InsertHashMapItem(gPipelineLayouts, key, layout);
+		*pLayout = layout;
+	}
+
+	static void DestroyAllPipelineLayouts(VkDevice device)
+	{
+		for (U32 i = 0; i < gPipelineLayouts.map.reservedSize; i++)
+		{
+			LinkedList<HashMap<U32, VkPipelineLayout>::KeyValType>::NodeType* pNode = gPipelineLayouts.map.pArray[i].pStart;
+			while (pNode != nullptr)
+			{
+				vkDestroyPipelineLayout(device, pNode->data.value, nullptr);
+				pNode = pNode->pNext;
+			}
+		}
+	}
 
 	static void AbortVulkanContextCreation(VulkanContext* pContext)
 	{
@@ -91,14 +119,20 @@ namespace MarkTech
 		CreatePoolAllocator(gObjAlloc, 8, 1024);
 		CreatePoolAllocator(gAdvObjAlloc, 32, 128);
 		CreatePoolAllocator(gSwpAlloc, sizeof(VulkanSwapchain), 4);
+		CreatePoolAllocator(gPipelineLayoutNodeAlloc, 24, 16);
 		ReserveArray(gBlockPresent, 32, nullptr);
 		ReserveArray(gBlockRender, 32, nullptr);
+		AllocatorInfo allocInfo;
+		allocInfo.pMemAlloc = nullptr;
+		allocInfo.pPoolAlloc = &gPipelineLayoutNodeAlloc;
+		CreateHashMap(gPipelineLayouts, 16, &allocInfo);
 
 		return VRC_SUCCESS;
 	}
 
 	void DestroyVulkanContext(VulkanContext* pContext)
 	{
+		DestroyAllPipelineLayouts(pContext->device);
 		vkDestroyFence(pContext->device, pContext->finishedPreviousFrame, nullptr);
 		vkDestroyCommandPool(pContext->device, pContext->commandPool, nullptr);
 		vkDestroyDevice(pContext->device, nullptr);
@@ -111,7 +145,9 @@ namespace MarkTech
 
 		DestroyArray(gBlockPresent);
 		DestroyArray(gBlockRender);
+		DestroyHashMap(gPipelineLayouts);
 		FreeToPool(gCtxAlloc, pContext);
+		FreePoolAllocator(gPipelineLayoutNodeAlloc);
 		FreePoolAllocator(gObjAlloc);
 		FreePoolAllocator(gAdvObjAlloc);
 		FreePoolAllocator(gCtxAlloc);
@@ -267,14 +303,24 @@ namespace MarkTech
 
 	VulkanResultCode AcquireNextVulkanFramebuffer(VulkanContext* pContext, VulkanSwapchain* pSwapchain, VulkanFramebuffer** ppFramebuffer)
 	{
-		vkAcquireNextImageKHR(pContext->device, pSwapchain->swapchain, U64_MAX, pSwapchain->acquiredImage, pSwapchain->acquiredImageFence, &pSwapchain->currentImageIndex);
+		vkAcquireNextImageKHR(pContext->device, pSwapchain->swapchain, U64_MAX, pSwapchain->acquiredImage, nullptr, &pSwapchain->currentImageIndex);
 		InsertArrayItem(gBlockRender, pSwapchain->acquiredImage);
 		
-		vkWaitForFences(pContext->device, 1, &pSwapchain->acquiredImageFence, VK_TRUE, U64_MAX);
+		//vkWaitForFences(pContext->device, 1, &pSwapchain->acquiredImageFence, VK_TRUE, U64_MAX);
 		vkResetFences(pContext->device, 1, &pSwapchain->acquiredImageFence);
 
 		*ppFramebuffer = &pSwapchain->swapchainFramebuffers.pArray[pSwapchain->currentImageIndex];
 		return VRC_SUCCESS;
+	}
+
+	void GetVulkanSwapchainFramebufferClass(VulkanSwapchain* pSwapchain, U64* fbClass)
+	{
+		*fbClass = (U64)pSwapchain->renderPass;
+	}
+
+	void GetVulkanSwapchainExtent(VulkanSwapchain* pSwapchain, VkExtent2D* pExtent)
+	{
+		*pExtent = pSwapchain->imageExtent;
 	}
 
 	VulkanResultCode CreateVulkanCommandBuffer(VulkanContext* pContext, VulkanCommandBuffer** ppCmdBuffer)
@@ -376,7 +422,7 @@ namespace MarkTech
 		info.renderArea.extent = pFramebuffer->extent;
 		info.renderArea.offset = { 0,0 };
 		info.renderPass = pFramebuffer->renderPass;
-		VkClearValue clearColor = { {{0.0f, 0.0f, 0.25f, 1.0f}} };
+		VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
 		info.clearValueCount = 1;
 		info.pClearValues = &clearColor;
 
@@ -386,5 +432,155 @@ namespace MarkTech
 	void CmdEndVulkanRenderTarget(VulkanCommandBuffer* pCmdBuffer)
 	{
 		vkCmdEndRenderPass(pCmdBuffer->commandBuffer);
+	}
+
+	VulkanResultCode CreateVulkanShader(VulkanContext* pContext, const VulkanShaderCreateInfo& info, VulkanShader** ppShader)
+	{
+		VulkanShader* pShader = (VulkanShader*)AllocFromPool(gObjAlloc);
+		*ppShader = pShader;
+		VkShaderModuleCreateInfo shaderInfo;
+		shaderInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+		shaderInfo.pNext = nullptr;
+		shaderInfo.flags = 0;
+		shaderInfo.pCode = info.pSPIR;
+		shaderInfo.codeSize = info.sizeInBytes;
+		VkResult result = vkCreateShaderModule(pContext->device, &shaderInfo, nullptr, &pShader->shader);
+		if (result != VK_SUCCESS)
+			return VRC_FAILED;
+
+		return VRC_SUCCESS;
+	}
+
+	void DestroyVulkanShader(VulkanContext* pContext, VulkanShader* pShader)
+	{
+		vkDestroyShaderModule(pContext->device, pShader->shader, nullptr);
+	}
+
+	VulkanResultCode CreateVulkanPipeline(VulkanContext* pContext, const VulkanPipelineCreateInfo& info, VulkanPipeline** ppPipeline)
+	{
+		VulkanPipeline* pPipeline = (VulkanPipeline*)AllocFromPool(gObjAlloc);
+		*ppPipeline = pPipeline;
+
+		VkPipelineLayoutCreateInfo layoutInfo = {};
+		layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+		VkPipelineLayout layout = VK_NULL_HANDLE;
+		GetPipelineLayout(pContext->device, &layoutInfo, &layout);
+
+		Array<VkVertexInputBindingDescription> bindingDescs = {};
+		Array<VkVertexInputAttributeDescription> attribDescs = {};
+		Array<VkPipelineShaderStageCreateInfo> shadersInfos = {};
+		
+		GetVertexInfoFromInfo(info, attribDescs, bindingDescs);
+		GetShaderStageInfoFromInfo(info, shadersInfos);
+
+		VkPipelineVertexInputStateCreateInfo vertexInfo = {};
+		vertexInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+		vertexInfo.vertexAttributeDescriptionCount = attribDescs.size;
+		vertexInfo.pVertexAttributeDescriptions = attribDescs.size > 0 ? attribDescs.pArray : nullptr;
+		vertexInfo.vertexBindingDescriptionCount = bindingDescs.size;
+		vertexInfo.pVertexBindingDescriptions = bindingDescs.size > 0 ? bindingDescs.pArray : nullptr;
+		
+		VkPipelineInputAssemblyStateCreateInfo inputInfo = {};
+		inputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+		switch (info.topology)
+		{
+		case VULKAN_TOPOLOGY_TRIANGLE_LIST:
+			inputInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+			break;
+		}
+
+		VkPipelineViewportStateCreateInfo viewportState = {};
+		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+		viewportState.scissorCount = 1;
+		viewportState.viewportCount = 1;
+
+		VkPipelineRasterizationStateCreateInfo rasterizationInfo = {};
+		rasterizationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+		rasterizationInfo.cullMode = (U32)info.pRasterizationInfo->cullMode;
+		rasterizationInfo.lineWidth = info.pRasterizationInfo->lineWidth;
+		rasterizationInfo.frontFace = (VkFrontFace)info.pRasterizationInfo->frontFace;
+		rasterizationInfo.polygonMode = (VkPolygonMode)info.pRasterizationInfo->polygonMode;
+
+		switch (info.pRasterizationInfo->polygonMode)
+		{
+		case VULKAN_POLYGON_MODE_FILL:
+			rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
+			break;
+		case VULKAN_POLYGON_MODE_LINE:
+			rasterizationInfo.polygonMode = VK_POLYGON_MODE_LINE;
+			break;
+		case VULKAN_POLYGON_MODE_POINT:
+			rasterizationInfo.polygonMode = VK_POLYGON_MODE_POINT;
+			break;
+		}
+
+		VkDynamicState states[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+		VkPipelineDynamicStateCreateInfo dynamicState = {};
+		dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+		dynamicState.dynamicStateCount = sizeof(states) / sizeof(VkDynamicState);
+		dynamicState.pDynamicStates = states;
+
+		VkPipelineMultisampleStateCreateInfo multisampleInfo = {};
+		multisampleInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+		multisampleInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+		VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
+		colorBlendAttachment.blendEnable = VK_FALSE;
+		colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+
+		VkPipelineColorBlendStateCreateInfo colorBlendInfo = {};
+		colorBlendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+		colorBlendInfo.attachmentCount = 1;
+		colorBlendInfo.pAttachments = &colorBlendAttachment;
+
+		VkGraphicsPipelineCreateInfo pipelineInfo = {};
+		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		pipelineInfo.pVertexInputState = &vertexInfo;
+		pipelineInfo.pInputAssemblyState = &inputInfo;
+		pipelineInfo.pRasterizationState = &rasterizationInfo;
+		pipelineInfo.pDynamicState = &dynamicState;
+		pipelineInfo.pMultisampleState = &multisampleInfo;
+		pipelineInfo.pColorBlendState = &colorBlendInfo;
+		pipelineInfo.pViewportState = &viewportState;
+		pipelineInfo.stageCount = shadersInfos.size;
+		pipelineInfo.pStages = shadersInfos.size > 0 ? shadersInfos.pArray : nullptr;
+		pipelineInfo.renderPass = info.renderPass;
+		pipelineInfo.subpass = 0;
+		pipelineInfo.layout = layout;
+		
+		VulkanResultCode result = VRC_SUCCESS;
+		if (vkCreateGraphicsPipelines(pContext->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pPipeline->pipeline) != VK_SUCCESS)
+			result = VRC_FAILED;
+
+		DestroyArray(bindingDescs);
+		DestroyArray(attribDescs);
+		DestroyArray(shadersInfos);
+
+		return result;
+	}
+
+	void DestroyVulkanPipeline(VulkanContext* pContext, VulkanPipeline* pPipeline)
+	{
+		vkDestroyPipeline(pContext->device, pPipeline->pipeline, nullptr);
+	}
+
+	void CmdBindVulkanPipeline(VulkanCommandBuffer* pCmdBuffer, VulkanPipeline* pPipeline)
+	{
+		vkCmdBindPipeline(pCmdBuffer->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipeline->pipeline);
+	}
+
+	void CmdVulkanDrawVertices(VulkanCommandBuffer* pCmdBuffer, U32 offset, U32 size)
+	{
+		vkCmdDraw(pCmdBuffer->commandBuffer, size, 1, offset, 0);
+	}
+
+	void CmdSetVulkanViewport(VulkanCommandBuffer* pCmdBuffer, VkViewport viewport)
+	{
+		vkCmdSetViewport(pCmdBuffer->commandBuffer, 0, 1, &viewport);
+	}
+
+	void CmdSetVulkanScissor(VulkanCommandBuffer* pCmdBuffer, VkRect2D rect)
+	{
+		vkCmdSetScissor(pCmdBuffer->commandBuffer, 0, 1, &rect);
 	}
 }

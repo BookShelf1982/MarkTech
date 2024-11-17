@@ -10,9 +10,8 @@ namespace MarkTech
 	void CreateGameWorld(GameWorld& world, U32 maxGameElements)
 	{
 		world.maxGameElements = maxGameElements;
-		void* pAllocMem = malloc((sizeof(U32) * world.maxGameElements) + (sizeof(NBTDataComponent) * world.maxGameElements));
+		void* pAllocMem = malloc((sizeof(U32) * world.maxGameElements));
 		world.pEntities = (U32*)pAllocMem;
-		world.pNBTs = (NBTDataComponent*)((char*)pAllocMem + (sizeof(U32) * world.maxGameElements));
 	}
 
 	void UpdateSprite(SpriteComponent& sprite)

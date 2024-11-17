@@ -1,0 +1,51 @@
+#include "nbt.h"
+#include <zlib.h>
+
+#include <stdlib.h>
+#include <string.h>
+
+nbt_malloc_func pfn_malloc = malloc;
+nbt_free_func pfn_free = free;
+
+size_t allocSizeTable[] = { 0, 1, 2, 4, 8, 4, 8, 12, 10, 16, 12, 12, 12 };
+
+void nbt_init(const nbt_init_info_t* info) {
+	if (info) {
+		if (info->malloc) {
+			pfn_malloc = info->malloc;
+		}
+		if (info->free) {
+			pfn_free = info->free;
+		}
+	}
+}
+
+void nbt_shutdown() {}
+
+void nbt_create_tag(const nbt_create_tag_info_t* info, nbt_tag* pTag)
+{
+	// alloc tag
+	nbt_tag tag = (nbt_tag)malloc(sizeof(nbt_tag_t));
+	*pTag = tag;
+	tag->type = info->type;
+
+	// alloc name
+	size_t nameLen = strlen(info->name);
+	tag->name = pfn_malloc(nameLen + 1);
+	strcpy_s(tag->name, nameLen + 1, info->name);
+
+	// alloc payload
+	tag->payload = (nbt_tag_payload_t*)pfn_malloc(allocSizeTable[info->type]);
+	memcpy_s(tag->payload, allocSizeTable[info->type], &info->payload, allocSizeTable[info->type]);
+}
+
+void nbt_destroy_tag(nbt_tag tag)
+{
+	// free payload
+	pfn_free(tag->payload);
+	// free name
+	pfn_free(tag->name);
+	// free tag
+	pfn_free(tag);
+}
+

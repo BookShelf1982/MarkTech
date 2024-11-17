@@ -1,7 +1,6 @@
 #pragma once
 #include <Math3D.h>
 #include <PrimitiveTypes.h>
-#include <NBT.h>
 
 namespace MarkTech
 {
@@ -17,20 +16,11 @@ namespace MarkTech
 		F32 rotation;
 	};
 
-	struct NBTDataComponent
-	{
-		U32 id;
-		U32 ownerId;
-		NBTStructure nbt;
-	};
-
 	struct GameWorld
 	{
 		U32 maxGameElements;
 		U32* pEntities;
 		U32 enabledEntities;
-		NBTDataComponent* pNBTs;
-		U32 enabledNBTs;
 	};
 
 	void CreateGameWorld(GameWorld& world, U32 maxGameElements);
