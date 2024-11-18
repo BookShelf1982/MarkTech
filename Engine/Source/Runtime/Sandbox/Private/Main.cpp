@@ -51,12 +51,31 @@ void ReadSPVFile(const char* pFilepath, ShaderCreateInfo& info)
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
 	nbt_tag is_tag;
+	nbt_tag age_tag;
 	nbt_create_tag_info_t create_tag_info;
 	create_tag_info.name = "is_tag";
 	create_tag_info.payload.byteTag = 1;
 	create_tag_info.type = NBT_TAG_TYPE_BYTE;
-	nbt_create_tag(&create_tag_info, &is_tag);;
+	nbt_create_tag(&create_tag_info, &is_tag);
+	
+	create_tag_info.name = "age";
+	create_tag_info.payload.intTag = 27;
+	create_tag_info.type = NBT_TAG_TYPE_INT;
+	nbt_create_tag(&create_tag_info, &age_tag);
+
+	nbt_tag compound_tag;
+	create_tag_info.name = "compound";
+	create_tag_info.payload = {};
+	create_tag_info.type = NBT_TAG_TYPE_COMPOUND;
+	nbt_create_tag(&create_tag_info, &compound_tag);
+	nbt_compound_add_tag(compound_tag, is_tag);
+	nbt_compound_add_tag(compound_tag, age_tag);
+
+	nbt_compound_remove_tag(compound_tag, "age");
+
 	nbt_destroy_tag(is_tag);
+	nbt_destroy_tag(compound_tag);
+	nbt_destroy_tag(age_tag);
 
 	/*Window window;
 	WindowInfo windowInfo;
