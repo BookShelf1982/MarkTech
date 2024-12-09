@@ -1,6 +1,6 @@
 workspace "MarkTech"
 	configurations { "Debug", "Release" }
-	platforms { "Win64" }
+	platforms { "Win64", "OSX" }
 	architecture "x86_64"
 	
 	outputdir = ("%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}")
@@ -16,6 +16,7 @@ workspace "MarkTech"
 	IncludeDirs["Threads"] = "%{wks.location}/Engine/Source/Runtime/Threads/Public/"
 	IncludeDirs["Graphics"] = "%{wks.location}/Engine/Source/Runtime/Graphics/Public/"
 	IncludeDirs["nbt"] = "%{wks.location}/Engine/Source/Runtime/nbt/Public/"
+	IncludeDirs["Platform"] = "%{wks.location}/Engine/Source/Runtime/Platform/Public/"
 	IncludeDirs["MarkPak"] = "%{wks.location}/Engine/Source/Tools/MarkPak/Public/"
 	IncludeDirs["Volk"] = "%{wks.location}/Engine/ThirdParty/Volk/"
 	IncludeDirs["stb"] = "%{wks.location}/Engine/ThirdParty/stb/"
@@ -31,8 +32,9 @@ workspace "MarkTech"
 	include "Engine/Source/Runtime/HighResTimer/"
 	include "Engine/Source/Runtime/Threads/"
 	include "Engine/Source/Runtime/ResourceManager/"
-	include "Engine/Source/Tools/MarkPak/"
 	include "Engine/Source/Runtime/Graphics/"
 	include "Engine/Source/Runtime/nbt/"
+	include "Engine/Source/Runtime/Platform/"
+	include "Engine/Source/Tools/MarkPak/"
 	include "Engine/ThirdParty/Volk/"
 	include "Engine/ThirdParty/zlib/"

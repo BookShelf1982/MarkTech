@@ -1,226 +1,248 @@
 #ifdef MT_PLATFORM_WINDOWS
 #include <Windows.h>
 #endif
-#ifdef DEBUG
-#include <crtdbg.h>
-#endif
 
-#include <Window.h>
-#include <GraphicsInterface.h>
-#include <Log.h>
-#include <File.h>
-#include <HashMap.h>
-#include <nbt.h>
+#include <stdio.h>
 
-using namespace MarkTech;
+/*
+* Objective: Make pac man
+*/
 
-bool gIsRunning = true;
+bool g_isClosing = false;
+double g_clockFrequency = 0;
+const unsigned long long g_tickLength = 15;
 
-void WindowEventHandler(void* pEvent)
+void StartTime()
 {
-	WindowEventType event = (WindowEventType) *(WindowEventType*)pEvent;
-	switch (event)
-	{
-	case WINDOW_EVENT_CLOSE:
-	{
-		gIsRunning = false;
-	} return;
-	case WINDOW_EVENT_KEYCHANGED:
-	{
-		WindowEventKeyChangedInfo event = *(WindowEventKeyChangedInfo*)pEvent;
-		if (event.keydown && event.keycode == VK_ESCAPE)
-			gIsRunning = false;
+	LARGE_INTEGER integer;
+	QueryPerformanceFrequency(&integer);
+	g_clockFrequency = (double)integer.QuadPart / 1000.0;
+}
 
-	} return;
+double GetTime()
+{
+	LARGE_INTEGER integer;
+	QueryPerformanceCounter(&integer);
+	return (double)integer.QuadPart / g_clockFrequency;
+}
+
+#define BUTTON_UP 0x1
+#define BUTTON_DOWN 0x2
+#define BUTTON_LEFT 0x4
+#define BUTTON_RIGHT 0x8
+#define BUTTON_SELECT 0x10
+
+struct InputState 
+{
+	unsigned char buttons;
+};
+
+InputState g_inputState = {};
+
+#define WNDCLASS_NAME L"PACMANWND"
+
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	switch (uMsg)
+	{
+	case WM_CLOSE:
+	{
+		g_isClosing = true;
+	} return 0;
+	case WM_KEYDOWN:
+	case WM_SYSKEYDOWN:
+	{
+		switch (wParam)
+		{
+		case VK_UP:
+			g_inputState.buttons |= BUTTON_UP;
+			break;
+		case VK_DOWN:
+			g_inputState.buttons |= BUTTON_DOWN;
+			break;
+		case VK_LEFT:
+			g_inputState.buttons |= BUTTON_LEFT;
+			break;
+		case VK_RIGHT:
+			g_inputState.buttons |= BUTTON_RIGHT;
+			break;
+		case VK_SPACE:
+			g_inputState.buttons |= BUTTON_SELECT;
+			break;
+		}
+	} return 0;
+	case WM_KEYUP:
+	case WM_SYSKEYUP:
+	{
+		switch (wParam)
+		{
+		case VK_UP:
+			g_inputState.buttons = (g_inputState.buttons & ~(1 << (1 - 1)));
+			break;
+		case VK_DOWN:
+			g_inputState.buttons = (g_inputState.buttons & ~(1 << (2 - 1)));
+			break;
+		case VK_LEFT:
+			g_inputState.buttons = (g_inputState.buttons & ~(1 << (3 - 1)));
+			break;
+		case VK_RIGHT:
+			g_inputState.buttons = (g_inputState.buttons & ~(1 << (4 - 1)));
+			break;
+		case VK_SPACE:
+			g_inputState.buttons = (g_inputState.buttons & ~(1 << (5 - 1)));
+			break;
+		}
+	} return 0;
+	}
+
+	return DefWindowProc(hwnd, uMsg, wParam, lParam);
+}
+
+HWND CreateWin32Window(HINSTANCE inst) 
+{
+	WNDCLASS windowClass = {};
+	windowClass.hInstance = inst;
+	windowClass.lpfnWndProc = WindowProc;
+	windowClass.lpszClassName = WNDCLASS_NAME;
+	RegisterClass(&windowClass);
+
+	HWND hwnd = CreateWindowW(WNDCLASS_NAME, L"Pac-Man", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 800, 600, NULL, NULL, NULL, NULL);
+	ShowWindow(hwnd, SW_SHOW);
+	return hwnd;
+}
+
+void DestroyWin32Window(HWND hwnd, HINSTANCE inst) 
+{
+	DestroyWindow(hwnd);
+	UnregisterClassW(WNDCLASS_NAME, inst);
+}
+
+void Win32MessagePump(HWND hwnd)
+{
+	MSG msg;
+	while (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE) > 0)
+	{
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
 	}
 }
 
-void ReadSPVFile(const char* pFilepath, ShaderCreateInfo& info)
+struct Entity
 {
-	File file;
-	FOpen(&file, pFilepath, FILE_ACCESS_READ);
-	if (!file.isOpened || (file.size % 4) != 0)
-		return;
+	double x, y;
+};
 
-	info.sizeInBytes = (U32)file.size;
-	info.pSPIR = (U32*)malloc(file.size);
-	FRead(&file, (char*)info.pSPIR, file.size);
-	FClose(&file);
+struct GameState
+{
+	bool buttonDown;
+	int rot;
+	Entity player;
+	Entity ghosts[5];
+};
+
+GameState g_gameState = {};
+HANDLE g_isClosingMutex = NULL;
+
+void TickGameState() 
+{
+	if (g_inputState.buttons & BUTTON_LEFT)
+	{
+		g_gameState.player.x += 0.001;
+	}
+	if (g_inputState.buttons & BUTTON_RIGHT)
+	{
+		g_gameState.player.x -= 0.001;
+	}
+	if (g_inputState.buttons & BUTTON_UP)
+	{
+		g_gameState.player.y += 0.001;
+	}
+	if (g_inputState.buttons & BUTTON_DOWN)
+	{
+		g_gameState.player.y -= 0.001;
+	}
+	if (g_inputState.buttons & BUTTON_SELECT)
+	{
+		if (!g_gameState.buttonDown)
+		{
+			g_gameState.buttonDown = true;
+			
+			g_gameState.rot += 90;
+			if (g_gameState.rot >= 360)
+			{
+				g_gameState.rot = 0;
+			}
+		}
+	}
+	else
+	{
+		g_gameState.buttonDown = false;
+	}
 }
 
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
+unsigned int TickThread(void* p)
 {
-	nbt_tag is_tag;
-	nbt_tag age_tag;
-	nbt_create_tag_info_t create_tag_info;
-	create_tag_info.name = "is_tag";
-	create_tag_info.payload.byteTag = 1;
-	create_tag_info.type = NBT_TAG_TYPE_BYTE;
-	nbt_create_tag(&create_tag_info, &is_tag);
-	
-	create_tag_info.name = "age";
-	create_tag_info.payload.intTag = 27;
-	create_tag_info.type = NBT_TAG_TYPE_INT;
-	nbt_create_tag(&create_tag_info, &age_tag);
-
-	nbt_tag compound_tag;
-	create_tag_info.name = "compound";
-	create_tag_info.payload = {};
-	create_tag_info.type = NBT_TAG_TYPE_COMPOUND;
-	nbt_create_tag(&create_tag_info, &compound_tag);
-	nbt_compound_add_tag(compound_tag, is_tag);
-	nbt_compound_add_tag(compound_tag, age_tag);
-
-	nbt_compound_remove_tag(compound_tag, "age");
-
-	nbt_destroy_tag(is_tag);
-	nbt_destroy_tag(compound_tag);
-	nbt_destroy_tag(age_tag);
-
-	/*Window window;
-	WindowInfo windowInfo;
-	windowInfo.defaultMode = WINDOW_MODE_BORDERLESS_WINDOWED;
-	windowInfo.pTitle = "MarkTech Window";
-	windowInfo.width = 640;
-	windowInfo.height = 480;
-	windowInfo.pfnEventHandler = WindowEventHandler;
-
-	ConstructWindow(windowInfo, window);
-
-	ApplicationInfo appInfo;
-	appInfo.pName = "MarkTech";
-	appInfo.verMajor = 1;
-	appInfo.verMinor = 0;
-	appInfo.verPatch = 0;
-
-	GraphicsContextCreateInfo info;
-	info.api = GRAPHICS_API_VULKAN;
-	info.flags = 0;
-	info.pAppInfo = &appInfo;
-#ifdef MT_PLATFORM_WINDOWS
-	info.flags |= CONTEXT_FLAGS_DEBUG_MESSAGES;
-#endif
-
-	GraphicsContext context = nullptr;
-	CreateGraphicsContext(info, &context);
-
-	SwapchainCreateInfo swapchainInfo;
-	swapchainInfo.pWindow = &window;
-	swapchainInfo.oldSwapchain = nullptr;
-	swapchainInfo.presentationMode = PRESENTATION_MODE_FIFO;
-
-	Swapchain swapchain = nullptr;
-	CreateSwapchain(context, swapchainInfo, &swapchain);
-
-	CommandBuffer commandBuffer = nullptr;
-	CreateCommandBuffer(context, &commandBuffer);
-
-	Shader vertShader = nullptr;
-	Shader fragShader = nullptr;
-
-	ShaderCreateInfo vertInfo;
-	ReadSPVFile("vert.spv", vertInfo);
-
-	ShaderCreateInfo fragInfo;
-	ReadSPVFile("frag.spv", fragInfo);
-
-	CreateShader(context, vertInfo, &vertShader);
-	CreateShader(context, fragInfo, &fragShader);
-
-	free(vertInfo.pSPIR);
-	free(fragInfo.pSPIR);
-
-	GraphicsPipeline mainPipeline = nullptr;
-
-	RasterizationInfo rasterInfo;
-	rasterInfo.cullMode = CULL_MODE_BACK;
-	rasterInfo.frontFace = FRONT_FACE_CW;
-	rasterInfo.lineWidth = 1.0f;
-	rasterInfo.polygonMode = POLYGON_MODE_FILL;
-
-	VertexAttribute posAttrib;
-	posAttrib.location = 0;
-	posAttrib.offset = 0;
-	posAttrib.componentLength = 3;
-
-	VertexInputInfo vertInput;
-	vertInput.pAttribs = &posAttrib;
-	vertInput.attribCount = 1;
-	vertInput.stride = 12;
-
-	FramebufferClass swapchainFbClass = nullptr;
-	GetSwapchainFramebufferClass(swapchain, &swapchainFbClass);
-
-	ShaderStage vertStage;
-	vertStage.shader = vertShader;
-	vertStage.stage = SHADER_PIPELINE_STAGE_VERTEX;
-	vertStage.pEntrypoint = "main";
-
-	ShaderStage fragStage;
-	fragStage.shader = fragShader;
-	fragStage.stage = SHADER_PIPELINE_STAGE_FRAGMENT;
-	fragStage.pEntrypoint = "main";
-
-	ShaderStage stages[] = { vertStage, fragStage };
-
-	GraphicsPipelineCreateInfo pipelineInfo;
-	pipelineInfo.topology = TOPOLOGY_TRIANGLE_LIST;
-	pipelineInfo.pVertexInfos = nullptr;
-	pipelineInfo.vertexInfoCount = 0;
-	pipelineInfo.pRasterizationInfo = &rasterInfo;
-	pipelineInfo.framebufferClass = swapchainFbClass;
-	pipelineInfo.pStages = stages;
-	pipelineInfo.stageCount = sizeof(stages) / sizeof(ShaderStage);
-
-	CreateGraphicsPipeline(context, pipelineInfo, &mainPipeline);
-
-	Extent2D swapchainExtent;
-	GetSwapchainExtent(swapchain, &swapchainExtent);
-	
-	Viewport view;
-	view.x = 0.0f;
-	view.y = 0.0f;
-	view.width = (F32)swapchainExtent.width;
-	view.height = (F32)swapchainExtent.height;
-	view.minDepth = 0.0f;
-	view.maxDepth = 1.0f;
-
-	Rect2D scissor;
-	scissor.x = 0;
-	scissor.y = 0;
-	scissor.width = swapchainExtent.width;
-	scissor.height = swapchainExtent.height;
-	
-	Framebuffer currentFramebuffer = nullptr;
-	while (gIsRunning)
+/*#ifdef DEBUG
+	unsigned int count = 0;
+#endif*/
+	while (true)
 	{
-		PollWindowMessages();
-		ResetCommandBuffer(commandBuffer);
-		AcquireNextSwapchainImage(context, swapchain, &currentFramebuffer);
-		StartCommandRecording(commandBuffer);
-		CmdBeginRenderTarget(commandBuffer, currentFramebuffer);
-		CmdBindPipeline(commandBuffer, mainPipeline);
-		CmdSetViewport(commandBuffer, view);
-		CmdSetScissor(commandBuffer, scissor);
-		CmdDrawVertices(commandBuffer, 0, 3);
-		CmdEndRenderTarget(commandBuffer);
-		FinishCommandBuffer(commandBuffer);
-		SubmitCommandBuffer(context, commandBuffer);
-		SwapchainPresent(context, swapchain);
+		double startTime = GetTime();
+
+		WaitForSingleObject(g_isClosingMutex, INFINITE);
+		const bool isClosing = g_isClosing;
+		ReleaseMutex(g_isClosingMutex);
+		if (isClosing)
+			break;
+
+		TickGameState();
+
+		double endTime = GetTime();
+
+		double elapsed = (endTime - startTime);
+		if (elapsed < (double)g_tickLength)
+			Sleep(g_tickLength - (int)elapsed);
+
+/*#ifdef DEBUG
+		char buffer[16] = "";
+		sprintf_s(buffer, "Tick: %i\n", count);
+		OutputDebugStringA(buffer);
+		count++;
+#endif*/
 	}
 
-	WaitDeviceIdle(context);
-	DestroyGraphicsPipeline(context, mainPipeline);
-	DestroyShader(context, vertShader);
-	DestroyShader(context, fragShader);
-	DestroyCommandBuffer(context, commandBuffer);
-	DestroySwapchain(context, swapchain);
-	DestroyGraphicsContext(context);
-	ReleaseWindow(window);
-	
-	ShutdownLog();*/
+	return 0;
+}
+
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) 
+{
+	StartTime();
+	g_isClosingMutex = CreateMutex(NULL, false, NULL);
+	HANDLE tickThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)TickThread, NULL, 0, NULL);
+	HWND window = CreateWin32Window(hInstance);
+
+	while (true) 
+	{
+		Win32MessagePump(window);
+		
+		WaitForSingleObject(g_isClosingMutex, INFINITE);
+		const bool isClosing = g_isClosing;
+		ReleaseMutex(g_isClosingMutex);
+
+		if (isClosing)
+			break;
+	}
+
 #ifdef DEBUG
-	_CrtDumpMemoryLeaks();
+	char buffer[128] = "";
+	sprintf_s(buffer, "Player entity: Pos: {  %f,  %f } Rot: %i\n", g_gameState.player.x, g_gameState.player.y, g_gameState.rot);
+	OutputDebugStringA(buffer);
 #endif
+
+	DestroyWin32Window(window, hInstance);
+
+	WaitForSingleObject(tickThread, INFINITE);
+	CloseHandle(tickThread);
+	CloseHandle(g_isClosingMutex);
 	return 0;
 }

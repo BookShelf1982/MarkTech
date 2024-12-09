@@ -21,3 +21,6 @@ project "Graphics"
 		
 	filter "platforms:Win64"
 		defines { "MT_PLATFORM_WINDOWS" }
+		
+	filter "platforms:OSX"
+		defines { "MT_PLATFORM_OSX" }

@@ -3,7 +3,11 @@ bin/
 bin-int/
 Build/
 BUILD/
-ResourceCompiler/ThirdParty/FBXSDK/
+Engine/Source/Runtime/
+!Engine/Source/Runtime/Sandbox/
+!Engine/Source/Runtime/Shared/
+Engine/ThirdParty/
+
 
 *.user
 *.sln

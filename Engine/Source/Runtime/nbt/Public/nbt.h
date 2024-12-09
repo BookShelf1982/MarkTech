@@ -37,7 +37,7 @@ typedef union nbt_tag_payload_t {
 		int16_t size;
 	} stringTag;
 	struct {
-		union nbt_tag_payload_t** list;
+		union nbt_tag_payload_t* list;
 		nbt_tag_type_t listType;
 		int32_t listSize;
 	} listTag;
@@ -87,9 +87,9 @@ void nbt_compound_add_tag(nbt_tag compoundTag, nbt_tag tag);
 void nbt_compound_remove_tag(nbt_tag compoundTag, char* name);
 void nbt_compound_get_tag(nbt_tag compoundTag, char* name, nbt_tag* pTag);
 
-void nbt_list_append_tag(nbt_tag compoundTag, nbt_tag tag);
-void nbt_list_remove_tag(nbt_tag compoundTag, uint32_t index);
-void nbt_list_get_tag(nbt_tag compoundTag, uint32_t index, nbt_tag* pTag);
+void nbt_list_append_tag(nbt_tag listTag, nbt_tag_payload_t payload);
+void nbt_list_remove_tag(nbt_tag listTag, uint32_t index);
+void nbt_list_get_tag(nbt_tag listTag, uint32_t index, nbt_tag_payload_t** ppPayload);
 
 void nbt_read_tag_from_file(nbt_tag* pTag, const char* filename);
 void nbt_write_tag_to_file(nbt_tag tag, const char* filename);
