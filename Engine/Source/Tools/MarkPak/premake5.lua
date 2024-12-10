@@ -7,8 +7,7 @@ project "MarkPak"
     objdir ("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")
 	
 	files { "Private/**.cpp", "Private/**.h", "Public/**.h" }
-	includedirs { "Public/", IncludeDirs["Shared"], IncludeDirs["FileSystem"], IncludeDirs["stb"] }
-	links { "FileSystem" }
+	includedirs { "Public/", IncludeDirs["Shared"], IncludeDirs["stb"] }
 	
 	defines { "MT_BUILD_DLL" }
 

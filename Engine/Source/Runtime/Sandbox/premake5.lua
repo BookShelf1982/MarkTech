@@ -10,22 +10,8 @@ project "SandboxApp"
 	
 	includedirs { 
 		"Public/",
-		IncludeDirs["Shared"],
-		IncludeDirs["Core"],
-		IncludeDirs["Graphics"],
-		IncludeDirs["ResourceManager"],
-		IncludeDirs["FileSystem"],
-		IncludeDirs["HighResTimer"],
-		IncludeDirs["Gameplay"],
-		IncludeDirs["Input"],
-		IncludeDirs["Volk"],
-		IncludeDirs["VULKAN"],
-		IncludeDirs["MarkPak"],
-		IncludeDirs["Threads"],
-		IncludeDirs["nbt"]
+		"Private/"
 	}
-	
-	links { "Core", "Graphics", "HighResTimer", "Gameplay", "Input", "FileSystem", "Threads", "nbt" }
 	
 	filter "configurations:Debug"
        defines { "DEBUG", "MT_ENABLE_ASSERTS" }
