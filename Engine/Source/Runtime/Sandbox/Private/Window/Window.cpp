@@ -80,7 +80,18 @@ namespace MarkTech
 			NULL
 		);
 
-		ShowWindow(window.hWnd, SW_SHOWDEFAULT);
+		switch (props.style)
+		{
+		case WINDOW_STYLE_BORDERLESS:
+			ShowWindow(window.hWnd, SW_SHOWMAXIMIZED);
+			break;
+		case WINDOW_STYLE_MAXIMIZED:
+			ShowWindow(window.hWnd, SW_SHOWMAXIMIZED);
+			break;
+		case WINDOW_STYLE_WINDOWED:
+			ShowWindow(window.hWnd, SW_SHOWNORMAL);
+			break;
+		}
 
 		SetWindowLongPtr(window.hWnd, 0, (LONG_PTR)props.eventHandler);
 
@@ -95,6 +106,25 @@ namespace MarkTech
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
+	}
+
+	void WindowMessageBox(Window& window, const char* pHeader, const char* pMessage, WindowMessageType type)
+	{
+		UINT style = MB_OK;
+		switch (type)
+		{
+		case WINDOW_MESSAGE_TYPE_INFO:
+			style |= MB_ICONINFORMATION;
+			break;
+		case WINDOW_MESSAGE_TYPE_WARNING:
+			style |= MB_ICONWARNING;
+			break;
+		case WINDOW_MESSAGE_TYPE_ERROR:
+			style |= MB_ICONERROR;
+			break;
+		}
+
+		MessageBoxA(window.hWnd, pMessage, pHeader, style);
 	}
 
 	void KillWindow(Window& window)

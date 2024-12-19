@@ -8,10 +8,15 @@ project "SandboxApp"
 	
 	files { "Private/**.cpp", "Private/**.h", "Public/**.h" }
 	
-	includedirs { 
+	includedirs 
+	{
 		"Public/",
-		"Private/"
+		"Private/",
+		IncludeDirs["Volk"],
+		IncludeDirs["VULKAN"]
 	}
+	
+	links { "Volk" }
 	
 	filter "configurations:Debug"
        defines { "DEBUG", "MT_ENABLE_ASSERTS" }

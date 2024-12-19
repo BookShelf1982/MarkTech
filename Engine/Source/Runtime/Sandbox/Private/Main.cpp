@@ -7,8 +7,12 @@
 #include "Threads\Thread.h"
 #include "Threads\Mutex.h"
 #include "Window\Window.h"
+#include "Renderer\Renderer.h"
 
 #include <stdio.h>
+#ifdef DEBUG
+#include <crtdbg.h>
+#endif
 
 /*
 * Objective: Make pac man
@@ -37,12 +41,15 @@ struct Entity
 	double x, y;
 };
 
+#define NUM_GHOST 5
+#define ENTITY_RADIUS 2
+
 struct GameState
 {
 	bool buttonDown;
 	I32 rot;
 	Entity player;
-	Entity ghosts[5];
+	Entity ghosts[NUM_GHOST];
 };
 
 GameState g_gameState = {};
@@ -76,6 +83,8 @@ void WindowHandler(WindowEventHandle wndEvent)
 		case VK_SPACE:
 			g_inputState.buttons |= BUTTON_SELECT;
 			break;
+		case VK_ESCAPE:
+			g_isClosing = true;
 		}
 	} return;
 	case WINDOW_EVENT_TYPE_KEYUP:
@@ -103,13 +112,13 @@ void WindowHandler(WindowEventHandle wndEvent)
 	}
 }
 
-void TickGameState() 
+void TickPlayerMovement()
 {
-	if (g_inputState.buttons & BUTTON_LEFT)
+	if (g_inputState.buttons & BUTTON_RIGHT)
 	{
 		g_gameState.player.x += 1;
 	}
-	if (g_inputState.buttons & BUTTON_RIGHT)
+	if (g_inputState.buttons & BUTTON_LEFT)
 	{
 		g_gameState.player.x -= 1;
 	}
@@ -126,7 +135,7 @@ void TickGameState()
 		if (!g_gameState.buttonDown)
 		{
 			g_gameState.buttonDown = true;
-			
+
 			g_gameState.rot += 90;
 			if (g_gameState.rot >= 360)
 			{
@@ -140,7 +149,26 @@ void TickGameState()
 	}
 }
 
-unsigned int TickThread()
+void TickCollisions()
+{
+	for (U32 i = 0; i < NUM_GHOST; i++)
+	{
+		bool xintersect = (g_gameState.player.x - g_gameState.ghosts[i].x) < ENTITY_RADIUS;
+		bool yintersect = (g_gameState.player.y - g_gameState.ghosts[i].y) < ENTITY_RADIUS;
+		if (xintersect && yintersect)
+		{
+			OutputDebugString(L"Intersect!\n");
+		}
+	}
+}
+
+void TickGameState() 
+{
+	TickPlayerMovement();
+	TickCollisions();
+}
+
+U32 TickThread()
 {
 	while (true)
 	{
@@ -167,16 +195,31 @@ unsigned int TickThread()
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) 
 {
 	StartTime();
-	g_isClosingMutex = MakeMutex();
-	Thread tickThread = StartThread(TickThread);
+	
+	g_gameState.player.x = 10;
 
 	WindowProps props;
 	props.width = 800;
 	props.height = 600;
 	props.pTitle = "Pac-Man";
-	props.style = WINDOW_STYLE_WINDOWED;
+	props.style = WINDOW_STYLE_BORDERLESS;
 	props.eventHandler = WindowHandler;
 	Window window = MakeWindow(props);
+
+	RendererConfig rConfig;
+	rConfig.enableFullscreen = true;
+	rConfig.enableVSync = true;
+	rConfig.pWindow = &window;
+
+	Renderer renderer;
+	if (!InitRenderer(rConfig, renderer))
+	{ 
+		WindowMessageBox(window, "MarkTech Error", "Failed to initialize renderer", WINDOW_MESSAGE_TYPE_ERROR);
+		return 1;
+	}
+
+	g_isClosingMutex = MakeMutex();
+	Thread tickThread = StartThread(TickThread);
 
 	while (true) 
 	{
@@ -188,6 +231,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 		if (isClosing)
 			break;
+
+		RenderFrame(renderer);
 	}
 
 #ifdef DEBUG
@@ -196,10 +241,16 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	OutputDebugStringA(buffer);
 #endif
 
+	ShutdownRenderer(renderer);
 	KillWindow(window);
 
 	JoinThread(tickThread);
 	DestroyThread(tickThread);
 	DestoryMutex(g_isClosingMutex);
+
+#ifdef DEBUG
+	_CrtDumpMemoryLeaks();
+#endif
+
 	return 0;
 }

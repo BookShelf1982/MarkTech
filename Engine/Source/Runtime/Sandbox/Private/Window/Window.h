@@ -6,6 +6,13 @@
 
 namespace MarkTech
 {
+	enum WindowMessageType
+	{
+		WINDOW_MESSAGE_TYPE_INFO,
+		WINDOW_MESSAGE_TYPE_WARNING,
+		WINDOW_MESSAGE_TYPE_ERROR
+	};
+
 	enum WindowStyle
 	{
 		WINDOW_STYLE_BORDERLESS,
@@ -46,5 +53,6 @@ namespace MarkTech
 
 	Window MakeWindow(const WindowProps& props);
 	void PollWindowEvents(Window& window);
+	void WindowMessageBox(Window& window, const char* pHeader, const char* pMessage, WindowMessageType type);
 	void KillWindow(Window& window);
 }
