@@ -43,7 +43,6 @@ namespace MarkTech
 
 		const char* extensions[] = {
 			VK_KHR_SURFACE_EXTENSION_NAME,
-			VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME,
 #ifdef MT_PLATFORM_WINDOWS
 			VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
 #endif
@@ -169,8 +168,7 @@ namespace MarkTech
 		graphicsQueue.queueFamilyIndex = graphicsQueueIndex;
 
 		const char* extensions[] = {
-			VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-			VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME
+			VK_KHR_SWAPCHAIN_EXTENSION_NAME
 		};
 
 		VkPhysicalDeviceFeatures deviceFeatures = {};
@@ -518,5 +516,20 @@ namespace MarkTech
 		info.flags = 0;
 
 		return vkCreateSemaphore(device, &info, nullptr, pSemaphore);
+	}
+
+	VkResult CreateVulkanBuffer(VkDevice device, VkDeviceSize size, VkBufferUsageFlags usage, VkBuffer* pBuffer)
+	{
+		VkBufferCreateInfo info;
+		info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		info.pNext = nullptr;
+		info.flags = 0;
+		info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		info.pQueueFamilyIndices = nullptr;
+		info.queueFamilyIndexCount = 0;
+		info.size = size;
+		info.usage = usage;
+		
+		return vkCreateBuffer(device, &info, nullptr, pBuffer);
 	}
 }

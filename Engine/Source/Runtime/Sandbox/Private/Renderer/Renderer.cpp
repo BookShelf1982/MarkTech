@@ -46,15 +46,36 @@ namespace MarkTech
 		{
 			return false;
 		}
-		
-		if (config.enableFullscreen)
-		{
-			VkResult result = vkAcquireFullScreenExclusiveModeEXT(device, swapchain.swapchain);
-			if (result != VK_SUCCESS)
-				swapchain.isFullscreen = VK_TRUE;
-		}
 
 		return true;
+	}
+
+	void GetMemoryTypeIndices(VkPhysicalDevice physicalDevice, MemoryTypeIndicies& indices)
+	{
+		VkPhysicalDeviceMemoryProperties memoryProps;
+		vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProps);
+
+		U32 indicesFound = 0;
+
+		for (U32 i = 0; i < memoryProps.memoryTypeCount; i++)
+		{
+			if (indicesFound == 2)
+				return;
+
+			if (memoryProps.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+			{
+				indices.deviceLocalMemory = i;
+				indicesFound++;
+				continue;
+			}
+
+			if (memoryProps.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+			{
+				indices.hostVisibleMemory = i;
+				indicesFound++;
+				continue;
+			}
+		}
 	}
 
 	bool InitRenderer(const RendererConfig& config, Renderer& renderer)
@@ -87,6 +108,8 @@ namespace MarkTech
 		{
 			return false;
 		}
+
+		GetMemoryTypeIndices(physicalDevice, renderer.memoryTypes);
 
 		VkCommandPoolCreateInfo commandPoolInfo;
 		commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -134,9 +157,6 @@ namespace MarkTech
 
 	void ShutdownRenderer(Renderer& renderer)
 	{
-		if (renderer.swapchain.isFullscreen)
-			vkReleaseFullScreenExclusiveModeEXT(renderer.device, renderer.swapchain.swapchain);
-
 		vkDeviceWaitIdle(renderer.device);
 
 		vkDestroySemaphore(renderer.device, renderer.acquiredNextImage, nullptr);
@@ -162,5 +182,52 @@ namespace MarkTech
 
 		free(renderer.swapchain.pFramebuffers);
 		free(renderer.swapchain.pImageViews);
+	}
+
+	DeviceStackAllocator CreateDeviceStackAllocator(VkDevice device, U32 size, U32 memoryTypeIndex)
+	{
+		DeviceStackAllocator allocator;
+		allocator.currentOffset = 0;
+		allocator.size = size;
+
+		VkMemoryAllocateInfo info;
+		info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		info.pNext = nullptr;
+		info.memoryTypeIndex = memoryTypeIndex;
+		info.allocationSize = size;
+
+		vkAllocateMemory(device, &info, nullptr, &allocator.memory);
+		return allocator;
+	}
+
+	VkResult BindBufferToDeviceStack(VkDevice device, VkBuffer buffer, DeviceStackAllocator& allocator)
+	{
+		VkMemoryRequirements requirements;
+		vkGetBufferMemoryRequirements(device, buffer, &requirements);
+
+		if (allocator.currentOffset + requirements.size > allocator.size)
+			return VK_ERROR_OUT_OF_POOL_MEMORY;
+
+		vkBindBufferMemory(device, buffer, allocator.memory, allocator.currentOffset);
+		allocator.currentOffset += requirements.size;
+		return VK_SUCCESS;
+	}
+
+	VkResult BindImageToDeviceStack(VkDevice device, VkImage image, DeviceStackAllocator& allocator)
+	{
+		VkMemoryRequirements requirements;
+		vkGetImageMemoryRequirements(device, image, &requirements);
+
+		if (allocator.currentOffset + requirements.size > allocator.size)
+			return VK_ERROR_OUT_OF_POOL_MEMORY;
+
+		vkBindImageMemory(device, image, allocator.memory, allocator.currentOffset);
+		allocator.currentOffset += requirements.size;
+		return VK_SUCCESS;
+	}
+
+	void DestroyDeviceStackAllocator(VkDevice device, DeviceStackAllocator& allocator)
+	{
+		vkFreeMemory(device, allocator.memory, nullptr);
 	}
 }

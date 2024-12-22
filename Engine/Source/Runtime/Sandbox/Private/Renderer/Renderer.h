@@ -8,6 +8,18 @@
 
 namespace MarkTech
 {
+	struct DeviceStackAllocator
+	{
+		VkDeviceMemory memory;
+		U64 size;
+		U64 currentOffset;
+	};
+
+	DeviceStackAllocator CreateDeviceStackAllocator(VkDevice device, U32 size, U32 heapIndex);
+	VkResult BindBufferToDeviceStack(VkDevice device, VkBuffer buffer, DeviceStackAllocator& allocator);
+	VkResult BindImageToDeviceStack(VkDevice device, VkImage image, DeviceStackAllocator& allocator);
+	void DestroyDeviceStackAllocator(VkDevice device, DeviceStackAllocator& allocator);
+
 	enum TextureFiltering
 	{
 		TEXTURE_FILTERING_NONE,
@@ -28,7 +40,6 @@ namespace MarkTech
 
 	struct RendererConfig
 	{
-		bool enableFullscreen;
 		const Window* pWindow;
 		bool enableVSync;
 		TextureFiltering textureFiltering;
@@ -43,7 +54,12 @@ namespace MarkTech
 		VkFramebuffer* pFramebuffers;
 		U32 framebufferCount;
 		VkExtent2D extent;
-		VkBool32 isFullscreen;
+	};
+
+	struct MemoryTypeIndicies
+	{
+		U32 deviceLocalMemory;
+		U32 hostVisibleMemory;
 	};
 
 	struct Renderer
@@ -60,9 +76,11 @@ namespace MarkTech
 		VkCommandPool commandPool;
 		VkSemaphore acquiredNextImage;
 		VkFence finishedRendering;
+		MemoryTypeIndicies memoryTypes;
 	};
 
 	bool InitRenderer(const RendererConfig& config, Renderer& renderer);
 	void RenderFrame(Renderer& renderer);
 	void ShutdownRenderer(Renderer& renderer);
+
 }

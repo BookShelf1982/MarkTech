@@ -56,7 +56,7 @@ namespace MarkTech
 		wc.lpfnWndProc = WindowProc;
 		wc.hInstance = g_hInstance;
 		wc.hIcon = NULL;
-		wc.hCursor = LoadCursor(g_hInstance, IDC_ARROW);
+		wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
 		wc.hbrBackground = NULL;
 		wc.cbWndExtra = sizeof(PFN_WindowEventHandler);
 		wc.cbClsExtra = 0;

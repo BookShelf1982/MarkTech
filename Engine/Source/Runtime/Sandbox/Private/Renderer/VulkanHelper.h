@@ -72,4 +72,6 @@ namespace MarkTech
 
 	VkResult CreateVulkanFence(VkDevice device, VkFenceCreateFlags flags, VkFence* pFence);
 	VkResult CreateVulkanSemaphore(VkDevice device, VkSemaphore* pSemaphore);
+
+	VkResult CreateVulkanBuffer(VkDevice device, VkDeviceSize size, VkBufferUsageFlags usage, VkBuffer* pBuffer);
 }

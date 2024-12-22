@@ -1,5 +1,9 @@
 #pragma once
 #include <stdint.h>
+
+#define KIBIBYTE 1024
+#define MEBIBYTE 1048576
+
 namespace MarkTech
 {
 	typedef int8_t I8;

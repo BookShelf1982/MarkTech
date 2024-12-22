@@ -207,7 +207,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	Window window = MakeWindow(props);
 
 	RendererConfig rConfig;
-	rConfig.enableFullscreen = true;
 	rConfig.enableVSync = true;
 	rConfig.pWindow = &window;
 
