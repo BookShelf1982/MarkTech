@@ -1,6 +1,8 @@
 #include "Renderer.h"
 #include "VulkanHelper.h"
 
+#include <stdio.h>
+
 namespace MarkTech
 {
 	bool CreateRendererSwapchain(
@@ -50,6 +52,125 @@ namespace MarkTech
 		return true;
 	}
 
+	VkResult CreateSpritePipeline(
+		VkDevice device,
+		VkRenderPass renderPass,
+		VkShaderModule vertexShader,
+		VkShaderModule fragmentShader,
+		VkPipeline* pPipeline,
+		VkPipelineLayout* pPipelineLayout,
+		VkDescriptorSetLayout* pSetLayout
+	)
+	{
+		VkResult result;
+		VkDescriptorSetLayoutBinding bindings[3] = {};
+		bindings[0].binding = 0;
+		bindings[0].descriptorCount = 1;
+		bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+
+		bindings[1].binding = 1;
+		bindings[1].descriptorCount = 1;
+		bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+
+		bindings[2].binding = 2;
+		bindings[2].descriptorCount = 1;
+		bindings[2].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		bindings[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+
+		VkDescriptorSetLayoutCreateInfo setLayoutInfo = {};
+		setLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		setLayoutInfo.bindingCount = 3;
+		setLayoutInfo.pBindings = bindings;
+
+		result = vkCreateDescriptorSetLayout(device, &setLayoutInfo, nullptr, pSetLayout);
+		if (result != VK_SUCCESS)
+			return result;
+
+		VkPipelineLayoutCreateInfo layoutInfo = {};
+		layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+		layoutInfo.flags = 0;
+		layoutInfo.pSetLayouts = pSetLayout;
+		layoutInfo.setLayoutCount = 1;
+
+		result = vkCreatePipelineLayout(device, &layoutInfo, nullptr, pPipelineLayout);
+		if (result != VK_SUCCESS)
+			return result;
+
+		VkPipelineShaderStageCreateInfo shaderInfos[2] = {};
+		shaderInfos[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		shaderInfos[0].module = vertexShader;
+		shaderInfos[0].pName = "main";
+		shaderInfos[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+		
+		shaderInfos[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		shaderInfos[1].module = fragmentShader;
+		shaderInfos[1].pName = "main";
+		shaderInfos[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		VkPipelineVertexInputStateCreateInfo vertexInput = {};
+		vertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+
+		VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
+		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		inputAssembly.primitiveRestartEnable = VK_FALSE;
+
+		VkPipelineViewportStateCreateInfo viewportState = {};
+		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+		viewportState.scissorCount = 1;
+		viewportState.viewportCount = 1;
+
+		VkPipelineMultisampleStateCreateInfo multisampleInfo = {};
+		multisampleInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+		multisampleInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+		VkPipelineRasterizationStateCreateInfo rasterInfo = {};
+		rasterInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+		rasterInfo.polygonMode = VK_POLYGON_MODE_FILL;
+		rasterInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+		rasterInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+		rasterInfo.lineWidth = 1.0f;
+
+		VkPipelineColorBlendAttachmentState attachment = {};
+		attachment.colorWriteMask = VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT;
+
+		VkPipelineColorBlendStateCreateInfo colorBlendInfo = {};
+		colorBlendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+		colorBlendInfo.pAttachments = &attachment;
+		colorBlendInfo.attachmentCount = 1;
+
+		VkDynamicState dynamicStates[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+
+		VkPipelineDynamicStateCreateInfo dynamicState = {};
+		dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+		dynamicState.dynamicStateCount = 2;
+		dynamicState.pDynamicStates = dynamicStates;
+
+		VkGraphicsPipelineCreateInfo pipelineInfo = {};
+		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		pipelineInfo.pNext = nullptr;
+		pipelineInfo.flags = 0;
+		pipelineInfo.pStages = shaderInfos;
+		pipelineInfo.stageCount = 2;
+		pipelineInfo.pVertexInputState = &vertexInput;
+		pipelineInfo.pInputAssemblyState = &inputAssembly;
+		pipelineInfo.pRasterizationState = &rasterInfo;
+		pipelineInfo.pMultisampleState = &multisampleInfo;
+		pipelineInfo.pViewportState = &viewportState;
+		pipelineInfo.pColorBlendState = &colorBlendInfo;
+		pipelineInfo.pDynamicState = &dynamicState;
+		pipelineInfo.layout = *pPipelineLayout;
+		pipelineInfo.renderPass = renderPass;
+		pipelineInfo.subpass = 0;
+		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+		pipelineInfo.basePipelineIndex = -1;
+
+		result = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, pPipeline);
+		return result;
+	}
+
 	void GetMemoryTypeIndices(VkPhysicalDevice physicalDevice, MemoryTypeIndicies& indices)
 	{
 		VkPhysicalDeviceMemoryProperties memoryProps;
@@ -76,6 +197,40 @@ namespace MarkTech
 				continue;
 			}
 		}
+	}
+
+	void ReadShaderFile(const char* pFilename, U32** ppData, U64* size)
+	{
+		FILE* file;
+		fopen_s(&file, pFilename, "rb");
+		if (!file)
+			return;
+
+		fseek(file, 0, SEEK_END);
+		*size = ftell(file);
+		*ppData = (U32*)malloc(*size);
+		fseek(file, 0, SEEK_SET);
+		fread(*ppData, *size, 1, file);
+		fclose(file);
+	}
+
+	VkResult CreateSpriteImage(VkDevice device, VkFormat format, VkExtent2D extent, VkImage* pImage)
+	{
+		VkImageCreateInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		info.imageType = VK_IMAGE_TYPE_2D;
+		info.format = format;
+		info.extent.width = extent.width;
+		info.extent.height = extent.height;
+		info.extent.depth = 1;
+		info.mipLevels = 1;
+		info.arrayLayers = 1;
+		info.samples = VK_SAMPLE_COUNT_1_BIT;
+		info.tiling = VK_IMAGE_TILING_OPTIMAL;
+		info.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+		return vkCreateImage(device, &info, nullptr, pImage);
 	}
 
 	bool InitRenderer(const RendererConfig& config, Renderer& renderer)
@@ -123,6 +278,159 @@ namespace MarkTech
 		CreateVulkanFence(renderer.device, 0, &renderer.finishedRendering);
 		CreateVulkanSemaphore(renderer.device, &renderer.acquiredNextImage);
 
+		U32* pVertData = nullptr;
+		U64 vertDataSize = 0;
+
+		U32* pFragData = nullptr;
+		U64 fragDataSize = 0;
+
+		ReadShaderFile("vert.spv", &pVertData, &vertDataSize);
+		ReadShaderFile("frag.spv", &pFragData, &fragDataSize);
+
+		CreateVulkanShader(renderer.device, pVertData, vertDataSize, &renderer.vertexShader);
+		CreateVulkanShader(renderer.device, pFragData, fragDataSize, &renderer.fragmentShader);
+
+		free(pVertData);
+		free(pFragData);
+
+		if (CreateSpritePipeline(
+			renderer.device,
+			renderer.swapchain.renderPass,
+			renderer.vertexShader,
+			renderer.fragmentShader,
+			&renderer.spritePipeline.pipeline,
+			&renderer.spritePipeline.pipelineLayout,
+			&renderer.spritePipeline.setLayout
+		) != VK_SUCCESS)
+		{
+			return false;
+		}
+
+		VkDescriptorPoolSize descriptorSizes[3] = {};
+		descriptorSizes[0].descriptorCount = 8;
+		descriptorSizes[0].type = VK_DESCRIPTOR_TYPE_SAMPLER;
+		descriptorSizes[1].descriptorCount = 8;
+		descriptorSizes[1].type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+		descriptorSizes[2].descriptorCount = 8;
+		descriptorSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+
+		if (CreateVulkanDescriptorPool(renderer.device, 8, descriptorSizes, 3, &renderer.descriptorPool))
+			return false;
+
+		VkSamplerCreateInfo samplerInfo = {};
+		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.anisotropyEnable = VK_FALSE;
+		samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+		samplerInfo.magFilter = VK_FILTER_NEAREST;
+		samplerInfo.maxLod = 0;
+		samplerInfo.minFilter = VK_FILTER_NEAREST;
+		samplerInfo.minLod = 0;
+		samplerInfo.mipLodBias = 1.0f;
+		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+
+		vkCreateSampler(renderer.device, &samplerInfo, nullptr, &renderer.imageSampler);
+
+		renderer.textureMemory = CreateDeviceStackAllocator(renderer.device, MEBIBYTE * 256, renderer.memoryTypes.deviceLocalMemory);
+		renderer.hostMemory = CreateDeviceStackAllocator(renderer.device, KIBIBYTE * 128, renderer.memoryTypes.hostVisibleMemory);
+
+		U32 imgData[] = {
+			0x0000FFFF,
+			0x00FF00FF,
+			0xFF00FFFF,
+			0xFFFF00FF
+		};
+
+		VkBuffer stagingBuffer;
+		CreateVulkanBuffer(renderer.device, sizeof(imgData), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, &stagingBuffer);
+		CreateSpriteImage(renderer.device, VK_FORMAT_R8G8B8A8_SRGB, { 2, 2 }, &renderer.spriteImage);
+		BindImageToDeviceStack(renderer.device, renderer.spriteImage, renderer.textureMemory);
+		CreateVulkanImageView(renderer.device, renderer.spriteImage, VK_FORMAT_R8G8B8A8_SRGB, { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }, &renderer.spriteImageView);
+		BindBufferToDeviceStack(renderer.device, stagingBuffer, renderer.hostMemory);
+
+		void* ptr;
+		vkMapMemory(renderer.device, renderer.hostMemory.memory, 0, renderer.hostMemory.currentOffset, 0, &ptr);
+		memcpy(ptr, imgData, sizeof(imgData));
+		vkUnmapMemory(renderer.device, renderer.hostMemory.memory);
+
+		VkCommandBuffer commandBuffer;
+		AllocateVulkanCommandBuffer(renderer.device, renderer.commandPool, &commandBuffer);
+		BeginVulkanCommandBuffer(commandBuffer);
+		
+		VkImageMemoryBarrier imageBarrier;
+		imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		imageBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		imageBarrier.dstQueueFamilyIndex = renderer.graphicsQueueIndex;
+		imageBarrier.image = renderer.spriteImage;
+		imageBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		imageBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		imageBarrier.pNext = nullptr;
+		imageBarrier.srcAccessMask = VK_ACCESS_NONE;
+		imageBarrier.srcQueueFamilyIndex = renderer.graphicsQueueIndex;
+		imageBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+		VulkanImageMamoryBarrier(commandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, &imageBarrier);
+
+		VkBufferImageCopy bufferImageCopy;
+		bufferImageCopy.bufferOffset = 0;
+		bufferImageCopy.bufferImageHeight = 2;
+		bufferImageCopy.bufferRowLength = 2;
+		bufferImageCopy.imageExtent = { 2, 2, 1 };
+		bufferImageCopy.imageOffset = { 0, 0, 0 };
+		bufferImageCopy.imageSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+		vkCmdCopyBufferToImage(commandBuffer, stagingBuffer, renderer.spriteImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufferImageCopy);
+
+		imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		imageBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		imageBarrier.dstQueueFamilyIndex = renderer.graphicsQueueIndex;
+		imageBarrier.image = renderer.spriteImage;
+		imageBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		imageBarrier.pNext = nullptr;
+		imageBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		imageBarrier.srcQueueFamilyIndex = renderer.graphicsQueueIndex;
+		imageBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+		VulkanImageMamoryBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, &imageBarrier);
+		vkEndCommandBuffer(commandBuffer);
+
+		SumbitToVulkanQueue(renderer.graphicsQueue, commandBuffer, nullptr, renderer.finishedRendering);
+		vkWaitForFences(renderer.device, 1, &renderer.finishedRendering, VK_TRUE, UINT64_MAX);
+		vkResetFences(renderer.device, 1, &renderer.finishedRendering);
+
+		vkFreeCommandBuffers(renderer.device, renderer.commandPool, 1, &commandBuffer);
+		vkDestroyBuffer(renderer.device, stagingBuffer, nullptr);
+
+		AllocateVulkanDescriptorSet(renderer.device, renderer.descriptorPool, renderer.spritePipeline.setLayout, &renderer.descriptorSet);
+
+		VkDescriptorImageInfo descriptorSamplerInfo;
+		descriptorSamplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		descriptorSamplerInfo.imageView = VK_NULL_HANDLE;
+		descriptorSamplerInfo.sampler = renderer.imageSampler;
+
+		VkDescriptorImageInfo descriptorImageInfo;
+		descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		descriptorImageInfo.imageView = renderer.spriteImageView;
+		descriptorImageInfo.sampler = VK_NULL_HANDLE;
+
+		VkWriteDescriptorSet write[2] = {};
+		write[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		write[0].dstSet = renderer.descriptorSet;
+		write[0].dstBinding = 1;
+		write[0].dstArrayElement = 0;
+		write[0].descriptorCount = 1;
+		write[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+		write[0].pImageInfo = &descriptorSamplerInfo;
+
+		write[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		write[1].dstSet = renderer.descriptorSet;
+		write[1].dstBinding = 0;
+		write[1].dstArrayElement = 0;
+		write[1].descriptorCount = 1;
+		write[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+		write[1].pImageInfo = &descriptorImageInfo;
+		vkUpdateDescriptorSets(renderer.device, 2, write, 0, nullptr);
+
 		return true;
 	}
 
@@ -136,6 +444,24 @@ namespace MarkTech
 		vkAcquireNextImageKHR(renderer.device, renderer.swapchain.swapchain, UINT64_MAX, renderer.acquiredNextImage, VK_NULL_HANDLE, &imageIndex);
 
 		BeginVulkanRenderPass(cmdBuffer, renderer.swapchain.renderPass, renderer.swapchain.pFramebuffers[imageIndex], renderer.swapchain.extent);
+
+		VkViewport viewport;
+		viewport.x = 0.0f;
+		viewport.y = 0.0f;
+		viewport.height = (float)renderer.swapchain.extent.height;
+		viewport.width = (float)renderer.swapchain.extent.width;
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+		vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+
+		VkRect2D scissorRect;
+		scissorRect.extent = renderer.swapchain.extent;
+		scissorRect.offset = { 0, 0 };
+		vkCmdSetScissor(cmdBuffer, 0, 1, &scissorRect);
+
+		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, renderer.spritePipeline.pipeline);
+		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, renderer.spritePipeline.pipelineLayout, 0, 1, &renderer.descriptorSet, 0, nullptr);
+		vkCmdDraw(cmdBuffer, 6, 1, 0, 0);
 
 		vkCmdEndRenderPass(cmdBuffer);
 		vkEndCommandBuffer(cmdBuffer);
@@ -158,6 +484,21 @@ namespace MarkTech
 	void ShutdownRenderer(Renderer& renderer)
 	{
 		vkDeviceWaitIdle(renderer.device);
+
+		vkDestroyDescriptorPool(renderer.device, renderer.descriptorPool, nullptr);
+		vkDestroyImageView(renderer.device, renderer.spriteImageView, nullptr);
+		vkDestroyImage(renderer.device, renderer.spriteImage, nullptr);
+		vkDestroySampler(renderer.device, renderer.imageSampler, nullptr);
+
+		DestroyDeviceStackAllocator(renderer.device, renderer.hostMemory);
+		DestroyDeviceStackAllocator(renderer.device, renderer.textureMemory);
+
+		vkDestroyPipeline(renderer.device, renderer.spritePipeline.pipeline, nullptr);
+		vkDestroyPipelineLayout(renderer.device, renderer.spritePipeline.pipelineLayout, nullptr);
+		vkDestroyDescriptorSetLayout(renderer.device, renderer.spritePipeline.setLayout, nullptr);
+
+		vkDestroyShaderModule(renderer.device, renderer.vertexShader, nullptr);
+		vkDestroyShaderModule(renderer.device, renderer.fragmentShader, nullptr);
 
 		vkDestroySemaphore(renderer.device, renderer.acquiredNextImage, nullptr);
 		vkDestroyFence(renderer.device, renderer.finishedRendering, nullptr);
@@ -221,9 +562,9 @@ namespace MarkTech
 		if (allocator.currentOffset + requirements.size > allocator.size)
 			return VK_ERROR_OUT_OF_POOL_MEMORY;
 
-		vkBindImageMemory(device, image, allocator.memory, allocator.currentOffset);
+		VkResult result = vkBindImageMemory(device, image, allocator.memory, allocator.currentOffset);
 		allocator.currentOffset += requirements.size;
-		return VK_SUCCESS;
+		return result;
 	}
 
 	void DestroyDeviceStackAllocator(VkDevice device, DeviceStackAllocator& allocator)

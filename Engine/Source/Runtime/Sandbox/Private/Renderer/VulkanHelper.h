@@ -45,7 +45,13 @@ namespace MarkTech
 	VkResult AllocateVulkanCommandBuffer(VkDevice device, VkCommandPool commandPool, VkCommandBuffer* pBuffer);
 	VkResult BeginVulkanCommandBuffer(VkCommandBuffer cmdBuffer);
 	void BeginVulkanRenderPass(VkCommandBuffer cmdBuffer, VkRenderPass renderPass, VkFramebuffer framebuffer, VkExtent2D areaExtent);
-	
+	void VulkanImageMamoryBarrier(
+		VkCommandBuffer cmdBuffer,
+		VkPipelineStageFlags srcStageMask,
+		VkPipelineStageFlags dstStageMask,
+		const VkImageMemoryBarrier* pImageBarrier
+	);
+
 	struct VulkanQueueSubmitSyncObjects
 	{
 		VkPipelineStageFlags* pWaitDstStageFlags;
@@ -74,4 +80,9 @@ namespace MarkTech
 	VkResult CreateVulkanSemaphore(VkDevice device, VkSemaphore* pSemaphore);
 
 	VkResult CreateVulkanBuffer(VkDevice device, VkDeviceSize size, VkBufferUsageFlags usage, VkBuffer* pBuffer);
+	VkResult CreateVulkanImageView(VkDevice device, VkImage image, VkFormat format, VkImageSubresourceRange subresourceRange, VkImageView* pView);
+
+	VkResult CreateVulkanShader(VkDevice device, U32* pData, U64 size, VkShaderModule* pShader);
+	VkResult CreateVulkanDescriptorPool(VkDevice device, U32 maxSets, VkDescriptorPoolSize* pSizes, U32 sizeCount, VkDescriptorPool* pPool);
+	VkResult AllocateVulkanDescriptorSet(VkDevice device, VkDescriptorPool pool, VkDescriptorSetLayout layout, VkDescriptorSet* pSet);
 }

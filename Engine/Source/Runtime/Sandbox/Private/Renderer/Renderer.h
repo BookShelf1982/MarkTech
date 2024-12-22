@@ -62,6 +62,13 @@ namespace MarkTech
 		U32 hostVisibleMemory;
 	};
 
+	struct SpritePipeline
+	{
+		VkPipeline pipeline;
+		VkPipelineLayout pipelineLayout;
+		VkDescriptorSetLayout setLayout;
+	};
+
 	struct Renderer
 	{
 #ifdef DEBUG
@@ -77,6 +84,16 @@ namespace MarkTech
 		VkSemaphore acquiredNextImage;
 		VkFence finishedRendering;
 		MemoryTypeIndicies memoryTypes;
+		SpritePipeline spritePipeline;
+		VkShaderModule vertexShader;
+		VkShaderModule fragmentShader;
+		VkDescriptorPool descriptorPool;
+		VkSampler imageSampler;
+		DeviceStackAllocator textureMemory;
+		DeviceStackAllocator hostMemory;
+		VkDescriptorSet descriptorSet;
+		VkImage spriteImage;
+		VkImageView spriteImageView;
 	};
 
 	bool InitRenderer(const RendererConfig& config, Renderer& renderer);

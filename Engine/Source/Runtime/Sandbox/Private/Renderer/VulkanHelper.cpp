@@ -455,6 +455,16 @@ namespace MarkTech
 		vkCmdBeginRenderPass(cmdBuffer, &info, VK_SUBPASS_CONTENTS_INLINE);
 	}
 
+	void VulkanImageMamoryBarrier(
+		VkCommandBuffer cmdBuffer,
+		VkPipelineStageFlags srcStageMask,
+		VkPipelineStageFlags dstStageMask,
+		const VkImageMemoryBarrier* pImageBarrier
+	)
+	{
+		vkCmdPipelineBarrier(cmdBuffer, srcStageMask, dstStageMask, VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr, 0, nullptr, 1, pImageBarrier);
+	}
+
 	VkResult SumbitToVulkanQueue(
 		VkQueue queue,
 		VkCommandBuffer cmdBuffer,
@@ -531,5 +541,57 @@ namespace MarkTech
 		info.usage = usage;
 		
 		return vkCreateBuffer(device, &info, nullptr, pBuffer);
+	}
+
+	VkResult CreateVulkanImageView(VkDevice device, VkImage image, VkFormat format, VkImageSubresourceRange subresourceRange, VkImageView* pView)
+	{
+		VkImageViewCreateInfo info;
+		info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		info.pNext = nullptr;
+		info.flags = 0;
+		info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+		info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+		info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+		info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+		info.format = format;
+		info.image = image;
+		info.subresourceRange = subresourceRange;
+		info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+
+		return vkCreateImageView(device, &info, nullptr, pView);
+	}
+
+	VkResult CreateVulkanShader(VkDevice device, U32* pData, U64 size, VkShaderModule* pShader)
+	{
+		VkShaderModuleCreateInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+		info.codeSize = size;
+		info.pCode = pData;
+
+		return vkCreateShaderModule(device, &info, nullptr, pShader);;
+	}
+
+	VkResult CreateVulkanDescriptorPool(VkDevice device, U32 maxSets, VkDescriptorPoolSize* pSizes, U32 sizeCount, VkDescriptorPool* pPool)
+	{
+		VkDescriptorPoolCreateInfo info;
+		info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		info.flags = 0;
+		info.pNext = nullptr;
+		info.pPoolSizes = pSizes;
+		info.poolSizeCount = sizeCount;
+		info.maxSets = maxSets;
+		return vkCreateDescriptorPool(device, &info, nullptr, pPool);
+	}
+
+	VkResult AllocateVulkanDescriptorSet(VkDevice device, VkDescriptorPool pool, VkDescriptorSetLayout layout, VkDescriptorSet* pSet)
+	{
+		VkDescriptorSetAllocateInfo info;
+		info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		info.pNext = nullptr;
+		info.pSetLayouts = &layout;
+		info.descriptorPool = pool;
+		info.descriptorSetCount = 1;
+
+		return vkAllocateDescriptorSets(device, &info, pSet);
 	}
 }
