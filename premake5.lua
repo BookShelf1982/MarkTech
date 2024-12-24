@@ -9,9 +9,9 @@ workspace "MarkTech"
 	--IncludeDirs["Shared"] = "%{wks.location}/Engine/Source/Runtime/Shared/"
 	--IncludeDirs["nbt"] = "%{wks.location}/Engine/Source/Runtime/nbt/Public/"
 	--[[IncludeDirs["Platform"] = "%{wks.location}/Engine/Source/Runtime/Platform/Public/"
-	IncludeDirs["MarkPak"] = "%{wks.location}/Engine/Source/Tools/MarkPak/Public/"
+	IncludeDirs["MarkPak"] = "%{wks.location}/Engine/Source/Tools/MarkPak/Public/"]]--
 	IncludeDirs["stb"] = "%{wks.location}/Engine/ThirdParty/stb/"
-	IncludeDirs["zlib"] = "%{wks.location}/Engine/ThirdParty/zlib/Public/"]]--
+	--IncludeDirs["zlib"] = "%{wks.location}/Engine/ThirdParty/zlib/Public/"
 	IncludeDirs["Volk"] = "%{wks.location}/Engine/ThirdParty/Volk/"
 	IncludeDirs["VULKAN"] = "C:\\VulkanSDK\\1.3.275.0\\Include"
 

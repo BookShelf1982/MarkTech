@@ -8,6 +8,7 @@
 #include "Threads\Mutex.h"
 #include "Window\Window.h"
 #include "Renderer\Renderer.h"
+#include "Math3D\Math3D.h"
 
 #include <stdio.h>
 #ifdef DEBUG
@@ -195,7 +196,7 @@ U32 TickThread()
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) 
 {
 	StartTime();
-	
+
 	g_gameState.player.x = 10;
 
 	WindowProps props;
@@ -209,6 +210,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	RendererConfig rConfig;
 	rConfig.enableVSync = true;
 	rConfig.pWindow = &window;
+	rConfig.textureFiltering = TEXTURE_FILTERING_BILINEAR;
 
 	Renderer renderer;
 	if (!InitRenderer(rConfig, renderer))

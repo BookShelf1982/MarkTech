@@ -3,8 +3,8 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 #endif
 #include <volk.h>
-
-#include <Window\Window.h>
+#include "Math3D\Math3D.h"
+#include "Window\Window.h"
 
 namespace MarkTech
 {
@@ -94,6 +94,7 @@ namespace MarkTech
 		VkDescriptorSet descriptorSet;
 		VkImage spriteImage;
 		VkImageView spriteImageView;
+		VkBuffer uniformBuffer;
 	};
 
 	bool InitRenderer(const RendererConfig& config, Renderer& renderer);

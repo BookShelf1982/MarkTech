@@ -13,7 +13,8 @@ project "SandboxApp"
 		"Public/",
 		"Private/",
 		IncludeDirs["Volk"],
-		IncludeDirs["VULKAN"]
+		IncludeDirs["VULKAN"],
+		IncludeDirs["stb"]
 	}
 	
 	links { "Volk" }

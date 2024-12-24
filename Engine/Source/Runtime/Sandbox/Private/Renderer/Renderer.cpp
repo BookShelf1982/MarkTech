@@ -2,6 +2,8 @@
 #include "VulkanHelper.h"
 
 #include <stdio.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
 namespace MarkTech
 {
@@ -324,35 +326,59 @@ namespace MarkTech
 		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		samplerInfo.anisotropyEnable = VK_FALSE;
 		samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
-		samplerInfo.magFilter = VK_FILTER_NEAREST;
-		samplerInfo.maxLod = 0;
-		samplerInfo.minFilter = VK_FILTER_NEAREST;
-		samplerInfo.minLod = 0;
 		samplerInfo.mipLodBias = 1.0f;
-		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+		samplerInfo.minLod = 0;
+		samplerInfo.maxLod = 0;
+		switch (config.textureFiltering)
+		{
+		case TEXTURE_FILTERING_NONE:
+			samplerInfo.magFilter = VK_FILTER_NEAREST;
+			samplerInfo.minFilter = VK_FILTER_NEAREST;
+			samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+			break;
+		case TEXTURE_FILTERING_BILINEAR:
+			samplerInfo.magFilter = VK_FILTER_LINEAR;
+			samplerInfo.minFilter = VK_FILTER_LINEAR;
+			samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+			break;
+		}
 
 		vkCreateSampler(renderer.device, &samplerInfo, nullptr, &renderer.imageSampler);
 
 		renderer.textureMemory = CreateDeviceStackAllocator(renderer.device, MEBIBYTE * 256, renderer.memoryTypes.deviceLocalMemory);
-		renderer.hostMemory = CreateDeviceStackAllocator(renderer.device, KIBIBYTE * 128, renderer.memoryTypes.hostVisibleMemory);
+		renderer.hostMemory = CreateDeviceStackAllocator(renderer.device, MEBIBYTE * 128, renderer.memoryTypes.hostVisibleMemory);
 
-		U32 imgData[] = {
-			0x0000FFFF,
-			0x00FF00FF,
-			0xFF00FFFF,
-			0xFFFF00FF
-		};
+		I32 width, height, channels = 0;
+		U8* pImgData = stbi_load("pebbles.png", &width, &height, &channels, 4);
+		U64 size = 4 * width * height;
 
-		VkBuffer stagingBuffer;
-		CreateVulkanBuffer(renderer.device, sizeof(imgData), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, &stagingBuffer);
-		CreateSpriteImage(renderer.device, VK_FORMAT_R8G8B8A8_SRGB, { 2, 2 }, &renderer.spriteImage);
+		VkBuffer imageStagingBuffer;
+		CreateVulkanBuffer(renderer.device, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, &imageStagingBuffer);
+		CreateSpriteImage(renderer.device, VK_FORMAT_R8G8B8A8_SRGB, { (U32)width, (U32)height }, &renderer.spriteImage);
 		BindImageToDeviceStack(renderer.device, renderer.spriteImage, renderer.textureMemory);
 		CreateVulkanImageView(renderer.device, renderer.spriteImage, VK_FORMAT_R8G8B8A8_SRGB, { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }, &renderer.spriteImageView);
-		BindBufferToDeviceStack(renderer.device, stagingBuffer, renderer.hostMemory);
+		BindBufferToDeviceStack(renderer.device, imageStagingBuffer, renderer.hostMemory);
+
+		Matrix4x4 transformMatrix = Multiply4x4(Traslation4x4(0, 0, 0), Scale4x4(0.25, 0.25, 0.25));
+
 
 		void* ptr;
 		vkMapMemory(renderer.device, renderer.hostMemory.memory, 0, renderer.hostMemory.currentOffset, 0, &ptr);
-		memcpy(ptr, imgData, sizeof(imgData));
+		memcpy(ptr, pImgData, size);
+		vkUnmapMemory(renderer.device, renderer.hostMemory.memory);
+
+		stbi_image_free(pImgData);
+
+		VkBuffer uniformStagingBuffer;
+		CreateVulkanBuffer(renderer.device, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, &uniformStagingBuffer);
+		U64 startingOffset = renderer.hostMemory.currentOffset;
+		BindBufferToDeviceStack(renderer.device, uniformStagingBuffer, renderer.hostMemory);
+
+		CreateVulkanBuffer(renderer.device, sizeof(Matrix4x4), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, &renderer.uniformBuffer);
+		BindBufferToDeviceStack(renderer.device, renderer.uniformBuffer, renderer.textureMemory);
+
+		vkMapMemory(renderer.device, renderer.hostMemory.memory, startingOffset, sizeof(Matrix4x4), 0, &ptr);
+		memcpy(ptr, &transformMatrix, sizeof(Matrix4x4));
 		vkUnmapMemory(renderer.device, renderer.hostMemory.memory);
 
 		VkCommandBuffer commandBuffer;
@@ -374,12 +400,18 @@ namespace MarkTech
 
 		VkBufferImageCopy bufferImageCopy;
 		bufferImageCopy.bufferOffset = 0;
-		bufferImageCopy.bufferImageHeight = 2;
-		bufferImageCopy.bufferRowLength = 2;
-		bufferImageCopy.imageExtent = { 2, 2, 1 };
+		bufferImageCopy.bufferImageHeight = height;
+		bufferImageCopy.bufferRowLength = width;
+		bufferImageCopy.imageExtent = { (U32)width, (U32)height, 1 };
 		bufferImageCopy.imageOffset = { 0, 0, 0 };
 		bufferImageCopy.imageSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
-		vkCmdCopyBufferToImage(commandBuffer, stagingBuffer, renderer.spriteImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufferImageCopy);
+		vkCmdCopyBufferToImage(commandBuffer, imageStagingBuffer, renderer.spriteImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufferImageCopy);
+
+		VkBufferCopy bufferCopy;
+		bufferCopy.srcOffset = 0;
+		bufferCopy.size = sizeof(Matrix4x4);
+		bufferCopy.dstOffset = 0;
+		vkCmdCopyBuffer(commandBuffer, uniformStagingBuffer, renderer.uniformBuffer, 1, &bufferCopy);
 
 		imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		imageBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
@@ -399,7 +431,8 @@ namespace MarkTech
 		vkResetFences(renderer.device, 1, &renderer.finishedRendering);
 
 		vkFreeCommandBuffers(renderer.device, renderer.commandPool, 1, &commandBuffer);
-		vkDestroyBuffer(renderer.device, stagingBuffer, nullptr);
+		vkDestroyBuffer(renderer.device, uniformStagingBuffer, nullptr);
+		vkDestroyBuffer(renderer.device, imageStagingBuffer, nullptr);
 
 		AllocateVulkanDescriptorSet(renderer.device, renderer.descriptorPool, renderer.spritePipeline.setLayout, &renderer.descriptorSet);
 
@@ -413,7 +446,12 @@ namespace MarkTech
 		descriptorImageInfo.imageView = renderer.spriteImageView;
 		descriptorImageInfo.sampler = VK_NULL_HANDLE;
 
-		VkWriteDescriptorSet write[2] = {};
+		VkDescriptorBufferInfo descriptorUniformInfo;
+		descriptorUniformInfo.buffer = renderer.uniformBuffer;
+		descriptorUniformInfo.offset = 0;
+		descriptorUniformInfo.range = sizeof(Matrix4x4);
+
+		VkWriteDescriptorSet write[3] = {};
 		write[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		write[0].dstSet = renderer.descriptorSet;
 		write[0].dstBinding = 1;
@@ -429,7 +467,15 @@ namespace MarkTech
 		write[1].descriptorCount = 1;
 		write[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 		write[1].pImageInfo = &descriptorImageInfo;
-		vkUpdateDescriptorSets(renderer.device, 2, write, 0, nullptr);
+
+		write[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		write[2].dstSet = renderer.descriptorSet;
+		write[2].dstBinding = 2;
+		write[2].dstArrayElement = 0;
+		write[2].descriptorCount = 1;
+		write[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		write[2].pBufferInfo = &descriptorUniformInfo;
+		vkUpdateDescriptorSets(renderer.device, 3, write, 0, nullptr);
 
 		return true;
 	}
@@ -488,6 +534,7 @@ namespace MarkTech
 		vkDestroyDescriptorPool(renderer.device, renderer.descriptorPool, nullptr);
 		vkDestroyImageView(renderer.device, renderer.spriteImageView, nullptr);
 		vkDestroyImage(renderer.device, renderer.spriteImage, nullptr);
+		vkDestroyBuffer(renderer.device, renderer.uniformBuffer, nullptr);
 		vkDestroySampler(renderer.device, renderer.imageSampler, nullptr);
 
 		DestroyDeviceStackAllocator(renderer.device, renderer.hostMemory);

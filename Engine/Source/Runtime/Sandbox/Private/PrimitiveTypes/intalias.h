@@ -15,4 +15,10 @@ namespace MarkTech
 	typedef uint16_t U16;
 	typedef uint32_t U32;
 	typedef uint64_t U64;
+
+	union I32F32
+	{
+		I32 i;
+		float f;
+	};
 }
