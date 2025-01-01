@@ -39,7 +39,7 @@ InputState g_inputState = {};
 
 struct Entity
 {
-	double x, y;
+	Vector2 pos;
 };
 
 #define NUM_GHOST 5
@@ -49,6 +49,7 @@ struct GameState
 {
 	bool buttonDown;
 	I32 rot;
+	Vector2 wishDir;
 	Entity player;
 	Entity ghosts[NUM_GHOST];
 };
@@ -113,23 +114,24 @@ void WindowHandler(WindowEventHandle wndEvent)
 	}
 }
 
-void TickPlayerMovement()
+void TickPlayerMovement(float dt)
 {
+	g_gameState.wishDir = { 0.0f, 0.0f };
 	if (g_inputState.buttons & BUTTON_RIGHT)
 	{
-		g_gameState.player.x += 1;
+		g_gameState.wishDir.x += 1.0f;
 	}
 	if (g_inputState.buttons & BUTTON_LEFT)
 	{
-		g_gameState.player.x -= 1;
+		g_gameState.wishDir.x -= 1.0f;
 	}
 	if (g_inputState.buttons & BUTTON_UP)
 	{
-		g_gameState.player.y += 1;
+		g_gameState.wishDir.y += 1.0f;
 	}
 	if (g_inputState.buttons & BUTTON_DOWN)
 	{
-		g_gameState.player.y -= 1;
+		g_gameState.wishDir.y -= 1.0f;
 	}
 	if (g_inputState.buttons & BUTTON_SELECT)
 	{
@@ -148,56 +150,29 @@ void TickPlayerMovement()
 	{
 		g_gameState.buttonDown = false;
 	}
+
+	g_gameState.player.pos = AddV2(g_gameState.player.pos, MultiplyByScalarV2(MultiplyByScalarV2(NormalizeV2(g_gameState.wishDir), 2.0f), dt));
 }
 
 void TickCollisions()
 {
 	for (U32 i = 0; i < NUM_GHOST; i++)
 	{
-		bool xintersect = (g_gameState.player.x - g_gameState.ghosts[i].x) < ENTITY_RADIUS;
-		bool yintersect = (g_gameState.player.y - g_gameState.ghosts[i].y) < ENTITY_RADIUS;
-		if (xintersect && yintersect)
-		{
-			OutputDebugString(L"Intersect!\n");
-		}
+		bool xintersect = (g_gameState.player.pos.x - g_gameState.ghosts[i].pos.x) < ENTITY_RADIUS;
+		bool yintersect = (g_gameState.player.pos.y - g_gameState.ghosts[i].pos.y) < ENTITY_RADIUS;
 	}
 }
 
-void TickGameState() 
+void TickGameState(float dt) 
 {
-	TickPlayerMovement();
+	TickPlayerMovement(dt);
 	TickCollisions();
-}
-
-U32 TickThread()
-{
-	while (true)
-	{
-		double startTime = GetTime();
-
-		AcquireMutex(g_isClosingMutex);
-		const bool isClosing = g_isClosing;
-		FreeMutex(g_isClosingMutex);
-		if (isClosing)
-			break;
-
-		TickGameState();
-
-		double endTime = GetTime();
-
-		double elapsed = (endTime - startTime);
-		if (elapsed < (double)g_tickLength)
-			Sleep(g_tickLength - (int)elapsed);
-	}
-
-	return 0;
 }
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) 
 {
 	StartTime();
-
-	g_gameState.player.x = 10;
+	double lastTime = GetTime();
 
 	WindowProps props;
 	props.width = 800;
@@ -208,7 +183,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	Window window = MakeWindow(props);
 
 	RendererConfig rConfig;
-	rConfig.enableVSync = true;
+	rConfig.enableVSync = false;
 	rConfig.pWindow = &window;
 	rConfig.textureFiltering = TEXTURE_FILTERING_BILINEAR;
 
@@ -219,35 +194,39 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		return 1;
 	}
 
-	g_isClosingMutex = MakeMutex();
-	Thread tickThread = StartThread(TickThread);
-
 	while (true) 
 	{
+		double startTime = GetTime();
 		PollWindowEvents(window);
 		
-		AcquireMutex(g_isClosingMutex);
 		const bool isClosing = g_isClosing;
-		FreeMutex(g_isClosingMutex);
-
 		if (isClosing)
 			break;
 
-		RenderFrame(renderer);
+		float dt = (float)(startTime - lastTime) / 1000.0f;
+
+		TickGameState(dt);
+
+		Matrix3x3 world = Translate3x3(g_gameState.player.pos.x, -g_gameState.player.pos.y) * Scale3x3(200.0f, 200.0f);
+		Matrix3x3 projection = OrthoProjection3x3(0.0f, 1920.0f, 0.0f, 1080.0f);
+		Matrix3x3 transform = world * projection;
+
+		RenderFrame(renderer, transform);
+		lastTime = startTime;
 	}
 
 #ifdef DEBUG
 	char buffer[64] = "";
-	sprintf_s(buffer, "Player entity: Pos: {  %f,  %f } Rot: %i\n", g_gameState.player.x, g_gameState.player.y, g_gameState.rot);
+	sprintf_s(buffer, "Player entity: Pos: {  %f,  %f } Rot: %i\n", g_gameState.player.pos.x, g_gameState.player.pos.y, g_gameState.rot);
 	OutputDebugStringA(buffer);
 #endif
 
 	ShutdownRenderer(renderer);
 	KillWindow(window);
 
-	JoinThread(tickThread);
-	DestroyThread(tickThread);
-	DestoryMutex(g_isClosingMutex);
+	//JoinThread(tickThread);
+	//DestroyThread(tickThread);
+	//DestoryMutex(g_isClosingMutex);
 
 #ifdef DEBUG
 	_CrtDumpMemoryLeaks();

@@ -95,10 +95,11 @@ namespace MarkTech
 		VkImage spriteImage;
 		VkImageView spriteImageView;
 		VkBuffer uniformBuffer;
+		void* mappedPtr;
 	};
 
 	bool InitRenderer(const RendererConfig& config, Renderer& renderer);
-	void RenderFrame(Renderer& renderer);
+	void RenderFrame(Renderer& renderer, const Matrix3x3& m);
 	void ShutdownRenderer(Renderer& renderer);
 
 }

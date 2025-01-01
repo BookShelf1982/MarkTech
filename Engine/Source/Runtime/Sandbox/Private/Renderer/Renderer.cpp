@@ -273,7 +273,7 @@ namespace MarkTech
 		commandPoolInfo.pNext = nullptr;
 		commandPoolInfo.flags = 0;
 		commandPoolInfo.queueFamilyIndex = renderer.graphicsQueueIndex;
-		
+
 		if (vkCreateCommandPool(renderer.device, &commandPoolInfo, nullptr, &renderer.commandPool) != VK_SUCCESS)
 			return false;
 
@@ -359,9 +359,6 @@ namespace MarkTech
 		CreateVulkanImageView(renderer.device, renderer.spriteImage, VK_FORMAT_R8G8B8A8_SRGB, { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }, &renderer.spriteImageView);
 		BindBufferToDeviceStack(renderer.device, imageStagingBuffer, renderer.hostMemory);
 
-		Matrix4x4 transformMatrix = Multiply4x4(Traslation4x4(0, 0, 0), Scale4x4(0.25, 0.25, 0.25));
-
-
 		void* ptr;
 		vkMapMemory(renderer.device, renderer.hostMemory.memory, 0, renderer.hostMemory.currentOffset, 0, &ptr);
 		memcpy(ptr, pImgData, size);
@@ -369,17 +366,13 @@ namespace MarkTech
 
 		stbi_image_free(pImgData);
 
-		VkBuffer uniformStagingBuffer;
-		CreateVulkanBuffer(renderer.device, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, &uniformStagingBuffer);
+		Matrix3x3 transformMatrix =  Identity3x3();
+		CreateVulkanBuffer(renderer.device, sizeof(Matrix3x3) + 12, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, &renderer.uniformBuffer);
 		U64 startingOffset = renderer.hostMemory.currentOffset;
-		BindBufferToDeviceStack(renderer.device, uniformStagingBuffer, renderer.hostMemory);
+		BindBufferToDeviceStack(renderer.device, renderer.uniformBuffer, renderer.hostMemory);
 
-		CreateVulkanBuffer(renderer.device, sizeof(Matrix4x4), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, &renderer.uniformBuffer);
-		BindBufferToDeviceStack(renderer.device, renderer.uniformBuffer, renderer.textureMemory);
-
-		vkMapMemory(renderer.device, renderer.hostMemory.memory, startingOffset, sizeof(Matrix4x4), 0, &ptr);
-		memcpy(ptr, &transformMatrix, sizeof(Matrix4x4));
-		vkUnmapMemory(renderer.device, renderer.hostMemory.memory);
+		vkMapMemory(renderer.device, renderer.hostMemory.memory, startingOffset, sizeof(Matrix3x3) + 12, 0, &renderer.mappedPtr);
+		memcpy((char*)renderer.mappedPtr + 12, &transformMatrix, sizeof(Matrix3x3));
 
 		VkCommandBuffer commandBuffer;
 		AllocateVulkanCommandBuffer(renderer.device, renderer.commandPool, &commandBuffer);
@@ -407,12 +400,6 @@ namespace MarkTech
 		bufferImageCopy.imageSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
 		vkCmdCopyBufferToImage(commandBuffer, imageStagingBuffer, renderer.spriteImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufferImageCopy);
 
-		VkBufferCopy bufferCopy;
-		bufferCopy.srcOffset = 0;
-		bufferCopy.size = sizeof(Matrix4x4);
-		bufferCopy.dstOffset = 0;
-		vkCmdCopyBuffer(commandBuffer, uniformStagingBuffer, renderer.uniformBuffer, 1, &bufferCopy);
-
 		imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		imageBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 		imageBarrier.dstQueueFamilyIndex = renderer.graphicsQueueIndex;
@@ -431,7 +418,6 @@ namespace MarkTech
 		vkResetFences(renderer.device, 1, &renderer.finishedRendering);
 
 		vkFreeCommandBuffers(renderer.device, renderer.commandPool, 1, &commandBuffer);
-		vkDestroyBuffer(renderer.device, uniformStagingBuffer, nullptr);
 		vkDestroyBuffer(renderer.device, imageStagingBuffer, nullptr);
 
 		AllocateVulkanDescriptorSet(renderer.device, renderer.descriptorPool, renderer.spritePipeline.setLayout, &renderer.descriptorSet);
@@ -449,7 +435,7 @@ namespace MarkTech
 		VkDescriptorBufferInfo descriptorUniformInfo;
 		descriptorUniformInfo.buffer = renderer.uniformBuffer;
 		descriptorUniformInfo.offset = 0;
-		descriptorUniformInfo.range = sizeof(Matrix4x4);
+		descriptorUniformInfo.range = sizeof(Matrix3x3) + 12;
 
 		VkWriteDescriptorSet write[3] = {};
 		write[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -480,8 +466,15 @@ namespace MarkTech
 		return true;
 	}
 
-	void RenderFrame(Renderer& renderer)
+	void RenderFrame(Renderer& renderer, const Matrix3x3& m)
 	{
+		float mPadded[] = {
+			m.m11, m.m12, m.m13, 0.0f,
+			m.m21, m.m22, m.m23, 0.0f,
+			m.m31, m.m32, m.m33, 0.0f
+		};
+		memcpy(renderer.mappedPtr, &mPadded, sizeof(mPadded));
+
 		VkCommandBuffer cmdBuffer;
 		AllocateVulkanCommandBuffer(renderer.device, renderer.commandPool, &cmdBuffer);
 		BeginVulkanCommandBuffer(cmdBuffer);
