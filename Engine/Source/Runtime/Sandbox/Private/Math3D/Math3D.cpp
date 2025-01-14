@@ -24,54 +24,46 @@ namespace MarkTech
 	Vector2 MultiplyByScalarV2(const Vector2& a, float s)
 	{
 		Vector2 v = {};
-		__m128 va = _mm_set_ps(a.x, a.y, a.y, a.x);
+		__m128 va = _mm_load_ps((float*)&a);
 		__m128 vs = _mm_set_ps(s, s, s, s);
 		va = _mm_mul_ps(va, vs);
-		alignas(16) float result[4] = {};
-		_mm_store_ps(result, va);
-		v.x = result[0];
-		v.y = result[1];
+		_mm_store_ps((float*)&v, va);
 		return v;
 	}
 
 	Vector2 AddV2(const Vector2& a, const Vector2& b)
 	{
 		Vector2 v = {};
-		__m128 va = _mm_set_ps(a.x, a.y, a.y, a.x);
-		__m128 vb = _mm_set_ps(b.x, b.y, b.y, b.x);
+		__m128 va = _mm_load_ps((float*)&a);
+		__m128 vb = _mm_load_ps((float*)&b);
 		va = _mm_add_ps(va, vb);
-		alignas(16) float result[4] = {};
-		_mm_store_ps(result, va);
-		v.x = result[0];
-		v.y = result[1];
+		_mm_store_ps((float*)&v, va);
 		return v;
 	}
 
 	Vector2 SubtractV2(const Vector2& a, const Vector2& b)
 	{
 		Vector2 v = {};
-		__m128 va = _mm_set_ps(a.x, a.y, a.y, a.x);
-		__m128 vb = _mm_set_ps(b.x, b.y, b.y, b.x);
+		__m128 va = _mm_load_ps((float*)&a);
+		__m128 vb = _mm_load_ps((float*)&b);
 		va = _mm_sub_ps(va, vb);
-		alignas(16) float result[4] = {};
-		_mm_store_ps(result, va);
-		v.x = result[0];
-		v.y = result[1];
+		_mm_store_ps((float*)&v, va);
 		return v;
 	}
 
 	float MagnitudeV2(const Vector2& a)
 	{
-		__m128 va = _mm_set_ps(a.x, a.y, a.y, a.x);
-		va = _mm_sqrt_ps(_mm_dp_ps(va, va, 0xCC));
-		I32F32 result;
-		result.i = _mm_extract_ps(va, 3);;
-		return result.f;
+		__m128 va = _mm_load_ps((float*)&a);
+		va = _mm_sqrt_ps(_mm_dp_ps(va, va, 0b00110001));
+		
+		float result = 0.0f;
+		_MM_EXTRACT_FLOAT(result, va, 0);
+		return result;
 	}
 
 	float SquaredMagnitudeV2(const Vector2& a)
 	{
-		__m128 va = _mm_set_ps(a.x, a.y, a.y, a.x);
+		__m128 va = _mm_load_ps((float*)&a);
 		va = _mm_dp_ps(va, va, 0xFF);
 		I32F32 result;
 		result.i = _mm_extract_ps(va, 3);;
@@ -84,19 +76,16 @@ namespace MarkTech
 			return a;
 
 		Vector2 norm;
-		__m128 va = _mm_set_ps(a.y, a.x, a.y, a.x);
-		va = _mm_div_ps(va, _mm_sqrt_ps(_mm_dp_ps(va, va, 0x33)));
-		alignas(16) float result[4] = {};
-		_mm_store_ps(result, va);
-		norm.x = result[0];
-		norm.y = result[1];
+		__m128 va = _mm_load_ps((float*)&a);
+		va = _mm_div_ps(va, _mm_sqrt_ps(_mm_dp_ps(va, va, 0xFF)));
+		_mm_store_ps((float*)&norm, va);
 		return norm;
 	}
 
 	float DotProductV2(const Vector2& a, const Vector2& b)
 	{
-		__m128 va = _mm_set_ps(a.x, a.y, a.y, a.x);
-		__m128 vb = _mm_set_ps(b.x, b.y, b.y, b.x);
+		__m128 va = _mm_load_ps((float*)&a);
+		__m128 vb = _mm_load_ps((float*)&b);
 		va = _mm_dp_ps(va, vb, 0xC8);
 		I32F32 result;
 		result.i = _mm_extract_ps(va, 3);;
@@ -107,64 +96,54 @@ namespace MarkTech
 	{
 		Vector2 v = {};
 		float weight = 1.0f - s;
-		__m128 va = _mm_set_ps(a.y, a.x, a.y, a.x);
-		__m128 vb = _mm_set_ps(b.y, b.x, b.y, b.x);
+		__m128 va = _mm_load_ps((float*)&a);
+		__m128 vb = _mm_load_ps((float*)&b);
 		__m128 vsa = _mm_set_ps(weight, weight, weight, weight);
 		__m128 vsb = _mm_set_ps(s, s, s, s);
 		va = _mm_add_ps(_mm_mul_ps(vsa, va), _mm_mul_ps(vsb, vb));
 
-		alignas(16) float result[4] = {};
-		_mm_store_ps(result, va);
-		v.x = result[0];
-		v.y = result[1];
+		_mm_store_ps((float*)&v, va);
 		return v;
+	}
+
+	Vector2 operator*(const Vector2& a, float s)
+	{
+		return MultiplyByScalarV2(a, s);
 	}
 
 	Vector3 MultiplyByScalarV3(const Vector3& a, float s)
 	{
 		Vector3 v = {};
-		__m128 va = _mm_set_ps(a.x, a.z, a.y, a.x);
+		__m128 va = _mm_load_ps((float*)&a);
 		__m128 vs = _mm_set_ps(s, s, s, s);
 		va = _mm_mul_ps(va, vs);
-		alignas(16) float result[4] = {};
-		_mm_store_ps(result, va);
-		v.x = result[0];
-		v.y = result[1];
-		v.z = result[2];
+		_mm_store_ps((float*)&v, va);
 		return v;
 	}
 
 	Vector3 AddV3(const Vector3& a, const Vector3& b)
 	{
 		Vector3 v = {};
-		__m128 va = _mm_set_ps(a.x, a.z, a.y, a.x);
-		__m128 vb = _mm_set_ps(b.x, b.z, b.y, b.x);
+		__m128 va = _mm_load_ps((float*)&a);
+		__m128 vb = _mm_load_ps((float*)&b);
 		va = _mm_add_ps(va, vb);
-		alignas(16) float result[4] = {};
-		_mm_store_ps(result, va);
-		v.x = result[0];
-		v.y = result[1];
-		v.z = result[2];
+		_mm_store_ps((float*)&v, va);
 		return v;
 	}
 
 	Vector3 SubtractV3(const Vector3& a, const Vector3& b)
 	{
 		Vector3 v = {};
-		__m128 va = _mm_set_ps(a.x, a.z, a.y, a.x);
-		__m128 vb = _mm_set_ps(b.x, b.z, b.y, b.x);
+		__m128 va = _mm_load_ps((float*)&a);
+		__m128 vb = _mm_load_ps((float*)&b);
 		va = _mm_sub_ps(va, vb);
-		alignas(16) float result[4] = {};
-		_mm_store_ps(result, va);
-		v.x = result[0];
-		v.y = result[1];
-		v.z = result[2];
+		_mm_store_ps((float*)&v, va);
 		return v;
 	}
 
 	float MagnitudeV3(const Vector3& a)
 	{
-		__m128 va = _mm_set_ps(a.x, a.y, a.z, a.x);
+		__m128 va = _mm_load_ps((float*)&a);
 		va = _mm_sqrt_ps(_mm_dp_ps(va, va, 0x77));
 		I32F32 result;
 		result.i = _mm_extract_ps(va, 3);
@@ -173,7 +152,7 @@ namespace MarkTech
 
 	float SquaredMagnitudeV3(const Vector3& a)
 	{
-		__m128 va = _mm_set_ps(a.x, a.y, a.z, a.x);
+		__m128 va = _mm_load_ps((float*)&a);
 		va = _mm_dp_ps(va, va, 0x77);
 		I32F32 result;
 		result.i = _mm_extract_ps(va, 3);
@@ -183,20 +162,16 @@ namespace MarkTech
 	Vector3 NormalizeV3(const Vector3& a)
 	{
 		Vector3 v;
-		__m128 va = _mm_set_ps(a.x, a.z, a.y, a.x);
+		__m128 va = _mm_load_ps((float*)&a);
 		va = _mm_div_ps(va, _mm_sqrt_ps(_mm_dp_ps(va, va, 0x77)));
-		alignas(16) float result[4] = {};
-		_mm_store_ps(result, va);
-		v.x = result[0];
-		v.y = result[1];
-		v.z = result[2];
+		_mm_store_ps((float*)&v, va);
 		return v;
 	}
 
 	float DotProductV3(const Vector3& a, const Vector3& b)
 	{
-		__m128 va = _mm_set_ps(a.x, a.z, a.y, a.x);
-		__m128 vb = _mm_set_ps(b.x, b.z, b.y, b.x);
+		__m128 va = _mm_load_ps((float*)&a);
+		__m128 vb = _mm_load_ps((float*)&b);
 		va = _mm_dp_ps(va, vb, 0x77);
 		I32F32 result;
 		result.i = _mm_extract_ps(va, 3);;
@@ -216,16 +191,11 @@ namespace MarkTech
 	Vector3 CrossProductV3(const Vector3& a, const Vector3& b)
 	{
 		Vector3 v = {};
-		__m128 va = _mm_set_ps(a.x, a.z, a.y, a.x);
-		__m128 vb = _mm_set_ps(b.x, b.z, b.y, b.x);
-
+		__m128 va = _mm_load_ps((float*)&a);
+		__m128 vb = _mm_load_ps((float*)&b);
 		va = cross_product(va, vb);
 
-		alignas(16) float result[4] = {};
-		_mm_store_ps(result, va);
-		v.x = result[0];
-		v.y = result[1];
-		v.z = result[2];
+		_mm_store_ps((float*)&v, va);
 		return v;
 	}
 
@@ -233,61 +203,46 @@ namespace MarkTech
 	{
 		Vector3 v = {};
 		float weight = 1.0f - s;
-		__m128 va = _mm_set_ps(a.x, a.y, a.z, a.x);
-		__m128 vb = _mm_set_ps(b.x, b.y, b.z, b.x);
+		__m128 va = _mm_load_ps((float*)&a);
+		__m128 vb = _mm_load_ps((float*)&b);
 		__m128 vsa = _mm_set_ps(weight, weight, weight, weight);
 		__m128 vsb = _mm_set_ps(s, s, s, s);
 		va = _mm_add_ps(_mm_mul_ps(vsa, va), _mm_mul_ps(vsb, vb));
 
-		alignas(16) float result[4] = {};
-		_mm_store_ps(result, va);
-		v.x = result[0];
-		v.y = result[2];
-		v.z = result[1];
+		_mm_store_ps((float*)&v, va);
 		return v;
 	}
 
 	Vector4 MultiplyByScalarV4(const Vector4& a, float s)
 	{
 		Vector4 v = {};
-		__m128 va = _mm_set_ps(a.w, a.z, a.y, a.x);
+		__m128 va = _mm_load_ps((float*)&a);
 		__m128 vs = _mm_set_ps(s, s, s, s);
 		va = _mm_mul_ps(va, vs);
-		alignas(16) float result[4] = {};
-		_mm_store_ps(result, va);
-		v.x = result[0];
-		v.y = result[2];
-		v.z = result[1];
-		v.w = result[0];
+
+		_mm_store_ps((float*)&v, va);
 		return v;
 	}
 
 	Vector4 AddV4(const Vector4& a, const Vector4& b)
 	{
 		Vector4 v = {};
-		__m128 va = _mm_set_ps(a.w, a.z, a.y, a.x);
-		__m128 vb = _mm_set_ps(b.w, b.z, b.y, b.x);
+		__m128 va = _mm_load_ps((float*)&a);
+		__m128 vb = _mm_load_ps((float*)&b);
 		va = _mm_add_ps(va, vb);
-		alignas(16) float result[4] = {};
-		_mm_store_ps(result, va);
-		v.x = result[0];
-		v.y = result[2];
-		v.z = result[1];
-		v.w = result[3];
+
+		_mm_store_ps((float*)&v, va);
 		return v;
 	}
 
 	Vector4 SubtractV4(const Vector4& a, const Vector4& b)
 	{
 		Vector4 v = {};
-		__m128 va = _mm_set_ps(a.w, a.z, a.y, a.x);
-		__m128 vb = _mm_set_ps(b.w, b.z, b.y, b.x);
+		__m128 va = _mm_load_ps((float*)&a);
+		__m128 vb = _mm_load_ps((float*)&b);
 		va = _mm_sub_ps(va, vb);
-		alignas(16) float result[4] = {};
-		_mm_store_ps(result, va);
-		v.x = result[0];
-		v.y = result[2];
-		v.z = result[1];
+
+		_mm_store_ps((float*)&v, va);
 		return v;
 	}
 
@@ -310,8 +265,8 @@ namespace MarkTech
 			a.m14, a.m24, a.m34, a.m44
 		};
 	}
-
-	Matrix4x4 Multiply4x4(const Matrix4x4& a, const Matrix4x4& b)
+	
+	/*Matrix4x4 OLDMultiply4x4(const Matrix4x4& a, const Matrix4x4& b)
 	{
 		Matrix4x4 M = {};
 
@@ -334,6 +289,31 @@ namespace MarkTech
 				);
 
 				_MM_EXTRACT_FLOAT(((float*)&M)[MATRIX4X4_INDEX(j, i)], _mm_dp_ps(aRow, bCol, 0x77), 3);
+			}
+		}
+
+		return M;
+	}*/
+
+	Matrix4x4 Multiply4x4(const Matrix4x4& a, const Matrix4x4& b)
+	{
+		Matrix4x4 M = {};
+		__m128 aRows[4];
+		for (U32 i = 0; i < 4; i++)
+			aRows[i] = _mm_load_ps((float*)&a + (4 * i));
+
+		_MM_TRANSPOSE4_PS(aRows[0], aRows[1], aRows[2], aRows[3]);
+
+		__m128 bColumns[4];
+		for (U32 i = 0; i < 4; i++)
+			bColumns[i] = _mm_load_ps((float*)&b + (4 * i));
+
+		for (U32 i = 0; i < 4; i++)
+		{
+			for (U32 j = 0; j < 4; j++)
+			{
+				__m128 dp = _mm_dp_ps(aRows[i], bColumns[j], 0b11110001);
+				_MM_EXTRACT_FLOAT(((float*)&M)[(i * 4) + j], dp, 0);
 			}
 		}
 
@@ -405,44 +385,40 @@ namespace MarkTech
 	Matrix3x3 Identity3x3()
 	{
 		return {
-			1.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f,
-			0.0f, 0.0f, 1.0f
+			1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f, 0.0f
 		};
 	}
 
 	Matrix3x3 Transpose3x3(const Matrix3x3& a)
 	{
 		return {
-			a.m11, a.m21, a.m31,
-			a.m12, a.m22, a.m32,
-			a.m13, a.m23, a.m33
+			a.m11, a.m21, a.m31, 0.0f,
+			a.m12, a.m22, a.m32, 0.0f,
+			a.m13, a.m23, a.m33, 0.0f
 		};
 	}
 
 	Matrix3x3 Multiply3x3(const Matrix3x3& a, const Matrix3x3& b)
 	{
 		Matrix3x3 M = {};
+		Matrix3x3 Mt = Transpose3x3(a);
+
+		__m128 aRows[3];
+		for (U32 i = 0; i < 3; i++)
+			aRows[i] = _mm_load_ps((float*)&Mt + (4 * i));
+
+		__m128 bColumns[3];
+		for (U32 i = 0; i < 3; i++)
+			bColumns[i] = _mm_load_ps((float*)&b + (4 * i));
 
 		for (U32 i = 0; i < 3; i++)
 		{
 			for (U32 j = 0; j < 3; j++)
 			{
-				__m128 aRow = _mm_set_ps(
-					((float*)&a)[MATRIX3X3_INDEX(0, i)],
-					((float*)&a)[MATRIX3X3_INDEX(1, i)],
-					((float*)&a)[MATRIX3X3_INDEX(2, i)],
-					0.0f
-				);
-
-				__m128 bCol = _mm_set_ps(
-					((float*)&b)[MATRIX3X3_INDEX(j, 0)],
-					((float*)&b)[MATRIX3X3_INDEX(j, 1)],
-					((float*)&b)[MATRIX3X3_INDEX(j, 2)],
-					0.0f
-				);
-
-				_MM_EXTRACT_FLOAT(((float*)&M)[MATRIX3X3_INDEX(j, i)], _mm_dp_ps(aRow, bCol, 0xFF), 0);
+				__m128 dp = _mm_dp_ps(aRows[j], bColumns[i], 0b01111111);
+				_MM_EXTRACT_FLOAT(((float*)&M)[(i * 4) + j], dp, 0);
 			}
 		}
 
@@ -452,27 +428,27 @@ namespace MarkTech
 	Matrix3x3 Translate3x3(float tx, float ty)
 	{
 		return {
-			1.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f,
-			tx, ty, 1.0f
+			1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f,
+			tx, ty, 1.0f, 0.0f
 		};
 	}
 
 	Matrix3x3 Scale3x3(float sx, float sy)
 	{
 		return {
-			sx, 0.0f, 0.0f,
-			0.0f, sy, 0.0f,
-			0.0f, 0.0f, 1.0f
+			sx, 0.0f, 0.0f, 0.0f,
+			0.0f, sy, 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f, 0.0f
 		};
 	}
 
 	Matrix3x3 OrthoProjection3x3(float l, float r, float b, float t)
 	{
 		return {
-			2.0f / (r - l), 0.0f, 0.0f,
-			0.0f, 2.0f / (t - b), 0.0f,
-			-(r + l) / (r - l), -(t + b) / (t - b), 1.0f
+			2.0f / (r - l), 0.0f, 0.0f, 0.0f,
+			0.0f, 2.0f / (t - b), 0.0f, 0.0f,
+			-(r + l) / (r - l), -(t + b) / (t - b), 1.0f, 0.0f
 		};
 	}
 

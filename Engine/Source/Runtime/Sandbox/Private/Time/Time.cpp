@@ -11,7 +11,7 @@ namespace MarkTech
 	{
 		LARGE_INTEGER integer;
 		QueryPerformanceFrequency(&integer);
-		g_clockFrequency = (double)integer.QuadPart / 1000.0;
+		g_clockFrequency = (double)integer.QuadPart;
 	}
 
 	double GetTime()

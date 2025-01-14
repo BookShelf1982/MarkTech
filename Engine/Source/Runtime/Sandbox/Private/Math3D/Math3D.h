@@ -7,9 +7,10 @@ namespace MarkTech
 	float ToRadians(float degree);
 	float ToDegrees(float radian);
 
-	struct Vector2
+	struct alignas(16) Vector2
 	{
 		float x, y;
+		float pad[2];
 	};
 
 	Vector2 MultiplyByScalarV2(const Vector2& a, float s);
@@ -20,10 +21,11 @@ namespace MarkTech
 	Vector2 NormalizeV2(const Vector2& a);
 	float DotProductV2(const Vector2& a, const Vector2& b);
 	Vector2 LerpV2(const Vector2& a, const Vector2& b, float s);
+	Vector2 operator*(const Vector2& a, float s);
 
-	struct Vector3
+	struct alignas(16) Vector3
 	{
-		float x, y, z;
+		float x, y, z, pad;
 	};
 
 	Vector3 MultiplyByScalarV3(const Vector3& a, float s);
@@ -36,7 +38,7 @@ namespace MarkTech
 	Vector3 CrossProductV3(const Vector3& a, const Vector3& b);
 	Vector3 LerpV3(const Vector3& a, const Vector3& b, float s);
 
-	struct Vector4
+	struct alignas(16) Vector4
 	{
 		float x, y, z, w;
 	};
@@ -52,7 +54,7 @@ namespace MarkTech
 	Vector4 LerpV4(const Vector4& a, const Vector4& b, float s);
 
 	// NOTE: These matrices will be stored in collum major notation
-	struct Matrix4x4
+	struct alignas(16) Matrix4x4
 	{
 		float m11, m12, m13, m14;
 		float m21, m22, m23, m24;
@@ -70,11 +72,11 @@ namespace MarkTech
 	Matrix4x4 OrthoProjection4x4(float l, float r, float t, float b, float n, float f);
 	Matrix4x4 operator*(Matrix4x4 a, Matrix4x4 b);
 	
-	struct Matrix3x3
+	struct alignas(16) Matrix3x3
 	{
-		float m11, m12, m13;
-		float m21, m22, m23;
-		float m31, m32, m33;
+		float m11, m12, m13, pad14;
+		float m21, m22, m23, pad24;
+		float m31, m32, m33, pad34;
 	};
 
 	Matrix3x3 Identity3x3();

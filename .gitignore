@@ -1,8 +1,7 @@
 .vs/
 bin/
 bin-int/
-Build/
-BUILD/
+build/
 
 Engine/ThirdParty/AngelScript/
 
@@ -11,3 +10,4 @@ Engine/ThirdParty/AngelScript/
 *.vcxproj
 *.filters
 *Makefile
+premake5.lua

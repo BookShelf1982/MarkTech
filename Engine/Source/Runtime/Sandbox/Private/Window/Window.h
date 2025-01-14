@@ -1,6 +1,7 @@
 #pragma once
 #include "PrimitiveTypes\intalias.h"
 #ifdef MT_PLATFORM_WINDOWS
+#define UNICODE
 #include <Windows.h>
 #endif
 

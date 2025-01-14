@@ -592,6 +592,10 @@ namespace MarkTech
 		info.descriptorPool = pool;
 		info.descriptorSetCount = 1;
 
-		return vkAllocateDescriptorSets(device, &info, pSet);
+		VkResult result = vkAllocateDescriptorSets(device, &info, pSet);
+		if (result != VK_SUCCESS)
+			return result;
+
+		return result;
 	}
 }

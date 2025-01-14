@@ -9,8 +9,12 @@
 #include "Window\Window.h"
 #include "Renderer\Renderer.h"
 #include "Math3D\Math3D.h"
+#include <ini.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 #include <stdio.h>
+#include <time.h>
 #ifdef DEBUG
 #include <crtdbg.h>
 #endif
@@ -40,10 +44,12 @@ InputState g_inputState = {};
 struct Entity
 {
 	Vector2 pos;
+	U32 resourceId;
+	U32 spriteId;
 };
 
 #define NUM_GHOST 5
-#define ENTITY_RADIUS 2
+#define ENTITY_RADIUS 0.5f
 
 struct GameState
 {
@@ -55,7 +61,6 @@ struct GameState
 };
 
 GameState g_gameState = {};
-Mutex g_isClosingMutex;
 
 void WindowHandler(WindowEventHandle wndEvent)
 {
@@ -151,26 +156,77 @@ void TickPlayerMovement(float dt)
 		g_gameState.buttonDown = false;
 	}
 
-	g_gameState.player.pos = AddV2(g_gameState.player.pos, MultiplyByScalarV2(MultiplyByScalarV2(NormalizeV2(g_gameState.wishDir), 2.0f), dt));
+	Vector2 moveVec = NormalizeV2(g_gameState.wishDir) * 10000.0f * dt;
+
+	g_gameState.player.pos = AddV2(g_gameState.player.pos, moveVec);
+	g_gameState.ghosts[0].pos = AddV2(g_gameState.ghosts[0].pos, { -moveVec.x, -moveVec.y });
 }
 
 void TickCollisions()
 {
 	for (U32 i = 0; i < NUM_GHOST; i++)
 	{
-		bool xintersect = (g_gameState.player.pos.x - g_gameState.ghosts[i].pos.x) < ENTITY_RADIUS;
-		bool yintersect = (g_gameState.player.pos.y - g_gameState.ghosts[i].pos.y) < ENTITY_RADIUS;
+		Vector2 distVec = SubtractV2(g_gameState.player.pos, g_gameState.ghosts[i].pos);
+		float distance = MagnitudeV2(distVec);
+		if (distance <= ENTITY_RADIUS * 2)
+			g_gameState.player.pos = AddV2(g_gameState.player.pos, NormalizeV2(distVec));
 	}
 }
 
-void TickGameState(float dt) 
+void CreateSnapshot(SceneSnapshot& snapshot)
+{
+	if (snapshot.elements.size > 0)
+		snapshot.elements.size = 0;
+
+	SceneElement player;
+	player.sprite = g_gameState.player.spriteId;
+	player.image = g_gameState.player.resourceId;
+	player.world = Translate3x3(g_gameState.player.pos.x, -g_gameState.player.pos.y);
+
+	InsertArrayItem(snapshot.elements, player);
+
+	for (U32 i = 0; i < NUM_GHOST; i++)
+	{
+		SceneElement ghost;
+		ghost.sprite = g_gameState.ghosts[i].spriteId;
+		ghost.image = g_gameState.ghosts[i].resourceId;
+		ghost.world = Translate3x3(g_gameState.ghosts[i].pos.x, -g_gameState.ghosts[i].pos.y);
+		InsertArrayItem(snapshot.elements, ghost);
+	}
+}
+
+void TickGameState(float dt, SceneSnapshot& snapshot) 
 {
 	TickPlayerMovement(dt);
 	TickCollisions();
+	CreateSnapshot(snapshot);
 }
 
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) 
+typedef struct {
+	char playerImage[200];
+	char ghostImage[200];
+} assets_t;
+
+#define MATCH(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
+int IniHandler(void* user, const char* section, const char* name, const char* value)
 {
+	if (MATCH("Game.Startup", "playerImage"))
+	{
+		strcpy(((assets_t*)user)->playerImage, value);
+	}
+	if (MATCH("Game.Startup", "ghostImage"))
+	{
+		strcpy(((assets_t*)user)->ghostImage, value);
+	}
+	return 0;
+}
+
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
+{
+	assets_t assets = {};
+
+	ini_parse("Config.ini", IniHandler, &assets);
+
 	StartTime();
 	double lastTime = GetTime();
 
@@ -189,10 +245,54 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	Renderer renderer;
 	if (!InitRenderer(rConfig, renderer))
-	{ 
+	{
 		WindowMessageBox(window, "MarkTech Error", "Failed to initialize renderer", WINDOW_MESSAGE_TYPE_ERROR);
 		return 1;
 	}
+
+	// TODO: Upload sprite textures to GPU
+	I32 width, height, channels = 0;
+	U8* pData = stbi_load(assets.playerImage, &width, &height, &channels, 4);
+
+	UploadTextureInfo textureInfo;
+	textureInfo.channels = channels;
+	textureInfo.dataSize = 4 * width * height;
+	textureInfo.width = width;
+	textureInfo.height = height;
+	textureInfo.pData = pData;
+
+	U32 playerTextureId = UploadTextureToRenderer(renderer, textureInfo);
+	U32 playerSpriteId = CreateSpriteDescriptor(renderer, playerTextureId);
+	stbi_image_free(pData);
+
+	g_gameState.player.resourceId = playerTextureId;
+	g_gameState.player.spriteId = playerSpriteId;
+
+	pData = stbi_load(assets.ghostImage, &width, &height, &channels, 4);
+
+	textureInfo.channels = channels;
+	textureInfo.dataSize = 4 * width * height;
+	textureInfo.width = width;
+	textureInfo.height = height;
+	textureInfo.pData = pData;
+
+	U32 ghostTextureId = UploadTextureToRenderer(renderer, textureInfo);
+	stbi_image_free(pData);
+
+	for (U32 i = 0; i < NUM_GHOST; i++)
+	{
+		g_gameState.ghosts[i].resourceId = ghostTextureId;
+		g_gameState.ghosts[i].spriteId = CreateSpriteDescriptor(renderer, ghostTextureId);
+	}
+
+	Matrix3x3 projection = OrthoProjection3x3(0.0f, 16.0f, 0.0f, 9.0f);
+	UpdateFrameUniform(renderer, &projection);
+
+	SceneSnapshot snapshot;
+	snapshot.elements = ReserveArray<SceneElement>(16);
+
+	g_gameState.player.pos = { 16, -9 };
+	g_gameState.ghosts[0].pos = { 0, 0 };
 
 	while (true) 
 	{
@@ -205,13 +305,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 		float dt = (float)(startTime - lastTime) / 1000.0f;
 
-		TickGameState(dt);
+		TickGameState(dt, snapshot);
 
-		Matrix3x3 world = Translate3x3(g_gameState.player.pos.x, -g_gameState.player.pos.y) * Scale3x3(200.0f, 200.0f);
-		Matrix3x3 projection = OrthoProjection3x3(0.0f, 1920.0f, 0.0f, 1080.0f);
-		Matrix3x3 transform = world * projection;
-
-		RenderFrame(renderer, transform);
+		RenderFrame(renderer, snapshot);
 		lastTime = startTime;
 	}
 
@@ -221,12 +317,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	OutputDebugStringA(buffer);
 #endif
 
+	DestroyArray(snapshot.elements);
 	ShutdownRenderer(renderer);
 	KillWindow(window);
-
-	//JoinThread(tickThread);
-	//DestroyThread(tickThread);
-	//DestoryMutex(g_isClosingMutex);
 
 #ifdef DEBUG
 	_CrtDumpMemoryLeaks();
