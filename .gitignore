@@ -4,6 +4,13 @@ bin-int/
 build/
 
 Engine/ThirdParty/AngelScript/
+Engine/ThirdParty/imgui/backends/
+Engine/ThirdParty/imgui/docs/
+Engine/ThirdParty/imgui/examples/
+Engine/ThirdParty/imgui/misc/
+Engine/ThirdParty/imgui/.gitignore
+Engine/ThirdParty/imgui/.editorconfig
+Engine/ThirdParty/imgui/.gitattributes
 
 *.user
 *.sln

@@ -11,9 +11,9 @@ enum AssetType
 
 struct CompilerConfig
 {
-	const char intermediateDir[MAX_PATH_LENGTH];
-	const char outputDir[MAX_PATH_LENGTH];
-	const char inputDir[MAX_PATH_LENGTH];
+	char intermediateDir[MAX_PATH_LENGTH];
+	char outputDir[MAX_PATH_LENGTH];
+	char inputDir[MAX_PATH_LENGTH];
 };
 
 EXPORT_DLL void CompileAssets(uint32_t fileCount, const char* filepaths[]);
