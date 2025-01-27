@@ -10,11 +10,9 @@ add_executable(Sandbox
 target_include_directories(Sandbox
     PUBLIC ${PLATFORM_INCLUDE_PATH}
     PUBLIC ${CORE_INCLUDE_PATH}
-    PUBLIC ${ASSETDB_INCLUDE_PATH}
 )
 
 target_link_libraries(Sandbox
     Platform
     Core
-	AssetDB
 )

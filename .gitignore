@@ -11,6 +11,7 @@ Engine/ThirdParty/imgui/misc/
 Engine/ThirdParty/imgui/.gitignore
 Engine/ThirdParty/imgui/.editorconfig
 Engine/ThirdParty/imgui/.gitattributes
+Engine/ThirdParty/zlib/
 
 *.user
 *.sln

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<asset type="sprite">
+    <src_path>Art/sheet.png</src_path>
+    <width val="65"/>
+    <height val="16"/>
+</asset>

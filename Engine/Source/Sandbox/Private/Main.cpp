@@ -1,6 +1,5 @@
 #include <stdio.h>
 
-#include <AssetDB.h>
 #include <string.h>
 #include <stdlib.h>
 #include <StringId\StringId.h>
