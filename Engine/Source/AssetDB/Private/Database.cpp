@@ -1,7 +1,8 @@
 #include "Database.h"
+
+#include <FileSystem\FileSystem.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdio.h>
 
 int AddAsset(const char* name, const char* srcAssetPath, const char* databasePath)
 {
@@ -19,19 +20,19 @@ int AddAsset(const char* name, const char* srcAssetPath, const char* databasePat
 	strcat_s(path, pathLength, name);
 	strcat_s(path, pathLength, ".xml");
 
-	FILE* file = NULL;
-	fopen_s(&file, path, "wb");
-	if (!file)
+	File file = FSOpen(path, OPEN_TYPE_WRITE);
+	if (!file._handle)
 	{
 		free(path);
 		return 1;
 	}
 
-	fclose(file);
+	FSClose(&file);
 	free(path);
 	return 0;
 }
 
-void RemoveAsset(const char* name)
+int RemoveAsset(const char* assetPath)
 {
+	return !FSDelete(assetPath);
 }

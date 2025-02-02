@@ -4,6 +4,8 @@ add_library(FileSystem SHARED
     ${CMAKE_CURRENT_SOURCE_DIR}/Private/FileSystem/FileSystem.cpp
 )
 
+target_compile_definitions(FileSystem PRIVATE FS_DLL)
+
 target_include_directories(FileSystem
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Public/FileSystem/
 )
