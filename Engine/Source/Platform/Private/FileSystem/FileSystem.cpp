@@ -7,28 +7,66 @@
 #define DLLEXPORT extern "C" __declspec(dllexport)
 
 #ifdef MT_PLATFORM_WINDOWS
-DLLEXPORT File FSOpen(const char* filepath, OpenFileType openType)
+DLLEXPORT Path FSCreatePath(const char* str)
+{
+	Path path = {};
+	PathCanonicalizeA(path.path, str);
+	return path;
+}
+
+DLLEXPORT void FSAddBackslash(Path* path)
+{
+	PathAddBackslashA(path->path);
+}
+
+DLLEXPORT void FSAddExtension(Path* path, const char* ext)
+{
+	PathAddExtensionA(path->path, ext);
+}
+
+DLLEXPORT void FSAppend(Path* path, const char* str)
+{
+	PathAppendA(path->path, str);
+}
+
+DLLEXPORT char* FSFindExtension(Path* path)
+{
+	return PathFindExtensionA(path->path);
+}
+
+DLLEXPORT char* FSFindFilename(Path* path)
+{
+	return PathFindFileNameA(path->path);
+}
+
+DLLEXPORT bool FSIsDirectory(Path* path)
+{
+	return PathIsDirectoryA(path->path);
+}
+
+DLLEXPORT void FSRemoveTrailing(Path* path)
+{
+	PathRemoveFileSpecA(path->path);
+}
+
+DLLEXPORT void FSRenameExtension(Path* path, const char* extension)
+{
+	PathRenameExtensionA(path->path, extension);
+}
+
+DLLEXPORT File FSOpenWithPath(Path* path, OpenFileType openType)
 {
 	File file = {};
-	size_t filepathLength = strlen(filepath);
-	for (int i = filepathLength; i > 0; i--)
+
+	if (openType == OPEN_TYPE_WRITE)
 	{
-		if (filepath[i] == '\\')
+		Path dirPath = *path;
+		FSRemoveTrailing(&dirPath);
+		if (!PathFileExistsA(dirPath.path))
 		{
-			filepathLength = i;
-			break;
+			CreateDirectoryA(dirPath.path, NULL);
 		}
 	}
-
-	char* dir = (char*)malloc(filepathLength + 1);
-	dir[filepathLength] = 0;
-	memcpy_s(dir, filepathLength + 1, filepath, filepathLength);
-	if (!PathFileExistsA(dir))
-	{
-		CreateDirectoryA(dir, NULL);
-	}
-
-	free(dir);
 
 	DWORD access = 0;
 	DWORD behavior = 0;
@@ -48,7 +86,7 @@ DLLEXPORT File FSOpen(const char* filepath, OpenFileType openType)
 	}
 
 	HANDLE hFile = CreateFileA(
-		filepath, access,
+		path->path, access,
 		0, NULL,
 		behavior, 0,
 		NULL
@@ -66,6 +104,15 @@ DLLEXPORT File FSOpen(const char* filepath, OpenFileType openType)
 	file.size = size.QuadPart;
 	file._handle = hFile;
 
+	return file;
+}
+
+DLLEXPORT File FSOpen(const char* filepath, OpenFileType openType)
+{
+	File file = {};
+	Path path = FSCreatePath(filepath);
+
+	file = FSOpenWithPath(&path, openType);
 	return file;
 }
 

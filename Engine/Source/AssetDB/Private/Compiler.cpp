@@ -17,16 +17,11 @@ struct SpriteData
 
 bool CompileSprite(xml_node* asset, const char* name, const char* outputDir)
 {
-	size_t outputDirLen = strlen(outputDir);
-	size_t nameLen = strlen(name);
-	size_t outputPathLen = outputDirLen + nameLen + 5;
-	char* outputPath = (char*)malloc(outputPathLen);
-	strcpy_s(outputPath, outputPathLen, outputDir);
-	strcat_s(outputPath, outputPathLen, name);
-	strcat_s(outputPath, outputPathLen, ".spr");
+	Path outputPath = FSCreatePath(outputDir);
+	FSAppend(&outputPath, name);
+	FSRenameExtension(&outputPath, ".spr");
 
-	File file = FSOpen(outputPath, OPEN_TYPE_WRITE);
-	free(outputPath);
+	File file = FSOpenWithPath(&outputPath, OPEN_TYPE_WRITE);
 	if (!file._handle)
 		return false;
 
@@ -44,11 +39,10 @@ bool CompileSprite(xml_node* asset, const char* name, const char* outputDir)
 		{
 			xml_string* path = xml_node_content(child);
 			size_t pathLength = xml_string_length(path);
-			char* cpath = (char*)malloc(pathLength + 1);
-			cpath[pathLength] = 0;
-			xml_string_copy(path, (uint8_t*)cpath, pathLength);
+			Path filepath = {};
+			xml_string_copy(path, (uint8_t*)filepath.path, sizeof(filepath));
 			int width, height, channels = 0;
-			data.data = stbi_load(cpath, &width, &height, &channels, 0);
+			data.data = stbi_load(filepath.path, &width, &height, &channels, 0);
 			data.dataSize = width * height * channels;
 		}
 		break;
@@ -85,6 +79,9 @@ bool CompileSprite(xml_node* asset, const char* name, const char* outputDir)
 bool GenericCompile(const char* filepath, const char* outputDir)
 {
 	File file = FSOpen(filepath, OPEN_TYPE_READ);
+	if (!file._handle)
+		return false;
+
 	uint8_t* data = (uint8_t*)malloc(file.size);
 	FSRead(&file, (char*)data, file.size);
 	FSClose(&file);
@@ -105,27 +102,10 @@ bool GenericCompile(const char* filepath, const char* outputDir)
 	{
 	case "sprite"_sid:
 	{
-		size_t start = 0;
-		size_t end = 0;
-		for (size_t i = strlen(filepath); i > 0; i--)
-		{
-			if (filepath[i] == '.')
-			{
-				end = i;
-			}
-			if (filepath[i] == '\\')
-			{
-				start = i + 1;
-				break;
-			}
-		}
-
-		size_t len = (end - start);
-		char* assetName = (char*)malloc(len + 1);
-		assetName[len] = 0;
-		memcpy_s(assetName, len, filepath + start, len);
+		Path path = FSCreatePath(filepath);
+		const char* assetName = FSFindFilename(&path);
+		
 		CompileSprite(root, assetName, outputDir);
-		free(assetName);
 	} break;
 	}
 	
