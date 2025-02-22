@@ -1,3 +1,0 @@
-#define MT_MAJOR_VERSION 0
-#define MT_MINOR_VERSION 1
-#define MT_PATCH_VERSION 2
