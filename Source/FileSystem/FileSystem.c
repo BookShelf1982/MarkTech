@@ -57,10 +57,11 @@ void FSRenameExtension(Path* path, const char* extension)
 
 void FSOpen(Path* path, OpenFileType openType, File* file)
 {
-	GetFullPathNameA(path->path, sizeof(path->path), path->path, NULL);
+	Path realPath = *path;
+	FSGetAbsolutePath(&realPath);
 	if (openType == OPEN_TYPE_WRITE)
 	{
-		Path dirPath = *path;
+		Path dirPath = realPath;
 		FSRemoveTrailing(&dirPath);
 		if (PathFileExistsA(dirPath.path) == FALSE)
 		{
@@ -91,7 +92,7 @@ void FSOpen(Path* path, OpenFileType openType, File* file)
 	}
 
 	HANDLE hFile = CreateFileA(
-		path->path, access,
+		realPath.path, access,
 		share, NULL,
 		behavior, FILE_ATTRIBUTE_NORMAL,
 		NULL

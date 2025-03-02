@@ -3,6 +3,10 @@
 
 #define MAX_PATH_LEN 260
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
 	char path[MAX_PATH_LEN];
 } Path;
@@ -53,4 +57,10 @@ unsigned char FSDeleteDirectory(const char* directory);
 /*FileIterator FSBeginFileIt(const char* directory, FileInfo* info);
 unsigned char FSFileIterate(FileIterator it, FileInfo* info);
 void FSEndIt(FileIterator it);*/
+
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

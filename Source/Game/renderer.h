@@ -1,31 +1,53 @@
-#ifndef RENDERER_H
-#define RENDERER_H
+#pragma once
 
 #include <stdint.h>
 #include "window.h"
-#include "hash_table.h"
+#include "resource_manager.h"
+#include "math3D.h"
+
+#include "data_structures.h"
 
 #define MAX_SHADERS 4
 
-typedef struct {
-	uint32_t vertShader;
-	uint32_t fragShader;
-	uint32_t program;
-} ProgramPipeline;
+struct SceneSnapshot 
+{
+	Array<uint32_t> models;
+	Array<vec3f_t> origins;
+};
 
-DECLARE_HASHTABLE(uint32_t, ProgramPipeline);
+struct RendererSettings
+{
+	Window* window;
+	uint32_t flags;
+};
 
-typedef struct {
+struct Renderer {
 	uintptr_t dc;
 	uintptr_t context;
-	Window* window;
 	uint32_t vao;
-	uint32_t_ProgramPipeline_ht shaderTable;
-} Renderer;
+	uint32_t ppo;
+	uint32_t ubo;
+	Window* window;
+	FixedArray<uint32_t, MAX_SHADERS> shaders;
+};
 
-void CreateRenderer(Renderer* renderer, Window* window, uint32_t flags);
-void DestroyRenderer(Renderer* renderer);
-void LoadShaders(Renderer* renderer);
-void RenderFrame(Renderer* renderer);
+enum BinaryType {
+	BINARY_TYPE_SPIRV,
+	BINARY_TYPE_COMPILED
+};
 
-#endif // RENDERER_H
+struct LoadShaderInfo {
+	size_t binarySize;
+	char* binary;
+	BinaryType binaryType;
+};
+
+void CreateRenderer(const RendererSettings& settings, Renderer& renderer);
+void DestroyRenderer(Renderer& renderer);
+bool LoadShader(Renderer& renderer, const LoadShaderInfo& info, uint32_t* id); // for compiled shader binaries
+uint32_t LoadCompileShader(Renderer& renderer, const LoadShaderInfo& info); // for spirv
+void CreatePipeline(Renderer& renderer);
+void RenderFrame(Renderer& renderer, SceneSnapshot& snapshot);
+void PresentFrame(Renderer& renderer);
+
+void SetPostLoadFns(ResourceManager& manager, Renderer& renderer);
