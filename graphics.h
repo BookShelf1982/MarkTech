@@ -12,11 +12,6 @@ typedef struct {
   unsigned char r, g, b, a;
 } Color;
 
-typedef struct {
-  float max_x, max_y;
-  float min_x, min_y;
-} BoundingBox;
-
 typedef enum {
   IMAGE_FORMAT_RGBA8,
   IMAGE_FORMAT_R32,
@@ -43,6 +38,7 @@ typedef struct {
   Framebuffer *framebuffer;
   DepthBuffer *depth_buffer;
   Image *sampled_texture;
+  M4x4 transform;
 } GrContext;
 
 #define CreateImage(type, width, height)              \
@@ -52,6 +48,11 @@ do {                                                  \
   .height = (height)                                  \
 } while (0)
 
-void DrawIt(float dt);
+D3 ScreenSpace(GrContext *gc, D3 p);
+D3 TrimD4(D4 v);
+D4 MakeD4FromD3(D3 v, float w);
+
+void GrTriangle(GrContext *gc, Vertex v1, Vertex v2, Vertex v3);
+void GrClear(GrContext *gc);
 
 #endif // GRAPHICS_H
