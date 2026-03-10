@@ -13,7 +13,7 @@
 #include "graphics.h"
 #include "osx_window.h"
 
-#define SCALE 40
+#define SCALE 60
 
 #define WIDTH 16*SCALE
 #define HEIGHT 9*SCALE
@@ -87,7 +87,7 @@ Model LoadModel(const char *filepath)
 Model test_model = {0};
 
 float theta = 0.0f;
-D3 translate = {0.0, 0.0f, 4.0f};
+D3 translate = {0.0, 0.0f, 5.0f};
 float aspect;
 
 void DrawIt(float dt)

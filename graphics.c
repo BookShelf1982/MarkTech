@@ -62,13 +62,17 @@ void GrTriangle(GrContext *gc, Vertex v1, Vertex v2, Vertex v3)
     for (int j = min_x; j < max_x; j++) { 
       int x = j;
       int y = i;
-      int u = (edge0.x * (y-v1p.y)) - (edge0.y * (x-v1p.x));
+      int u = (edge1.x * (y-v2p.y)) - (edge1.y * (x-v2p.x));
       int v = (edge2.x * (y-v3p.y)) - (edge2.y * (x-v3p.x));
-      int w = (edge1.x * (y-v2p.y)) - (edge1.y * (x-v2p.x));
+      int w = (edge0.x * (y-v1p.y)) - (edge0.y * (x-v1p.x));
 
       // test if on top or left edge or inside triangle
       
-      bool inside = (u >= 0 && v >= 0 && w >= 0);
+      //bool inside = (u >= 0 && v >= 0 && w >= 0);
+      bool inside = true;
+      inside &= u == 0 ? ((edge1.x > 0 && edge1.y == 0) || edge1.y < 0) : u > 0;
+      inside &= v == 0 ? ((edge2.x > 0 && edge2.y == 0) || edge2.y < 0) : v > 0;
+      inside &= w == 0 ? ((edge0.x > 0 && edge0.y == 0) || edge0.y < 0) : w > 0;
       if (!inside) continue;
       
       float z = 1.0f / ((((1.0f/v1.p.z)*u)/det) + (((1.0f/v2.p.z)*v)/det) + (((1.0f/v3.p.z)*w)/det));
@@ -81,16 +85,9 @@ void GrTriangle(GrContext *gc, Vertex v1, Vertex v2, Vertex v3)
         (v1.tc.x*u)/det + (v2.tc.x*v)/det + (v3.tc.x*w)/det,
         (v1.tc.y*u)/det + (v2.tc.y*v)/det + (v3.tc.y*w)/det
       };
-
-      /*gc->framebuffer->buf[j + (i * gc->framebuffer->width)] = (Color){
-        (unsigned char)(tcoord.x * 255),
-        (unsigned char)(tcoord.y * 255),
-        0,
-        255
-      };*/
       
-      //Color color = SampleImage(gc->sampled_texture, tcoord);
-      gc->framebuffer->buf[j + (i * gc->framebuffer->width)] = (Color) {255, 0, 0, 255};
+      Color color = SampleImage(gc->sampled_texture, tcoord);
+      gc->framebuffer->buf[j + (i * gc->framebuffer->width)] = color;
     }
   }
 }
