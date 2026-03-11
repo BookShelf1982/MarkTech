@@ -13,7 +13,7 @@
 #include "graphics.h"
 #include "osx_window.h"
 
-#define SCALE 60
+#define SCALE 20
 
 #define WIDTH 16*SCALE
 #define HEIGHT 9*SCALE
@@ -123,9 +123,14 @@ int main(int argc, const char **argv)
   }
   gc.sampled_texture = &texture;
   
-  CreateAndRunNSApp(fb.buf, WIDTH, HEIGHT, &DrawIt);
-  
+  InitWindow(fb.buf, WIDTH, HEIGHT, &DrawIt);
+  while (!ShouldWindowClose()) {
+    ProcessWindowEvents();
+  }
+
+  CloseWindow();
   FreeFramebuffer();
+  free(test_model.indices);
   stbi_image_free(texture.buf);
 
   printf("ded.\n");

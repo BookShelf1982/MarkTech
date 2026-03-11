@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdbool.h>
 #import <AppKit/AppKit.h>
 #import <QuartzCore/QuartzCore.h>
 #import <QuartzCore/CoreAnimation.h>
@@ -7,6 +8,7 @@
 static DrawCallbackFn draw_callback = NULL;
 static unsigned int fb_width, fb_height = 0;
 static void *fb = NULL;
+static bool should_close = false;
 
 @interface LayerDelegate : NSObject <CALayerDelegate>
 @end
@@ -31,10 +33,64 @@ static void *fb = NULL;
 }
 @end
 
+@interface GameApp : NSApplication
+- (void)terminate:(id)sender;
+- (void)sendEvent:(NSEvent *)theEvent;
+@end
+
+@implementation GameApp
+- (void)terminate:(id)sender
+{
+  printf("stfu\n");
+}
+
+- (void)sendEvent:(NSEvent *)theEvent
+{
+  [super sendEvent:theEvent];
+}
+@end
+
+@interface GameWindowDelegate : NSObject <NSWindowDelegate>
+@end
+
+@implementation GameWindowDelegate
+- (void) windowWillClose:(NSNotification *) notification
+{
+  should_close = true;
+}
+@end
+
+@interface GameWindow : NSWindow
+- (BOOL)canBecomeKeyWindow;
+- (BOOL)canBecomeMainWindow;
+- (void)sendEvent:(NSEvent *)event;
+- (void)doCommandBySelector:(SEL)aSelector;
+@end
+
+@implementation GameWindow
+- (BOOL)canBecomeKeyWindow
+{
+  return YES;
+}
+
+- (BOOL)canBecomeMainWindow
+{
+  return YES;
+}
+
+- (void)sendEvent:(NSEvent *)event
+{
+  [super sendEvent:event];
+}
+
+- (void)doCommandBySelector:(SEL)aSelector {}
+@end
+
+static GameWindow *window;
+static CALayer *layer;
+static CADisplayLink *display_link;
+
 @interface AppDelegate : NSObject <NSApplicationDelegate>
-@property (nonatomic, strong) NSWindow *window;
-@property (nonatomic, strong) CALayer *layer;
-@property (nonatomic, strong) CADisplayLink *display_link;
 @end
 
 @implementation AppDelegate
@@ -44,7 +100,7 @@ static void *fb = NULL;
   int height = fb_height;
 
   NSRect rect = NSMakeRect(0, 0, width, height);
-  self.window = [[NSWindow alloc]
+  window = [[GameWindow alloc]
                   initWithContentRect:rect
                             styleMask:NSWindowStyleMaskTitled |
                                       NSWindowStyleMaskMiniaturizable |
@@ -52,54 +108,66 @@ static void *fb = NULL;
                                       NSWindowStyleMaskResizable
                               backing:NSBackingStoreBuffered
                                 defer:false];
-  self.window.contentView.wantsLayer = YES;
+  window.contentView.wantsLayer = YES;
+  window.delegate = [[GameWindowDelegate alloc] init];
 
-  self.layer = [[CALayer alloc] init];
-  self.layer.magnificationFilter = kCAFilterNearest;
-  self.layer.autoresizingMask = kCALayerWidthSizable | kCALayerHeightSizable;
-  self.layer.contentsGravity = kCAGravityResizeAspectFill;
+  layer = [[CALayer alloc] init];
+  layer.magnificationFilter = kCAFilterNearest;
+  layer.autoresizingMask = kCALayerWidthSizable | kCALayerHeightSizable;
+  layer.contentsGravity = kCAGravityResizeAspectFill;
   
-  self.window.contentView.layer = self.layer;
+  window.contentView.layer = layer;
   
-  self.layer.delegate = [[LayerDelegate alloc] init];
-  //NSRect layer_rect = self.layer.frame;
+  layer.delegate = [[LayerDelegate alloc] init];
+  //NSRect layer_rect = layer.frame;
 
-  self.display_link = [self.window displayLinkWithTarget:self
+  display_link = [window displayLinkWithTarget:self
                                                 selector:@selector(step:)];
   
-  [self.display_link addToRunLoop:[NSRunLoop currentRunLoop]
+  [display_link addToRunLoop:[NSRunLoop currentRunLoop]
                           forMode:NSRunLoopCommonModes];
   
-  [self.window center];
-  [self.window makeKeyAndOrderFront:nil];
+  [window center];
+  [window makeKeyAndOrderFront:nil];
 
 }
 
 - (void)step:(CADisplayLink *)sender
 {
   draw_callback((float)sender.duration);
-  [self.window.contentView.layer setNeedsDisplay];
-}
-
-- (BOOL) applicationShouldTerminateAfterLastWindowClosed:(NSApplication *) sender
-{
-  return YES;
+  [window.contentView.layer setNeedsDisplay];
 }
 @end
 
-void CreateAndRunNSApp(void *buf, unsigned int width, unsigned int height, DrawCallbackFn fn)
+void InitWindow(void *buf, unsigned int width, unsigned int height, DrawCallbackFn fn)
 {
   fb = buf;
   fb_width = width;
   fb_height = height;
   draw_callback = fn;
   @autoreleasepool {
-    [NSApplication sharedApplication];
+    [GameApp sharedApplication];
     AppDelegate *app_delegate = [[AppDelegate alloc] init];
     [NSApp setDelegate:app_delegate];
     [NSApp setPresentationOptions:NSApplicationPresentationDefault];
     [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
-
-    [NSApp run];
+    [NSApp finishLaunching];
   }
-}   
+}
+
+bool ShouldWindowClose(void) { return should_close; }
+
+void ProcessWindowEvents(void)
+{
+  for (;;) {
+    NSEvent *event = [NSApp nextEventMatchingMask:NSEventMaskAny untilDate:nil inMode:NSDefaultRunLoopMode dequeue:YES];
+    if (event == nil) return;
+    [NSApp sendEvent:event];
+  }
+}
+
+void CloseWindow(void)
+{
+  [window close];
+}
+    
