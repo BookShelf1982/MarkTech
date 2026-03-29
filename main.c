@@ -50,7 +50,7 @@ void UpdateCamera(Camera *c, float dt)
   c->forward = forward;
   V3f right = v3f_cross(v3f(0, 1, 0), forward);
 
-  float speed = 5;
+  float speed = IsKeyDown(SCANCODE_V) ? 12 : 6;
   V3f move_dir = v3f_add(v3f_mul(forward, v3ff(wish_y)), v3f_mul(right, v3ff(wish_x)));
   V3f dp = v3f_mul(v3f_norm(move_dir, FLT_EPSILON, v3ff(0)), v3ff(speed * dt));
   c->pos = v3f_add(c->pos, dp);
