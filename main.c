@@ -61,9 +61,6 @@ void UpdateCamera(Camera *c, float dt)
 #define WIDTH 4*SCALE
 #define HEIGHT 3*SCALE
 
-/*#define WIDTH 854
-#define HEIGHT 480*/
-
 Framebuffer fb = {0};
 DepthBuffer db = {0};
 GrContext gc = {0};
