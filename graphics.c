@@ -3,18 +3,18 @@
 #include <float.h>
 #include <stdint.h>
 #include "graphics.h"
-#include "xdmath.h"
 
-D3 ScreenSpace(GrContext *gc, D3 p)
+V3f ScreenSpace(GrContext *gc, V3f p)
 {
+  float aspect = (float)gc->framebuffer->height/(float)gc->framebuffer->width;
   float px = p.x / p.z;
   float py = p.y / p.z;
-  float x = (((px + 1)/2)*gc->framebuffer->width) + 0.5;
+  float x = ((((px * aspect) + 1)/2)*gc->framebuffer->width) + 0.5;
   float y = (((-py + 1)/2)*gc->framebuffer->height) + 0.5;
-  return (D3) {x, y, p.z};
+  return v3f(x, y, p.z);
 }
 
-Color SampleImage(Image *image, D2 sample_pos)
+Color SampleImage(Image *image, V2f sample_pos)
 {
   // [0..1] >> [0..width/height]
   // [0..1] >> [1..0] >>  [height..0]
@@ -29,9 +29,6 @@ Color SampleImage(Image *image, D2 sample_pos)
   return ret_color;
 }
 
-D3 TrimD4(D4 v) { return (D3) {v.x, v.y, v.z}; }
-D4 MakeD4FromD3(D3 v, float w) { return (D4) {v.x, v.y, v.z, w}; }
-
 #define Max3(a,b,c) ((a > b) ? ((a > c) ? a : c) : ((b > c) ? b : c))
 #define Min3(a,b,c) ((a < b) ? ((a < c) ? a : c) : ((b < c) ? b : c))
 
@@ -39,12 +36,12 @@ D4 MakeD4FromD3(D3 v, float w) { return (D4) {v.x, v.y, v.z, w}; }
 // Winding order is counter clockwise
 void GrTriangle(GrContext *gc, Vertex v1, Vertex v2, Vertex v3)
 {
-  D3i v1p = (D3i) {v1.p.x, v1.p.y, v1.p.z};
-  D3i v2p = (D3i) {v2.p.x, v2.p.y, v2.p.z};
-  D3i v3p = (D3i) {v3.p.x, v3.p.y, v3.p.z};
-  D3i edge0 = (D3i) {v2p.x - v1p.x, v2p.y - v1p.y, v2p.z - v1p.z};
-  D3i edge1 = (D3i) {v3p.x - v2p.x, v3p.y - v2p.y, v3p.z - v2p.z};
-  D3i edge2 = (D3i) {v1p.x - v3p.x, v1p.y - v3p.y, v1p.z - v3p.z};
+  V3i v1p = v3i(v1.p.x, v1.p.y, v1.p.z);
+  V3i v2p = v3i(v2.p.x, v2.p.y, v2.p.z);
+  V3i v3p = v3i(v3.p.x, v3.p.y, v3.p.z);
+  V3i edge0 = v3i_sub(v2p, v1p);// v3i(v2p.x - v1p.x, v2p.y - v1p.y, v2p.z - v1p.z);
+  V3i edge1 = v3i_sub(v3p, v2p);//v3i(v3p.x - v2p.x, v3p.y - v2p.y, v3p.z - v2p.z);
+  V3i edge2 = v3i_sub(v1p, v3p); //v3i(v1p.x - v3p.x, v1p.y - v3p.y, v1p.z - v3p.z);
   int det = (edge0.x * edge1.y) - (edge0.y * edge1.x);
   if (det < 0) return;
 
@@ -52,11 +49,18 @@ void GrTriangle(GrContext *gc, Vertex v1, Vertex v2, Vertex v3)
   int min_y = Min3(v1p.y, v2p.y, v3p.y);
   int max_x = Max3(v1p.x, v2p.x, v3p.x);
   int max_y = Max3(v1p.y, v2p.y, v3p.y);
+  int min_z = Min3(v1p.z, v2p.z, v3p.z);
+  
+  bool outside = max_x > gc->framebuffer->width ||
+  min_x < 0 || min_y < 0 || max_y > gc->framebuffer->height ||
+  min_z < 0;
+  
+  /*if () max_x = gc->framebuffer->width;
+  if () min_x = 0.0f;
+  if () min_y = 0.0f;
+  if () max_y = gc->framebuffer->height;*/
 
-  if (max_x > gc->framebuffer->width) max_x = gc->framebuffer->width;
-  if (min_x < 0.0f) min_x = 0.0f;
-  if (min_y < 0.0f) min_y = 0.0f;
-  if (max_y > gc->framebuffer->height) max_y = gc->framebuffer->height;
+  if (outside) return;
   
   for (int i = min_y; i < max_y; i++) {
     for (int j = min_x; j < max_x; j++) { 
@@ -81,10 +85,10 @@ void GrTriangle(GrContext *gc, Vertex v1, Vertex v2, Vertex v3)
       if (z_int > z_buffer_z) continue;
       gc->depth_buffer->buf[j + (i * gc->depth_buffer->width)] = z_int;
       
-      D2 tcoord = (D2){
+      V2f tcoord = v2f(
         (v1.tc.x*u)/det + (v2.tc.x*v)/det + (v3.tc.x*w)/det,
         (v1.tc.y*u)/det + (v2.tc.y*v)/det + (v3.tc.y*w)/det
-      };
+      );
       
       Color color = SampleImage(gc->sampled_texture, tcoord);
       gc->framebuffer->buf[j + (i * gc->framebuffer->width)] = color;

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <float.h>
 
 #define NOB_IMPLEMENTATION
 #define NOB_STRIP_PREFIX
@@ -7,16 +8,61 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#define XDMATH_IMPLEMENTATION
-#include "xdmath.h"
-
 #include "graphics.h"
 #include "osx_window.h"
+#include "scancodes.h"
 
-#define SCALE 20
+typedef struct {
+  V3f pos;
+  V3f forward;
+  float pitch, yaw;
+} Camera;
 
-#define WIDTH 16*SCALE
-#define HEIGHT 9*SCALE
+M4f ViewMatrix(Camera *c)
+{
+  M4f t = m4f_id();
+  t._14 = -c->pos.x;
+  t._24 = -c->pos.y;
+  t._34 = -c->pos.z;
+
+  M4f r = m4f_mul(m4f_rot_x(c->pitch * (M_PI / 180)), m4f_rot_y(-c->yaw * (M_PI / 180)));
+
+  return m4f_mul(r, t);
+}
+
+void UpdateCamera(Camera *c, float dt)
+{
+  float wish_x = IsKeyDown(SCANCODE_D) ? 1 : IsKeyDown(SCANCODE_A) ? -1 : 0;
+  float wish_y = IsKeyDown(SCANCODE_W) ? 1 : IsKeyDown(SCANCODE_S) ? -1 : 0;
+
+  float wish_yaw = IsKeyDown(SCANCODE_RIGHT) ? 1 : IsKeyDown(SCANCODE_LEFT) ? -1 : 0;
+  float wish_pitch = IsKeyDown(SCANCODE_UP) ? 1 : IsKeyDown(SCANCODE_DOWN) ? -1 : 0;
+  c->yaw = fmodf(c->yaw + 180 * wish_yaw * dt, 360);
+  c->pitch = fmodf(c->pitch + 180 * wish_pitch * dt, 360);
+
+  float yaw_radians = c->yaw * (M_PI / 180);
+  float pitch_radians = c->pitch * (M_PI / 180);
+  float cos_yaw = cosf(yaw_radians);
+  float sin_yaw = sinf(yaw_radians);
+  float cos_pitch = cosf(pitch_radians);
+  float sin_pitch = sinf(pitch_radians);
+  V3f forward = v3f(cos_pitch*sin_yaw, sin_pitch, cos_yaw*cos_pitch);
+  c->forward = forward;
+  V3f right = v3f_cross(v3f(0, 1, 0), forward);
+
+  float speed = 5;
+  V3f move_dir = v3f_add(v3f_mul(forward, v3ff(wish_y)), v3f_mul(right, v3ff(wish_x)));
+  V3f dp = v3f_mul(v3f_norm(move_dir, FLT_EPSILON, v3ff(0)), v3ff(speed * dt));
+  c->pos = v3f_add(c->pos, dp);
+}
+
+#define SCALE 160
+
+#define WIDTH 4*SCALE
+#define HEIGHT 3*SCALE
+
+/*#define WIDTH 854
+#define HEIGHT 480*/
 
 Framebuffer fb = {0};
 DepthBuffer db = {0};
@@ -31,7 +77,7 @@ void InitFramebuffer(unsigned int width, unsigned int height)
     .height = height
   };
   db = (DepthBuffer){
-    .buf = ((unsigned int *)ptr + (width * height)),
+    .buf = ((unsigned int *)((Color *)ptr + (width * height))),
     .width = width,
     .height = height
   };
@@ -85,36 +131,42 @@ Model LoadModel(const char *filepath)
 }
 
 Model test_model = {0};
+Camera camera = {0};
 
 float theta = 0.0f;
-D3 translate = {0.0, 0.0f, 5.0f};
+float speed = (M_PI / 2.0);
+V3f translate = (V3f) {0, 0, 5};
+float scale = 1.0f;
 float aspect;
 
-void DrawIt(float dt)
+void DrawIt(void)
 {
   GrClear(&gc);
+  
+  M4f translate_matrix = m4f_id();
+  translate_matrix._14 = translate.x;
+  translate_matrix._24 = translate.y;
+  translate_matrix._34 = translate.z;
 
-  gc.transform = M4x4Fuck(M4x4RotateYAxis(theta), M4x4Translate(translate.x, translate.y, translate.z));
+  M4f transform = m4f_mul(translate_matrix, m4f_rot_y(theta));
+  
+  gc.transform = m4f_mul(ViewMatrix(&camera), transform);
   
   for (size_t i = 0; i < test_model.index_count; i += 3) {
     Vertex v1 = test_model.vertices[test_model.indices[i]];
     Vertex v2 = test_model.vertices[test_model.indices[i + 1]];
     Vertex v3 = test_model.vertices[test_model.indices[i + 2]];
-    v1.p = ScreenSpace(&gc, TrimD4(M4x4MulD4(gc.transform, MakeD4FromD3(v1.p, 1.0f))));
-    v2.p = ScreenSpace(&gc, TrimD4(M4x4MulD4(gc.transform, MakeD4FromD3(v2.p, 1.0f))));
-    v3.p = ScreenSpace(&gc, TrimD4(M4x4MulD4(gc.transform, MakeD4FromD3(v3.p, 1.0f))));
+    v1.p = ScreenSpace(&gc, m4f_mul_vec(gc.transform, v4f(V3f_Arg(v1.p), 1)).xyz);
+    v2.p = ScreenSpace(&gc, m4f_mul_vec(gc.transform, v4f(V3f_Arg(v2.p), 1)).xyz);
+    v3.p = ScreenSpace(&gc, m4f_mul_vec(gc.transform, v4f(V3f_Arg(v3.p), 1)).xyz);
     GrTriangle(&gc, v1, v2, v3);
   }
-
-  theta += (M_PI / 2.0) * dt;
-  theta = fmod(theta, (M_PI * 2));
 }
 
 int main(int argc, const char **argv)
-{ 
+{
   if (argc < 3) return 1;
   InitFramebuffer(WIDTH, HEIGHT);
-  aspect = WIDTH/HEIGHT;
   Image texture = LoadImage(argv[1]);
   test_model = LoadModel(argv[2]);
   if (!texture.buf || !test_model.vertices) {
@@ -124,8 +176,17 @@ int main(int argc, const char **argv)
   gc.sampled_texture = &texture;
   
   InitWindow(fb.buf, WIDTH, HEIGHT, &DrawIt);
+  uint64_t prev_time = 0;
   while (!ShouldWindowClose()) {
+    uint64_t now = GetHighResTime();
+    uint64_t elapsed = now - prev_time;
+    float dt = elapsed * 1e-9;
+    prev_time = now;
+    
     ProcessWindowEvents();
+    if (IsKeyPressed(SCANCODE_ESCAPE)) break;
+    UpdateCamera(&camera, dt);
+    theta = fmodf(theta + (M_PI * 0.5) * dt, M_PI * 2);
   }
 
   CloseWindow();
