@@ -49,18 +49,15 @@ void GrTriangle(GrContext *gc, Vertex v1, Vertex v2, Vertex v3)
   int min_y = Min3(v1p.y, v2p.y, v3p.y);
   int max_x = Max3(v1p.x, v2p.x, v3p.x);
   int max_y = Max3(v1p.y, v2p.y, v3p.y);
-  int min_z = Min3(v1p.z, v2p.z, v3p.z);
-  
-  bool outside = max_x > gc->framebuffer->width ||
-  min_x < 0 || min_y < 0 || max_y > gc->framebuffer->height ||
-  min_z < 0;
-  
-  /*if () max_x = gc->framebuffer->width;
-  if () min_x = 0.0f;
-  if () min_y = 0.0f;
-  if () max_y = gc->framebuffer->height;*/
+  float max_z = Max3(v1.p.z, v2.p.z, v3.p.z);
 
-  if (outside) return;
+  bool stop = min_x > gc->framebuffer->width && max_x < 0 || max_y < 0 && min_y > gc->framebuffer->height || max_z < 0.25f;
+  if (stop) return;
+  
+  if (max_x > gc->framebuffer->width) max_x = gc->framebuffer->width;
+  if (min_x < 0) min_x = 0;
+  if (min_y < 0) min_y = 0;
+  if (max_y > gc->framebuffer->height) max_y = gc->framebuffer->height;
   
   for (int i = min_y; i < max_y; i++) {
     for (int j = min_x; j < max_x; j++) { 
