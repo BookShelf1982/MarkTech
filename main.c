@@ -26,6 +26,7 @@ M4f ViewMatrix(Camera *c)
   t._34 = -c->pos.z;
 
   M4f r = m4f_mul(m4f_rot_x(c->pitch * (M_PI / 180)), m4f_rot_y(-c->yaw * (M_PI / 180)));
+  //M4f r = m4f_rot_y(-c->yaw * (M_PI / 180));
 
   return m4f_mul(r, t);
 }
@@ -56,7 +57,7 @@ void UpdateCamera(Camera *c, float dt)
   c->pos = v3f_add(c->pos, dp);
 }
 
-#define SCALE 160
+#define SCALE 190
 
 #define WIDTH 4*SCALE
 #define HEIGHT 3*SCALE
@@ -99,9 +100,7 @@ Image LoadImage(const char *filepath)
 }
 
 typedef struct {
-  size_t index_count;
   size_t vertex_count;
-  unsigned int *indices;
   Vertex *vertices;
 } Model;
 
@@ -113,28 +112,56 @@ Model LoadModel(const char *filepath)
     return (Model){0};
   }
   size_t vert_count = 0;
-  size_t index_count = 0;
-  fread(&index_count, sizeof(index_count), 1, f);
   fread(&vert_count, sizeof(vert_count), 1, f);
-  size_t required_size = (4 * index_count) + (sizeof(Vertex) * vert_count);
+  size_t required_size = (sizeof(Vertex) * vert_count);
   void *ptr = malloc(required_size);
-  fread(ptr, required_size, 1, f);
+  fread(ptr, required_size, vert_count, f);
   return (Model) {
-    .index_count = index_count,
     .vertex_count = vert_count,
-    .indices = ptr,
-    .vertices = (Vertex *)((char *)ptr + (4 * index_count))
+    .vertices = ptr,
   };
 }
 
-Model test_model = {0};
+void PrintModel(Model *mdl)
+{
+  printf("vertex_count = %zu\n", mdl->vertex_count);
+  printf("vertices = {\n");
+  for (size_t  i = 0; i < mdl->vertex_count; i++) {
+    printf("  {\n");
+    printf("    p = "V3f_Fmt",\n", V3f_Arg(mdl->vertices[i].p));
+    printf("    n = "V3f_Fmt",\n", V3f_Arg(mdl->vertices[i].n));
+    printf("    tc = "V2f_Fmt",\n", V2f_Arg(mdl->vertices[i].tc));
+    printf("  },\n");
+  }
+  printf("}\n");
+}
+
+Vertex mesh_verts[] = {
+  {
+    .p = {0, 0, 5},
+    .tc = {1, 1}
+  },
+  {
+    .p = {-5, 0, 0},
+    .tc = {0, 0}
+  },
+  {
+   .p = {5, 0, 0},
+   .tc = {1, 0}
+  }
+};
+
+Model test_model = {
+  .vertex_count = 3,
+  .vertices = &mesh_verts,
+};
+
 Camera camera = {0};
 
 float theta = 0.0f;
 float speed = (M_PI / 2.0);
-V3f translate = (V3f) {0, 0, 5};
+V3f translate = (V3f) {{0, 0, 2}};
 float scale = 1.0f;
-float aspect;
 
 void DrawIt(void)
 {
@@ -147,18 +174,23 @@ void DrawIt(void)
 
   M4f transform = m4f_mul(translate_matrix, m4f_rot_y(theta));
   
-  gc.transform = m4f_mul(ViewMatrix(&camera), transform);
+  transform = m4f_mul(ViewMatrix(&camera), transform);
   
-  for (size_t i = 0; i < test_model.index_count; i += 3) {
-    Vertex v1 = test_model.vertices[test_model.indices[i]];
-    Vertex v2 = test_model.vertices[test_model.indices[i + 1]];
-    Vertex v3 = test_model.vertices[test_model.indices[i + 2]];
-    v1.p = ScreenSpace(&gc, m4f_mul_vec(gc.transform, v4f(V3f_Arg(v1.p), 1)).xyz);
-    v2.p = ScreenSpace(&gc, m4f_mul_vec(gc.transform, v4f(V3f_Arg(v2.p), 1)).xyz);
-    v3.p = ScreenSpace(&gc, m4f_mul_vec(gc.transform, v4f(V3f_Arg(v3.p), 1)).xyz);
+  for (size_t i = 0; i < test_model.vertex_count; i += 3) {
+    Vertex v1 = test_model.vertices[i];
+    Vertex v2 = test_model.vertices[i + 1];
+    Vertex v3 = test_model.vertices[i + 2];
+    v1.p = m4f_mul_vec(transform, v4f(V3f_Arg(v1.p), 1)).xyz;
+    v2.p = m4f_mul_vec(transform, v4f(V3f_Arg(v2.p), 1)).xyz;
+    v3.p = m4f_mul_vec(transform, v4f(V3f_Arg(v3.p), 1)).xyz;
     GrTriangle(&gc, v1, v2, v3);
   }
+  
+  GrFlush(&gc);
 }
+
+bool breakpoint = false;
+extern bool debug_draw;
 
 int main(int argc, const char **argv)
 {
@@ -171,6 +203,8 @@ int main(int argc, const char **argv)
     return 2;
   }
   gc.sampled_texture = &texture;
+
+  //PrintModel(&test_model);
   
   InitWindow(fb.buf, WIDTH, HEIGHT, &DrawIt);
   uint64_t prev_time = 0;
@@ -182,13 +216,16 @@ int main(int argc, const char **argv)
     
     ProcessWindowEvents();
     if (IsKeyPressed(SCANCODE_ESCAPE)) break;
+    if (IsKeyPressed(SCANCODE_B)) breakpoint = true;
+    if (IsKeyPressed(SCANCODE_R)) camera.pos = v3ff(0);
+    if (IsKeyPressed(SCANCODE_T)) debug_draw = !debug_draw;
     UpdateCamera(&camera, dt);
-    theta = fmodf(theta + (M_PI * 0.5) * dt, M_PI * 2);
+    //theta = fmodf(theta + (M_PI * 0.5) * dt, M_PI * 2);
   }
 
   CloseWindow();
   FreeFramebuffer();
-  free(test_model.indices);
+  free(test_model.vertices);
   stbi_image_free(texture.buf);
 
   printf("ded.\n");

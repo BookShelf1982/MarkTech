@@ -6,6 +6,7 @@
 
 typedef struct {
   V3f p;
+  V3f n;
   V2f tc;
 } Vertex;
 
@@ -36,10 +37,17 @@ typedef struct {
 } DepthBuffer;
 
 typedef struct {
+  Vertex *items;
+  size_t count;
+  size_t capacity;
+} VertexList;
+
+typedef struct {
   Framebuffer *framebuffer;
   DepthBuffer *depth_buffer;
   Image *sampled_texture;
-  M4f transform;
+  VertexList verts;
+  float aspect_ratio;
 } GrContext;
 
 #define CreateImage(type, width, height)              \
@@ -49,9 +57,8 @@ do {                                                  \
   .height = (height)                                  \
 } while (0)
 
-V3f ScreenSpace(GrContext *gc, V3f p);
-
 void GrTriangle(GrContext *gc, Vertex v1, Vertex v2, Vertex v3);
+void GrFlush(GrContext *gc);
 void GrClear(GrContext *gc);
 
 #endif // GRAPHICS_H

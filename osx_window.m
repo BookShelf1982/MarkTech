@@ -158,7 +158,7 @@ static CADisplayLink *display_link;
                                       selector:@selector(step:)];
   CAFrameRateRange range = {
     .minimum = 10.0f,
-    .maximum = 30.0f
+    .maximum = 60.0f
   };
   display_link.preferredFrameRateRange = range;
   

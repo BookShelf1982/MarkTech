@@ -10,7 +10,7 @@ int main(int argc, char **argv)
 
   if (!mkdir_if_not_exists("bin")) return 1;
   
-  cmd_append(&cmd, "cc","-g", "-Wall", "-Wextra", "-o", "bin/main",
+  cmd_append(&cmd, "cc", "-O1", "-Wall", "-Wextra", "-o", "bin/main",
   "main.c", "graphics.c", "osx_window.m",
   "-framework", "AppKit",
   "-framework", "QuartzCore");
