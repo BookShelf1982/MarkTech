@@ -220,7 +220,7 @@ int main(int argc, const char **argv)
     if (IsKeyPressed(SCANCODE_R)) camera.pos = v3ff(0);
     if (IsKeyPressed(SCANCODE_T)) debug_draw = !debug_draw;
     UpdateCamera(&camera, dt);
-    //theta = fmodf(theta + (M_PI * 0.5) * dt, M_PI * 2);
+    theta = fmodf(theta + (M_PI * 0.5) * dt, M_PI * 2);
   }
 
   CloseWindow();

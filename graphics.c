@@ -1,17 +1,12 @@
 #include <stdlib.h>
 #include <stdbool.h>
-#include <float.h>
-#include <stdint.h>
-#include <assert.h>
 
 #define NOB_STRIP_PREFIX
 #include "nob.h"
 
-#include <stdint.h>
-
 #include "graphics.h"
 
-V3f ScreenSpace(V3f p)
+V3f ScreenSpace(GrContext *gc, V3f p)
 {
   float px = p.x / p.z;
   float py = p.y / p.z;
@@ -76,7 +71,7 @@ bool IsBackface(V3f a, V3f b, V3f c)
 
 void PushTriangle(GrContext *gc, Vertex v1, Vertex v2, Vertex v3)
 {
-  if (IsBackface(ScreenSpace(v1.p), ScreenSpace(v2.p), ScreenSpace(v3.p))) return;
+  if (IsBackface(ScreenSpace(gc, v1.p), ScreenSpace(gc, v2.p), ScreenSpace(gc, v3.p))) return;
   GrPushVertex(gc, v1);
   GrPushVertex(gc, v2);
   GrPushVertex(gc, v3);
@@ -160,9 +155,9 @@ bool debug_draw = false;
 
 void GrTriangleFill(GrContext *gc, Vertex v1, Vertex v2, Vertex v3)
 {
-  v1.p = ScreenSpace(v1.p);
-  v2.p = ScreenSpace(v2.p);
-  v3.p = ScreenSpace(v3.p);
+  v1.p = ScreenSpace(gc, v1.p);
+  v2.p = ScreenSpace(gc, v2.p);
+  v3.p = ScreenSpace(gc, v3.p);
 
   int width = gc->framebuffer->width;
   int height = gc->framebuffer->height;
@@ -171,15 +166,13 @@ void GrTriangleFill(GrContext *gc, Vertex v1, Vertex v2, Vertex v3)
   V3i v1p = v3i3f(v3f_mul(v1.p, scale));
   V3i v2p = v3i3f(v3f_mul(v2.p, scale));
   V3i v3p = v3i3f(v3f_mul(v3.p, scale));
-
+  
   V3i edge0 = v3i_sub(v2p, v1p);
   V3i edge1 = v3i_sub(v3p, v2p);
   V3i edge2 = v3i_sub(v1p, v3p);
   
-  V3i v1v3 = v3i_sub(v3p, v1p);
-  V3i v1v2 = v3i_sub(v2p, v1p);
-  int det = (v1v2.x * v1v3.y) - (v1v2.y * v1v3.x);
-  if (det < 0) return;
+  int det = (edge0.x * edge1.y) - (edge0.y * edge1.x);
+  if (det <= 0) return;
   
   int min_x = Min3(v1p.x, v2p.x, v3p.x); 
   int min_y = Max3(v1p.y, v2p.y, v3p.y);
@@ -194,13 +187,10 @@ void GrTriangleFill(GrContext *gc, Vertex v1, Vertex v2, Vertex v3)
   min_y = height - min_y;
   max_y = height - max_y;
   
-  assert(min_y <= max_y);
-  assert(min_x <= max_x);
-  
   for (int i = min_y; i < max_y; i++) {
     for (int j = min_x; j < max_x; j++) { 
       int x = j;
-      int y = height - i;
+      int y = (height - i) - 1;
       int u = (edge1.x * (y-v2p.y)) - (edge1.y * (x-v2p.x));
       int v = (edge2.x * (y-v3p.y)) - (edge2.y * (x-v3p.x));
       int w = (edge0.x * (y-v1p.y)) - (edge0.y * (x-v1p.x));
