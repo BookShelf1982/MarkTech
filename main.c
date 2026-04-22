@@ -57,7 +57,7 @@ void UpdateCamera(Camera *c, float dt)
   c->pos = v3f_add(c->pos, dp);
 }
 
-#define SCALE 190
+#define SCALE 120
 
 #define WIDTH 4*SCALE
 #define HEIGHT 3*SCALE
@@ -180,6 +180,9 @@ void DrawIt(void)
     Vertex v1 = test_model.vertices[i];
     Vertex v2 = test_model.vertices[i + 1];
     Vertex v3 = test_model.vertices[i + 2];
+    v1.n = m4f_mul_vec(transform, v4f(V3f_Arg(v1.n), 0)).xyz;
+    v2.n = m4f_mul_vec(transform, v4f(V3f_Arg(v2.n), 0)).xyz;
+    v3.n = m4f_mul_vec(transform, v4f(V3f_Arg(v3.n), 0)).xyz;
     v1.p = m4f_mul_vec(transform, v4f(V3f_Arg(v1.p), 1)).xyz;
     v2.p = m4f_mul_vec(transform, v4f(V3f_Arg(v2.p), 1)).xyz;
     v3.p = m4f_mul_vec(transform, v4f(V3f_Arg(v3.p), 1)).xyz;

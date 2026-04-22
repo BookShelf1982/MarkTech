@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
+#include <assert.h>
 
 #define NOB_STRIP_PREFIX
 #include "nob.h"
@@ -20,10 +21,11 @@ Color SampleImage(Image *image, V2f sample_pos)
   // [0..1] >> [0..width/height]
   // [0..1] >> [1..0] >>  [height..0]
   unsigned int u = roundf(fmod(sample_pos.x, 1.0) * image->width);
-  unsigned int v = roundf((1.0 - fmod(sample_pos.y, 1.0)) * image->height);
+  unsigned int v = roundf((1.0 - fmod(sample_pos.y, 1.0)) * (image->height - 1));
 
   size_t index = (v * image->width) + u;
-  index = index > image->width * image->height ? image->width * image->height : index;
+  if (!(index < (image->width * image->height))) printf("tc = (%d, %d)\n", u, v);
+  assert(index < (image->width * image->height));
   
   Color *buf = image->buf;
   Color ret_color = buf[index];
@@ -35,9 +37,9 @@ void GrPushVertex(GrContext *gc, Vertex v)
   da_append(&gc->verts, v);
 }
 
-#define NEARCLIP_PLANE 1.0f
+#define NEARCLIP_PLANE 0.25f
 
-float InverseLerp(float a, float b, float c) { return (c - a) / (b - c); }
+float InverseLerp(float a, float b, float c) { return (c - a) / (b - a); }
 
 Vertex ClipVertex(Vertex a, Vertex b, float near)
 {
@@ -50,9 +52,11 @@ Vertex ClipVertex(Vertex a, Vertex b, float near)
 
   float t = InverseLerp(a.p.x, b.p.x, x);
   V2f tc = v2f_lerp(a.tc, b.tc, v2ff(t));
+  V3f n = v3f_lerp(a.n, b.n, v3ff(t));
   
   return (Vertex) {
     .p = v3f(x, y, near),
+    .n = n,
     .tc = tc
   };
 }
@@ -111,11 +115,6 @@ void GrTriangle(GrContext *gc, Vertex v1, Vertex v2, Vertex v3)
     
     Vertex d = ClipVertex(c, a, NEARCLIP_PLANE);
     Vertex new_c = ClipVertex(c, b, NEARCLIP_PLANE);
-    V2f tc = v2f(1, 0);
-    a.tc = tc;
-    b.tc = tc;
-    new_c.tc = tc;
-    d.tc = tc;
 
     PushTriangle(gc, a, b, new_c);
     PushTriangle(gc, a, new_c, d);
@@ -133,10 +132,6 @@ void GrTriangle(GrContext *gc, Vertex v1, Vertex v2, Vertex v3)
     
     Vertex b_prime = ClipVertex(b, a, NEARCLIP_PLANE);
     Vertex c_prime = ClipVertex(c, a, NEARCLIP_PLANE);
-    V2f tc = v2f(1, 1);
-    a.tc = tc;
-    b_prime.tc = tc;
-    c_prime.tc = tc;
     
     PushTriangle(gc, a, b_prime, c_prime);
   } return;
@@ -208,14 +203,21 @@ void GrTriangleFill(GrContext *gc, Vertex v1, Vertex v2, Vertex v3)
       unsigned int z_buffer_z = gc->depth_buffer->buf[j + (i * gc->depth_buffer->width)];
       if (z_int > z_buffer_z) continue;
       gc->depth_buffer->buf[j + (i * gc->depth_buffer->width)] = z_int;
-      
-      V2f tcoord = v2f(
-        (v1.tc.x*u)/det + (v2.tc.x*v)/det + (v3.tc.x*w)/det,
-        (v1.tc.y*u)/det + (v2.tc.y*v)/det + (v3.tc.y*w)/det
+
+      V2f tc = v2f(
+        z * (((v1.tc.x*u)/(v1.p.z))/det + ((v2.tc.x*v)/(v2.p.z))/det + ((v3.tc.x*w)/(v3.p.z))/det),
+        z * (((v1.tc.y*u)/(v1.p.z))/det + ((v2.tc.y*v)/(v2.p.z))/det + ((v3.tc.y*w)/(v3.p.z))/det)
       );
       
-      //Color color = SampleImage(gc->sampled_texture, tcoord);
-      Color color = {tcoord.x*255, tcoord.y*255, 0, 255};
+      V3f norm = v3f(
+        z * (((v1.n.x*u)/v1.p.z)/det + ((v2.n.x*v)/v2.p.z)/det + ((v3.n.x*w)/v3.p.z)/det),
+        z * (((v1.n.y*u)/v1.p.z)/det + ((v2.n.y*v)/v2.p.z)/det + ((v3.n.y*w)/v3.p.z)/det),
+        z * (((v1.n.z*u)/v1.p.z)/det + ((v2.n.z*v)/v2.p.z)/det + ((v3.n.z*w)/v3.p.z)/det)
+      );
+      
+      //Color color = SampleImage(gc->sampled_texture, tc);
+      Color color = (Color) {norm.x * 255, norm.y * 255, norm.z * 255, 255};
+      //Color color = (Color) {tc.x * 255, tc.y * 255, 0, 255};
       gc->framebuffer->buf[j + (i * gc->framebuffer->width)] = color;
     }
   }
