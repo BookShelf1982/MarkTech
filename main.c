@@ -163,6 +163,9 @@ float speed = (M_PI / 2.0);
 V3f translate = (V3f) {{0, 0, 2}};
 float scale = 1.0f;
 
+extern bool debug_draw;
+bool recalc_normals = false;
+
 void DrawIt(void)
 {
   GrClear(&gc);
@@ -174,18 +177,20 @@ void DrawIt(void)
 
   M4f transform = m4f_mul(translate_matrix, m4f_rot_y(theta));
   
-  transform = m4f_mul(ViewMatrix(&camera), transform);
+  M4f MV = m4f_mul(ViewMatrix(&camera), transform);
   
   for (size_t i = 0; i < test_model.vertex_count; i += 3) {
     Vertex v1 = test_model.vertices[i];
     Vertex v2 = test_model.vertices[i + 1];
     Vertex v3 = test_model.vertices[i + 2];
+    
     v1.n = m4f_mul_vec(transform, v4f(V3f_Arg(v1.n), 0)).xyz;
     v2.n = m4f_mul_vec(transform, v4f(V3f_Arg(v2.n), 0)).xyz;
     v3.n = m4f_mul_vec(transform, v4f(V3f_Arg(v3.n), 0)).xyz;
-    v1.p = m4f_mul_vec(transform, v4f(V3f_Arg(v1.p), 1)).xyz;
-    v2.p = m4f_mul_vec(transform, v4f(V3f_Arg(v2.p), 1)).xyz;
-    v3.p = m4f_mul_vec(transform, v4f(V3f_Arg(v3.p), 1)).xyz;
+    
+    v1.p = m4f_mul_vec(MV, v4f(V3f_Arg(v1.p), 1)).xyz;
+    v2.p = m4f_mul_vec(MV, v4f(V3f_Arg(v2.p), 1)).xyz;
+    v3.p = m4f_mul_vec(MV, v4f(V3f_Arg(v3.p), 1)).xyz;
     GrTriangle(&gc, v1, v2, v3);
   }
   
@@ -193,7 +198,6 @@ void DrawIt(void)
 }
 
 bool breakpoint = false;
-extern bool debug_draw;
 
 int main(int argc, const char **argv)
 {
@@ -222,6 +226,10 @@ int main(int argc, const char **argv)
     if (IsKeyPressed(SCANCODE_B)) breakpoint = true;
     if (IsKeyPressed(SCANCODE_R)) camera.pos = v3ff(0);
     if (IsKeyPressed(SCANCODE_T)) debug_draw = !debug_draw;
+    if (IsKeyPressed(SCANCODE_N)) {
+      recalc_normals = !recalc_normals;
+      printf("recalc_normals = %s\n", recalc_normals ? "true" : "false");
+    }
     UpdateCamera(&camera, dt);
     theta = fmodf(theta + (M_PI * 0.5) * dt, M_PI * 2);
   }

@@ -37,7 +37,7 @@ void GrPushVertex(GrContext *gc, Vertex v)
   da_append(&gc->verts, v);
 }
 
-#define NEARCLIP_PLANE 0.25f
+#define NEARCLIP_PLANE 1.0f
 
 float InverseLerp(float a, float b, float c) { return (c - a) / (b - a); }
 
@@ -195,7 +195,7 @@ void GrTriangleFill(GrContext *gc, Vertex v1, Vertex v2, Vertex v3)
       inside &= v == 0 ? ((edge2.x > 0 && edge2.y == 0) || edge2.y < 0) : v > 0;
       inside &= w == 0 ? ((edge0.x > 0 && edge0.y == 0) || edge0.y < 0) : w > 0;
 
-      if (debug_draw) gc->framebuffer->buf[j + (i * gc->framebuffer->width)] = (Color) {255, 0, 255, 255};
+      //if (debug_draw) gc->framebuffer->buf[j + (i * gc->framebuffer->width)] = (Color) {255, 0, 255, 255};
       if (!inside) continue;
       
       float z = 1.0f / ((((1.0f/v1.p.z)*u)/det) + (((1.0f/v2.p.z)*v)/det) + (((1.0f/v3.p.z)*w)/det));
@@ -204,6 +204,12 @@ void GrTriangleFill(GrContext *gc, Vertex v1, Vertex v2, Vertex v3)
       if (z_int > z_buffer_z) continue;
       gc->depth_buffer->buf[j + (i * gc->depth_buffer->width)] = z_int;
 
+      V3f fpos = v3f(
+        z * (((v1.p.x*u)/v1.p.z)/det + ((v2.p.x*v)/v2.p.z)/det + ((v3.p.x*w)/v3.p.z)/det),
+        z * (((v1.p.y*u)/v1.p.z)/det + ((v2.p.y*v)/v2.p.z)/det + ((v3.p.y*w)/v3.p.z)/det),
+        z
+      );
+      
       V2f tc = v2f(
         z * (((v1.tc.x*u)/(v1.p.z))/det + ((v2.tc.x*v)/(v2.p.z))/det + ((v3.tc.x*w)/(v3.p.z))/det),
         z * (((v1.tc.y*u)/(v1.p.z))/det + ((v2.tc.y*v)/(v2.p.z))/det + ((v3.tc.y*w)/(v3.p.z))/det)
@@ -214,9 +220,28 @@ void GrTriangleFill(GrContext *gc, Vertex v1, Vertex v2, Vertex v3)
         z * (((v1.n.y*u)/v1.p.z)/det + ((v2.n.y*v)/v2.p.z)/det + ((v3.n.y*w)/v3.p.z)/det),
         z * (((v1.n.z*u)/v1.p.z)/det + ((v2.n.z*v)/v2.p.z)/det + ((v3.n.z*w)/v3.p.z)/det)
       );
+
+      V3f light_dir = v3f_norm(v3f_sub(v3f(0, 10, -10), fpos), 1e-6, v3ff(0));
       
-      //Color color = SampleImage(gc->sampled_texture, tc);
-      Color color = (Color) {norm.x * 255, norm.y * 255, norm.z * 255, 255};
+      float cos_theta = fmaxf(0, v3f_dot(norm, light_dir));
+      
+      norm = v3f_mul(norm, v3ff(255));
+      v3f_clamp(norm, v3ff(0), v3ff(255));
+      
+      Color tex_color = SampleImage(gc->sampled_texture, tc);
+      V3f tex_vec = v3f_div(v3f(tex_color.r, tex_color.g, tex_color.b), v3ff(255));
+      tex_vec = v3f_pow(tex_vec, v3ff(1/2.2));
+
+      V3f final = v3f_mul(tex_vec, v3ff(cos_theta * 1.25));
+      final = v3f_mul(v3f_pow(final, v3ff(2.2)), v3ff(255));
+      final = v3f_clamp(final, v3ff(0), v3ff(255));
+      
+      Color color = {0};
+      if (debug_draw) {
+        color = (Color) {cos_theta * 255, cos_theta * 255, cos_theta * 255, 255};
+      } else {
+        color = (Color) {V3f_Arg(final), 255};
+      }
       //Color color = (Color) {tc.x * 255, tc.y * 255, 0, 255};
       gc->framebuffer->buf[j + (i * gc->framebuffer->width)] = color;
     }
