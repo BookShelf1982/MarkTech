@@ -57,7 +57,7 @@ void UpdateCamera(Camera *c, float dt)
   c->pos = v3f_add(c->pos, dp);
 }
 
-#define SCALE 120
+#define SCALE 160
 
 #define WIDTH 4*SCALE
 #define HEIGHT 3*SCALE
@@ -166,6 +166,25 @@ float scale = 1.0f;
 extern bool debug_draw;
 bool recalc_normals = false;
 
+void DrawModel(GrContext *gc, M4f world, M4f view, Model *mdl)
+{
+  M4f mv = m4f_mul(view, world);
+  for (size_t i = 0; i < mdl->vertex_count; i += 3) {
+    Vertex v1 = mdl->vertices[i];
+    Vertex v2 = mdl->vertices[i + 1];
+    Vertex v3 = mdl->vertices[i + 2];
+    
+    v1.n = m4f_mul_vec(world, v4f(V3f_Arg(v1.n), 0)).xyz;
+    v2.n = m4f_mul_vec(world, v4f(V3f_Arg(v2.n), 0)).xyz;
+    v3.n = m4f_mul_vec(world, v4f(V3f_Arg(v3.n), 0)).xyz;
+    
+    v1.p = m4f_mul_vec(mv, v4f(V3f_Arg(v1.p), 1)).xyz;
+    v2.p = m4f_mul_vec(mv, v4f(V3f_Arg(v2.p), 1)).xyz;
+    v3.p = m4f_mul_vec(mv, v4f(V3f_Arg(v3.p), 1)).xyz;
+    GrTriangle(gc, v1, v2, v3);
+  }
+}
+
 void DrawIt(void)
 {
   GrClear(&gc);
@@ -176,24 +195,14 @@ void DrawIt(void)
   translate_matrix._34 = translate.z;
 
   M4f transform = m4f_mul(translate_matrix, m4f_rot_y(theta));
+  M4f view = ViewMatrix(&camera);
   
-  M4f MV = m4f_mul(ViewMatrix(&camera), transform);
+  gc.mode = RENDER_MODE_FLAT_AMBIENT;
+  DrawModel(&gc, transform, view, &test_model);
+  GrFlush(&gc);
   
-  for (size_t i = 0; i < test_model.vertex_count; i += 3) {
-    Vertex v1 = test_model.vertices[i];
-    Vertex v2 = test_model.vertices[i + 1];
-    Vertex v3 = test_model.vertices[i + 2];
-    
-    v1.n = m4f_mul_vec(transform, v4f(V3f_Arg(v1.n), 0)).xyz;
-    v2.n = m4f_mul_vec(transform, v4f(V3f_Arg(v2.n), 0)).xyz;
-    v3.n = m4f_mul_vec(transform, v4f(V3f_Arg(v3.n), 0)).xyz;
-    
-    v1.p = m4f_mul_vec(MV, v4f(V3f_Arg(v1.p), 1)).xyz;
-    v2.p = m4f_mul_vec(MV, v4f(V3f_Arg(v2.p), 1)).xyz;
-    v3.p = m4f_mul_vec(MV, v4f(V3f_Arg(v3.p), 1)).xyz;
-    GrTriangle(&gc, v1, v2, v3);
-  }
-  
+  gc.mode = RENDER_MODE_LAMBERT;
+  DrawModel(&gc, transform, view, &test_model);
   GrFlush(&gc);
 }
 

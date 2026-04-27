@@ -42,11 +42,17 @@ typedef struct {
   size_t capacity;
 } VertexList;
 
+typedef enum {
+  RENDER_MODE_LAMBERT,
+  RENDER_MODE_FLAT_AMBIENT
+} RenderMode;
+
 typedef struct {
   Framebuffer *framebuffer;
   DepthBuffer *depth_buffer;
   Image *sampled_texture;
   VertexList verts;
+  RenderMode mode;
   float aspect_ratio;
 } GrContext;
 
