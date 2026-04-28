@@ -234,11 +234,8 @@ int main(int argc, const char **argv)
     if (IsKeyPressed(SCANCODE_ESCAPE)) break;
     if (IsKeyPressed(SCANCODE_B)) breakpoint = true;
     if (IsKeyPressed(SCANCODE_R)) camera.pos = v3ff(0);
-    if (IsKeyPressed(SCANCODE_T)) debug_draw = !debug_draw;
-    if (IsKeyPressed(SCANCODE_N)) {
-      recalc_normals = !recalc_normals;
-      printf("recalc_normals = %s\n", recalc_normals ? "true" : "false");
-    }
+    if (IsKeyDown(SCANCODE_I)) gc.light_power += (1 * dt);
+    if (IsKeyDown(SCANCODE_J)) gc.light_power -= (1 * dt);
     UpdateCamera(&camera, dt);
     theta = fmodf(theta + (M_PI * 0.5) * dt, M_PI * 2);
   }

@@ -53,6 +53,7 @@ typedef struct {
   Image *sampled_texture;
   VertexList verts;
   RenderMode mode;
+  float light_power;
   float aspect_ratio;
 } GrContext;
 
