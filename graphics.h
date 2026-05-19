@@ -66,6 +66,8 @@ do {                                                  \
 
 void GrTriangle(GrContext *gc, Vertex v1, Vertex v2, Vertex v3);
 void GrFlush(GrContext *gc);
+void GrText(GrContext *gc, const char *str, int col, int row, Color text, Color bg);
+void GrChar(GrContext *gc, unsigned char c, int col, int row, Color text, Color bg);
 void GrClear(GrContext *gc);
 
 #endif // GRAPHICS_H

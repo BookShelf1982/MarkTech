@@ -1,10 +1,6 @@
 #include <stdio.h>
 #include <float.h>
 
-#define NOB_IMPLEMENTATION
-#define NOB_STRIP_PREFIX
-#include "nob.h"
-
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -95,7 +91,7 @@ Image LoadImage(const char *filepath)
   Image img = {0};
   int channels = 0;
   int desired_channels = 4;
-  img.buf = stbi_load(filepath, &img.width, &img.height, &channels, desired_channels);
+  img.buf = stbi_load(filepath, (int *)&img.width, (int *)&img.height, &channels, desired_channels);
   return img;
 }
 
@@ -136,27 +132,8 @@ void PrintModel(Model *mdl)
   printf("}\n");
 }
 
-Vertex mesh_verts[] = {
-  {
-    .p = {0, 0, 5},
-    .tc = {1, 1}
-  },
-  {
-    .p = {-5, 0, 0},
-    .tc = {0, 0}
-  },
-  {
-   .p = {5, 0, 0},
-   .tc = {1, 0}
-  }
-};
-
-Model test_model = {
-  .vertex_count = 3,
-  .vertices = &mesh_verts,
-};
-
 Camera camera = {0};
+Model test_model = {0};
 
 float theta = 0.0f;
 float speed = (M_PI / 2.0);
@@ -185,6 +162,42 @@ void DrawModel(GrContext *gc, M4f world, M4f view, Model *mdl)
   }
 }
 
+#define WHITE ((Color){255, 255, 255, 255})
+#define BLUE ((Color){0, 0, 255, 255})
+
+#define Bool_Arg(x) ((x) ? "true" : "false")
+
+void GuiFrame(GrContext *gc, int col, int row, int width, int height)
+{
+  width = width < 6 ? 6 : width;
+  height = height < 3 ? 3 : height;
+  
+  int row_end = row + height - 1;
+  int col_end = col + width - 1;
+  
+  for (int i = row + 1; i < row_end; i++) {
+    for (int j = col + 1; j < col_end; j++) {
+      GrChar(gc, ' ', j, i, BLUE, WHITE);
+    }
+  }
+
+  for (int i = col + 1; i < col_end; i++) {
+    GrChar(gc, 0xCD, i, row, BLUE, WHITE);
+    GrChar(gc, 0xCD, i, row_end, BLUE, WHITE);
+  }
+  for (int i = row + 1; i < row_end; i++) {
+    GrChar(gc, 0xBA, row, i, BLUE, WHITE);
+    GrChar(gc, 0xBA, col_end, i, BLUE, WHITE);
+  }
+  
+  GrText(gc, "[X]", col_end - 3, row, BLUE, WHITE);
+  
+  GrChar(gc, 0xC9, col,     row,     BLUE, WHITE); // top left
+  GrChar(gc, 0xBB, col_end, row,     BLUE, WHITE); // top right
+  GrChar(gc, 0xC8, col,     row_end, BLUE, WHITE); // bottom left
+  GrChar(gc, 0xBC, col_end, row_end, BLUE, WHITE); // bottom right
+}
+
 void DrawIt(void)
 {
   GrClear(&gc);
@@ -204,6 +217,9 @@ void DrawIt(void)
   gc.mode = RENDER_MODE_LAMBERT;
   DrawModel(&gc, transform, view, &test_model);
   GrFlush(&gc);
+
+  GrText(&gc, "Hello, World!", 0, 0, BLUE, WHITE);
+  GuiFrame(&gc, 2, 2, 15, 15);
 }
 
 bool breakpoint = false;
@@ -232,8 +248,7 @@ int main(int argc, const char **argv)
     
     ProcessWindowEvents();
     if (IsKeyPressed(SCANCODE_ESCAPE)) break;
-    if (IsKeyPressed(SCANCODE_B)) breakpoint = true;
-    if (IsKeyPressed(SCANCODE_R)) camera.pos = v3ff(0);
+
     if (IsKeyDown(SCANCODE_I)) gc.light_power += (1 * dt);
     if (IsKeyDown(SCANCODE_J)) gc.light_power -= (1 * dt);
     UpdateCamera(&camera, dt);

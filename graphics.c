@@ -3,6 +3,7 @@
 #include <assert.h>
 
 #include "gamma_lut.c"
+#include "bitmap_font.c"
 
 #define NOB_STRIP_PREFIX
 #include "nob.h"
@@ -545,4 +546,44 @@ void GrFlush(GrContext *gc) {
   };
   
   gc->verts.count = 0;
+}
+
+void GrChar(GrContext *gc, unsigned char c, int col, int row, Color text, Color bg)
+{
+  int width = gc->framebuffer->width;
+  int height = gc->framebuffer->height;
+  if (row < 0 || row > (height/8) || col < 0 || col > (width/8)) return;
+  unsigned long long spr = bitmap_font[c];
+  for (int i = 0; i < 8; i++) {
+    for (int j = 7; j > -1; j--) {
+      bool bit = (spr >> ((i*8) + j) & 0x1);
+      Color *fb = gc->framebuffer->buf;
+      size_t index = ((row*8+i)*width) + (col*8) + (8-j);
+      if (bit) fb[index] = text; else fb[index] = bg;
+    }
+  }
+}
+
+void GrText(GrContext *gc, const char *str, int col, int row, Color text, Color bg)
+{
+  int width = gc->framebuffer->width;
+  int height = gc->framebuffer->height;
+  if (row < 0 || row > (height / 8)) return;
+  
+  const char *c = str;
+  int col_ofs = 0;
+  while (*c) {
+    if (col_ofs + col < 0 || col_ofs + col > (width/8)) return;
+    unsigned long long spr = bitmap_font[(int)*c];
+    for (int i = 0; i < 8; i++) {
+      for (int j = 7; j > -1; j--) {
+        bool bit = (spr >> ((i * 8) + j) & 0x1);
+        Color *fb = gc->framebuffer->buf;
+        size_t index = ((row* 8 + i) * width) + (col * 8) + (col_ofs * 8) + (8 - j);
+        if (bit) fb[index] = text; else fb[index] = bg;
+      }
+    }
+    c++;
+    col_ofs++;
+  }
 }
